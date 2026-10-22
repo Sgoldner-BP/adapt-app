@@ -132,7 +132,8 @@ nav.tabs button[aria-current="page"]{color:var(--blue)}
 nav.tabs{border-top:3px solid var(--blue-light)}
 .spark{width:100%;height:auto;display:block}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;word-break:break-all;background:var(--soft);border-radius:6px;padding:8px;max-height:120px;overflow:auto}
-.hero{display:grid;gap:12px;padding-block:8px 4px}
+.hero{display:grid;gap:12px;padding-block:24px 4px}
+.hero-title{color:var(--blue);font-size:1.9rem;padding-bottom:10px;border-bottom:3px solid var(--orange)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 14px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:30;font-size:.9rem}
 .sep{height:1px;background:var(--line)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
@@ -322,9 +323,9 @@ function header(){
 const V = {};
 V.welcome = () => `
   <div class="hero">
-    <img class="fig" src="img/journey.jpg" alt="The resilience journey: from the Painful Skill and Testing Movement, through Pain-Free Motion, Comfortable Contraction, and the Overload Exercise, to tracking progress past your old limits." width="1000" height="794">
-    <h1>The A.D.A.P.T. Method for Movement Resilience</h1>
+    <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
     <p class="muted">By Aaron Martin and Dr. Sam Goldner, DPT, CSCS, Pn1</p>
+    <img class="fig" src="img/journey.jpg" alt="The resilience journey: from the Painful Skill and Testing Movement, through Pain-Free Motion, Comfortable Contraction, and the Overload Exercise, to tracking progress past your old limits." width="1000" height="794">
   </div>
   <div class="stack">
     <div class="card">
