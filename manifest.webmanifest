@@ -1,0 +1,14 @@
+{
+  "name": "ADAPT Resilience",
+  "short_name": "ADAPT",
+  "description": "Your ADAPT plan: screening, the 5 Resilience Movements, and tracking. Works offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f9fc",
+  "theme_color": "#d8f0fc",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
