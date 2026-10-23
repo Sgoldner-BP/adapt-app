@@ -299,16 +299,16 @@ function screenResult(p){
   const answered = Object.keys(rf).length===RED_FLAGS.length && Object.keys(hh).length===HEALTH.length;
   return { yesRF, yesHH, emergency, other, any: yesRF.length+yesHH.length>0, answered };
 }
-function upgradeMsg(){
+function upgradeMsg(basis){ // basis "tracking": the 6-week trigger, where "your selection" doesn't fit
   const link = UPGRADE_LINK ? `<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>` : "[INSERT LINK TO UPGRADE]";
-  return esc(MSG_INPERSON_A)+link+esc(MSG_INPERSON_B);
+  return esc(basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A)+link+esc(MSG_INPERSON_B);
 }
 function screenMessages(p){
   const r=screenResult(p); if(!r.any) return `<div class="msg good"><b>No red flags or health flags selected.</b><p class="small">You can continue to Step 1.</p></div>`;
   let h="";
   const sam = p.support==="sam";
-  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div>`;
-  else h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
+  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
+  else h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
   if(r.emergency.length) h+=`<div class="msg alert" role="alert"><p>${esc(MSG_RIGHT_NOW)}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
@@ -316,16 +316,17 @@ function screenMessages(p){
 
 const MSG_SECOND_STEP = "In the meantime, use your judgement as to what training you can still continue that does not provoke your symptoms."; // Sam, October 23, 2026
 // Progress checks on the weekly Testing Movement (Sam, October 23, 2026). "Unclear" counts as "Same".
-const MSG_TWO_WEEK = "Your last two weekly tests didn't show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps."; // DRAFT wording
-const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention."; // DRAFT wording
-function progressCheck(p){ const L=p.logs.tests.filter(t=>t.trend); const last2=L.slice(-2);
-  if(last2.length<2) return {stalled:false, regressed:false, key:null};
-  const stalled=last2.every(t=>t.trend!=="progressed"); const regressed=last2.every(t=>t.trend==="regressed");
-  return {stalled, regressed, key: stalled ? last2[1].date+":"+L.length : null}; }
+const MSG_TWO_WEEK = "Your last two weekly tests didn't show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
+const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention.";  // Sam approved, October 23, 2026
+function progressCheck(p){ const L=p.logs.tests.filter(t=>t.trend); let run=0; for(let i=L.length-1;i>=0&&L[i].trend!=="progressed";i--) run++;
+  const checks=Math.floor(run/2); const last2=L.slice(-2);
+  return {stalled:checks>=1, refer:checks>=3, regressed:last2.length===2&&last2.every(t=>t.trend==="regressed"), checks, key: checks ? (L[L.length-run].date+":"+checks) : null}; }
 function checkTrackFlag(p){ const c=progressCheck(p); if(!c.stalled) return; p.notified=p.notified||{}; if(p.notified.track!==c.key){ p.notified.track=c.key; queueFlag(p,"Track"); save(true); } }
 function progressMsgs(p){ const c=progressCheck(p); let h="";
   if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
-  if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(MSG_TWO_WEEK)}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  if(c.refer) h+= p.support==="sam" ? `<div class="msg warn"><b>Flagged for Sam</b><p class="small">${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div><button class="btn small" data-act="go" data-v="checkin">Send my answers to Sam</button>`
+    : `<div class="msg warn"><b>Follow up</b><p class="small">${upgradeMsg("tracking")}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div>`;
+  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(MSG_TWO_WEEK)}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
   return h; }
 function noTmMsg(p){ const sam=p.support==="sam";
   return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
@@ -686,7 +687,7 @@ function summaryText(p){
   const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
   const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
   const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
-  { const c=progressCheck(p); if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); else if(c.stalled) lines.push("Two-week check: no progress on the last 2 tests"); }
+  { const c=progressCheck(p); if(c.refer) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row (follow-up shown)`); else if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); else if(c.stalled) lines.push("Two-week check: no progress on the last 2 tests"); }
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
