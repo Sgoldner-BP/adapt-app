@@ -717,7 +717,10 @@ function render(){
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
-function go(v){ view=v; logForm=null; armed=null; tmp={}; render(); window.scrollTo(0,0); }
+function go(v, fromHistory){ const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; render(); window.scrollTo(0,0);
+  if(!fromHistory && changed){ try{ history.pushState({view:v},"",baseURL()); }catch(e){} } }
+// Back button / back swipe moves between screens instead of leaving the app
+window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true); });
 
 /* ---------- Events ---------- */
 document.addEventListener("input", e=>{
@@ -784,15 +787,16 @@ async function openCode(raw){
     if(!d || !d.assess) throw new Error("bad");
     const isCheckin = kindMatch ? kindMatch[1]==="c" : !!d._sent;
     if(isCheckin){ coachData=d; go("coach"); } else { importData=d; go("import"); }
-  }catch(e){ toast("That link or code couldn't be read"); }
+  }catch(e){ toast("That link or code couldn't be read"); render(); }
 }
 
 /* ---------- Boot ---------- */
 load();
 (async()=>{
-  const h=location.hash;
-  if(/^#[cp]=/.test(h)){ await openCode(h); }
-  else { view = store.activeId ? "home" : "welcome"; render(); }
+  const h=location.hash; const startView = store.activeId ? "home" : "welcome";
+  try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
+  if(/^#[cp]=/.test(h)){ view=startView; await openCode(h); }
+  else { view = startView; render(); }
 })();
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
