@@ -17,7 +17,7 @@
   --bg:#f4f9fc; --surface:#ffffff; --fg:#1b1e21; --muted:#5d656c; --line:#dadfe3; --soft:#eef0f2;
   --accent:#06669c; --accent-ink:#ffffff; --orange:#e8692a; --accent-text:#b4501d; --accent-soft:#fdeee5;
   --blue:#06669c; --blue-light:#d8f0fc; --blue-line:#9fd3ec; --blue-soft:#d8f0fc;
-  --good:#1d8f37; --good-soft:#e2f4e6; --warn:#b4501d; --warn-soft:#fdeee5; --alert:#b3161b; --alert-soft:#fde4e3;
+  --good:#1d8f37; --good-soft:#e2f4e6; --warn:#b4501d; --warn-soft:#fdeee5; --alert:#b3161b; --alert-soft:#fde4e3; --mid:#8a6a00; --mid-soft:#fff3c4;
   --display:"Archivo", "Arial Black", Arial, sans-serif;
   --body:"Source Sans 3", "Segoe UI", Arial, sans-serif;
   --navh:64px;
@@ -26,12 +26,12 @@
   --bg:#111618; --surface:#1b1e21; --fg:#e8eaec; --muted:#9aa3ab; --line:#2e3338; --soft:#23272b;
   --accent:#8fd0f2; --accent-ink:#111618; --orange:#f08a52; --accent-text:#f5a070; --accent-soft:#3a2418;
   --blue:#8fd0f2; --blue-light:#24485c; --blue-line:#3b6a82; --blue-soft:#163242;
-  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; color-scheme:dark}}
+  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#111618; --surface:#1b1e21; --fg:#e8eaec; --muted:#9aa3ab; --line:#2e3338; --soft:#23272b;
   --accent:#8fd0f2; --accent-ink:#111618; --orange:#f08a52; --accent-text:#f5a070; --accent-soft:#3a2418;
   --blue:#8fd0f2; --blue-light:#24485c; --blue-line:#3b6a82; --blue-soft:#163242;
-  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; color-scheme:dark}
+  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{min-height:100%}
 html{scroll-padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 16px);scroll-padding-top:16px}
@@ -102,6 +102,7 @@ textarea{min-height:76px;resize:vertical}
 .done-btn span{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
 .done-btn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good)}
 .done-btn:disabled{opacity:.6;cursor:default}
+.linkbtn{font:inherit;background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer;text-align:left}
 .done-btn[aria-pressed="true"] .state{color:var(--good)}
 .state{font-weight:700;font-size:.85rem}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.75rem;color:var(--muted)}
@@ -117,6 +118,22 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mu
 .chip.good{background:var(--good-soft);color:var(--good)}
 .chip.due{background:var(--warn-soft);color:var(--warn)}
 .chip.alert{background:var(--alert-soft);color:var(--alert)}
+.chip.mid{background:var(--mid-soft);color:var(--mid)}
+.tr{display:inline-block;font-size:.75rem;font-weight:700;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.tr.progressed{background:var(--good-soft);color:var(--good)} .tr.same{background:var(--mid-soft);color:var(--mid)} .tr.regressed{background:var(--alert-soft);color:var(--alert)} .tr.unclear{background:var(--soft);color:var(--muted)}
+.trend-pick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.trend-pick button{font:inherit;font-size:.85rem;font-weight:700;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:4px}
+.trend-pick button[aria-pressed="true"][data-v="progressed"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.trend-pick button[aria-pressed="true"][data-v="same"]{background:var(--mid-soft);border-color:var(--mid);color:var(--mid)}
+.trend-pick button[aria-pressed="true"][data-v="regressed"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.trend-pick button[aria-pressed="true"][data-v="unclear"]{background:var(--soft);border-color:var(--muted)}
+@media (max-width:380px){.trend-pick{grid-template-columns:repeat(2,1fr)}}
+.trend-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.days14{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.days14 button{font:inherit;font-size:.75rem;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:52px;display:grid;gap:3px;justify-items:center;align-content:center;padding:4px 0;cursor:pointer}
+.days14 button[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-line)}
+.days14 .dd{display:flex;gap:3px}
+.days14 .dot{width:10px;height:10px}
 details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 16px}
 details[open]{padding-bottom:16px}
 summary{cursor:pointer;font-family:var(--display);font-weight:600;padding-block:14px;list-style:none;display:flex;justify-content:space-between;gap:10px}
@@ -293,11 +310,15 @@ function screenMessages(p){
   return h;
 }
 
+const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skills, lifting, and conditioning that don’t provoke it, within whatever your provider advises."; // DRAFT: from 01's second-step rule; Sam to approve
+function noTmMsg(p){ const sam=p.support==="sam";
+  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
+
 /* ---------- Step completion ---------- */
 const STEPS = [
   {k:"screen", n:"0", t:"Pre-ADAPT Screening", done:p=>p.screen.done},
   {k:"step1", n:"1", t:"Assess", done:p=>!!p.assess.skill.trim()},
-  {k:"step2", n:"2", t:"Determine", done:p=>!!p.determine.move.trim()},
+  {k:"step2", n:"2", t:"Determine", done:p=>!!p.determine.move.trim()||!!p.determine.none},
   {k:"step3", n:"3", t:"Approach", done:p=>!!(p.approach.pfm.trim()||p.approach.cc.trim())},
   {k:"step4", n:"4", t:"Program", done:p=>!!(p.program.ov.trim()||p.program.skip)},
   {k:"step5", n:"5", t:"Track", done:p=>p.tracking}];
@@ -305,7 +326,7 @@ function stepSub(p,k){
   switch(k){
     case "screen": return p.screen.done ? (screenResult(p).any?"Done, with flags":"Done, no flags") : "Red flags and health questions";
     case "step1": return p.assess.skill || `Your ${skillLabel(p)}`;
-    case "step2": return p.determine.move || "Your Testing Movement";
+    case "step2": return p.determine.move || (p.determine.none?"None found yet (flagged)":"Your Testing Movement");
     case "step3": return [p.approach.pfm,p.approach.cc].filter(Boolean).join(" + ") || "Pain-Free Motion and Comfortable Contraction";
     case "step4": return p.program.skip ? "Skipped for now" : (p.program.ov || "Your Overload Exercise");
     case "step5": return p.tracking ? "Tracking" : "How to track";
@@ -314,7 +335,7 @@ function stepSub(p,k){
 const nextStep = p => STEPS.find(s=>!s.done(p));
 
 /* ---------- Views ---------- */
-let view = "home", coachData = null, importData = null, armed = null, logForm = null;
+let view = "home", coachData = null, importData = null, armed = null, logForm = null, selDay = null;
 
 function header(){
   const p=P(); const who = p ? (p.origin==="coach" ? `Plan for ${p.person||"client"}` : (p.person||"")) : "";
@@ -332,7 +353,7 @@ V.welcome = () => `
     <div class="card">
       <label class="f" for="f-name">Your first name<span class="hint">Shown on your plan and check-ins.</span><input type="text" id="f-name" placeholder="First name"></label>
       <button class="btn" data-act="start" data-v="self">Start my plan</button>
-      <button class="btn ghost" data-act="go" data-v="open">I have a link or code from Sam</button>
+      <button class="btn plain small" data-act="go" data-v="open">I have a plan link from my coach</button>
       <button class="btn plain small" data-act="go" data-v="restore">Restore a backup from another device</button>
     </div>
     <details><summary>Coach: build a plan for a client</summary><div class="body">
@@ -434,6 +455,8 @@ V.step2 = () => {
   ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP during the test</b>${scale("determine.nrsop",d.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}
   <div class="msg info"><b>“Happy-Medium” pain for the Testing Movement</b><ul class="tight small"><li>No increased pain the day after</li><li>No increased fear or anxiety</li></ul><p class="small">Ultimately, you want to feel comfortable visiting your pain this way once a week.</p></div>
   </div>
+  <div class="card"><label class="row small"><input type="checkbox" data-act="no-tm" ${d.none?"checked":""}> I’ve explored, and I can’t find a movement that reliably reproduces it</label>
+  ${d.none?noTmMsg(p):""}</div>
   ${stepNav("step1","step3","Next: Approach")}</div>`;
 };
 
@@ -489,38 +512,55 @@ V.step5 = () => { const p=P(); return `<div class="stack">
   <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Determine step</li>
   <li>Test your Painful Skill when you feel ready (you’ll know when)</li></ul>
   <p class="small">It is easy to get frustrated when we do not see results. This level of tracking avoids many of the common pitfalls that lead to frustration. If you are not actually improving, you will notice it and know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
-  ${p.origin==="coach" ? sendPlanCard(p) : `<button class="btn" data-act="start-tracking">${p.tracking?"Go to my plan":"Start tracking"}</button>`}
+  ${(()=>{ const miss=missingSteps(p); return miss.length&&!p.tracking?`<div class="msg warn"><b>Still blank</b><ul class="tight small">${miss.map(([s,l])=>`<li><button class="linkbtn" data-act="go" data-v="${s}">${l}</button></li>`).join("")}</ul><p class="small">You can start tracking anyway and fill these in later.</p></div>`:""; })()}
+  ${p.origin==="coach" ? sendPlanCard(p) : `<button class="btn" data-act="start-tracking">${p.tracking?"Go to my plan":missingSteps(p).length?"Start tracking anyway":"Start tracking"}</button>`}
   <div class="row"><button class="btn plain" data-act="go" data-v="step4">Back</button></div></div>`; };
+
+function missingSteps(p){ const m=[];
+  if(!p.screen.done) m.push(["screen","Pre-ADAPT Screening"]);
+  if(!p.assess.skill.trim()) m.push(["step1",skillLabel(p)]);
+  if(!p.determine.move.trim()&&!p.determine.none) m.push(["step2","Testing Movement"]);
+  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
+  if(!p.approach.cc.trim()) m.push(["step3","Comfortable Contraction"]);
+  if(!p.program.ov.trim()&&!p.program.skip) m.push(["step4","Overload Exercise (or tick “skip it for now”)"]);
+  return m; }
 
 /* ---------- Dashboard ---------- */
 function dashboard(p){
-  const t=today(); const day=p.logs.daily[t]||{};
-  const days=[...Array(7)].map((_,i)=>addDays(t,i-6));
+  const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
+  const days=[...Array(14)].map((_,i)=>addDays(t,i-13));
+  const tmNone=!!p.determine.none, tmSet=!!p.determine.move.trim();
+  const lastOv=p.logs.overload[p.logs.overload.length-1];
   const lastTest = p.logs.tests[p.logs.tests.length-1];
   const since = daysBetween(lastTest ? lastTest.date : (p.trackStart||p.created), t);
   const due = since>=7;
   const c14 = consistency(p,14);
   return `<div class="stack">
-  <div class="card"><div class="row spread"><span class="eyebrow">Today, ${esc(fmtDate(t))}</span></div>
+  <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
       <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of the last 14 days</span></button>
       <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${p.approach.cc.trim()?"":"disabled"}><b>Comfortable Contraction</b><span>${esc(p.approach.cc||"Not set yet")}</span><span class="state">${!p.approach.cc.trim()?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of the last 14 days</span></button>
     </div>
     <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
-    <div class="week" aria-label="Last 7 days">${days.map(d=>{const x=p.logs.daily[d]||{};return `<div class="d"><span>${new Date(d+"T12:00:00").toLocaleDateString(undefined,{weekday:"narrow"})}</span><span class="dot ${x.pfm?"on":""}" title="Pain-Free Motion"></span><span class="dot ${x.cc?"on":""}" title="Comfortable Contraction"></span></div>`;}).join("")}</div>
+    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Comfortable Contraction ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
+    <p class="fine">Last 14 days. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Comfortable Contraction.</p>
   </div>
   <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
     <p class="small">${p.program.skip?"Skipped for now. Keep exploring and modifying.":esc(p.program.ov||"Not set yet")}${p.program.replaces?` <span class="muted">(replaces ${esc(p.program.replaces)})</span>`:""}</p>
+    ${recentTrends(p.logs.overload)}
+    ${lastOv&&logForm!=="ov"?painNote(p,lastOv.nrsop):""}
     ${ovTable(p)}
     ${logForm==="ov"?ovForm(p):`<button class="btn plain" data-act="logform" data-v="ov">Log a session</button>`}
   </div>
-  <div class="card"><div class="row spread"><h2>Weekly Testing Movement</h2>${due?`<span class="chip due">Due</span>`:`<span class="chip good">Next in ${7-since} days</span>`}</div>
-    <p class="small">${esc(p.determine.move||"Not set yet")}</p>
+  <div class="card"><div class="row spread"><h2>Weekly Testing Movement</h2>${!tmSet?(tmNone?`<span class="chip alert">None found yet</span>`:`<span class="chip">Not set</span>`):due?`<span class="chip due">Due</span>`:`<span class="chip good">Next in ${7-since} days</span>`}</div>
+    ${!tmSet?(tmNone?`<p class="small">No movement reliably reproduces it yet. ${p.support==="sam"?"Sam has been flagged.":"See the follow-up advice in Step 2."} If you find one, add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`:`<p class="small">Not set yet. Add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`):`<p class="small">${esc(p.determine.move)}</p>
+    ${recentTrends(p.logs.tests)}
     ${testTrend(p)}
-    ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}
+    ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}`}
   </div>
   <div class="card"><h2>${esc(skillLabel(p))} retest <span style="font-family:var(--body);font-size:.9rem;font-weight:700;color:var(--warn)">only when you feel ready (you’ll know when)</span></h2>
     <p class="small">${esc(p.assess.skill||"")}${p.assess.psfs!=null?` <span class="muted">· started at PSFS ${p.assess.psfs}/10</span>`:""}</p>
+    ${recentTrends(p.logs.skill)}
     ${skillTable(p)}
     ${logForm==="skill"?skillForm(p):`<button class="btn plain" data-act="logform" data-v="skill">I tried my skill</button>`}
   </div>
@@ -536,6 +576,7 @@ function testForm(p){ const f=p._draft||{}; return `<div class="card" style="bac
   <label class="f" for="t-range">Range of motion<input type="text" id="t-range" placeholder="${esc(p.determine.range||"")}"></label>
   <label class="f" for="t-load">Load<input type="text" id="t-load" placeholder="${esc(p.determine.load||"")}"></label>
   ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
+  ${trendPick()}
   <label class="f" for="t-notes">Notes<input type="text" id="t-notes"></label>
   <div class="row"><button class="btn" data-act="save-test">Save test</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 function ovForm(p){ return `<div class="card" style="background:var(--soft)">
@@ -544,14 +585,24 @@ function ovForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="o-range">Range<input type="text" id="o-range"></label>
   <label class="f" for="o-load">Load<input type="text" id="o-load"></label>
   ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
+  ${painNote(p,tmp.nrsop)}
+  ${trendPick()}
   <label class="f" for="o-notes">Notes<input type="text" id="o-notes"></label>
   <div class="row"><button class="btn" data-act="save-ov">Save session</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 function skillForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="s-date">Date<input type="date" id="s-date" value="${today()}"></label>
   <div style="display:grid;gap:6px"><b>PSFS</b>${scale("_tmp.psfs",tmp.psfs,"psfs")}</div>
+  ${trendPick()}
   <label class="f" for="s-notes">Notes<input type="text" id="s-notes"></label>
   <div class="row"><button class="btn" data-act="save-skill">Save</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 let tmp = {};
+const TRENDS=[["progressed","Progressed"],["same","Same"],["regressed","Regressed"],["unclear","Unclear"]];
+function trendPick(){ return `<div style="display:grid;gap:6px"><b>Compared with last time</b><div class="trend-pick" role="group" aria-label="Compared with last time">${TRENDS.map(([k,l])=>`<button type="button" data-act="settrend" data-v="${k}" aria-pressed="${tmp.trend===k}">${l}</button>`).join("")}</div></div>`; }
+function trChip(k){ const t=TRENDS.find(x=>x[0]===k); return t?`<span class="tr ${k}">${t[1]}</span>`:""; }
+function recentTrends(list){ const L=list.filter(r=>r.trend).slice(-6); return L.length?`<div class="trend-row"><span class="fine">Recent:</span>${L.map(r=>trChip(r.trend)).join("")}</div>`:""; }
+function trendCount(list,days){ const t=today(); const L=list.filter(r=>r.trend&&daysBetween(r.date,t)<days); if(!L.length) return ""; return TRENDS.map(([k,l])=>[l,L.filter(r=>r.trend===k).length]).filter(x=>x[1]).map(x=>x[0]+" "+x[1]).join(", "); }
+function painNote(p,n){ const b=p.assess.nrsop; if(!isPainful(p)||n==null||b==null||n<=b+2) return "";
+  return `<div class="msg warn"><p class="small"><b>Pain rule reminder.</b> During the exercise, pain can rise up to 2 points above your baseline, as long as it settles back to baseline shortly after. This entry (${n}/10) is more than 2 points above the NRSoP you started with (${b}/10). If it doesn’t settle back shortly after, that’s your signal to scale back next time.</p></div>`; }
 
 function rmBtn(list,i){ const k=list+":"+i; return `<button class="btn small ghost" data-act="rm" data-list="${list}" data-i="${i}">${armed===k?"Tap again to remove":"Remove"}</button>`; }
 function testTrend(p, ro){
@@ -565,14 +616,14 @@ function testTrend(p, ro){
     const last=pts[pts.length-1];
     spark=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Testing Movement NRSoP over time, lower is better"><line x1="${left}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><line x1="${left}" x2="${W-pad}" y1="${Y(5)}" y2="${Y(5)}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="${left}" x2="${W-pad}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--line)"/><text x="${left-6}" y="${Y(0)+4}" font-size="11" fill="var(--muted)" text-anchor="end">0</text><text x="${left-6}" y="${Y(5)+4}" font-size="11" fill="var(--muted)" text-anchor="end">5</text><text x="${left-6}" y="${Y(10)+4}" font-size="11" fill="var(--muted)" text-anchor="end">10</text><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3" fill="var(--blue)"/>`).join("")}<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="var(--blue)"/></svg><p class="fine">NRSoP during the test (0 at the top: higher on the chart means less pain). Improvement in dose, range, or load counts as progress too.</p>`; }
   const cols=[["Dose","dose"],["Range","range"],["Load","load"]].filter(([,k])=>rows.some(r=>r[k]));
-  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
+  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${i?trChip(r.trend):""}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
   return spark+tbl;
 }
 function ovTable(p,ro){ const L=p.logs.overload; if(!L.length) return `<p class="fine">No sessions logged yet.</p>`;
   const cols=[["Reps","sets"],["Range","range"],["Load","load"]].filter(([,k])=>L.some(r=>r[k])); const notes=L.some(r=>r.notes);
-  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}${notes?"<th>Notes</th>":""}${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>({r,i})).slice(ro?-20:-4).reverse().map(({r,i})=>`<tr><td>${esc(fmtDate(r.date))}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}${notes?`<td class="wrap">${esc(r.notes)}</td>`:""}${ro?"":`<td>${rmBtn("overload",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}${notes?"<th>Notes</th>":""}${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>({r,i})).slice(ro?-20:-4).reverse().map(({r,i})=>`<tr><td>${esc(fmtDate(r.date))}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${trChip(r.trend)}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}${notes?`<td class="wrap">${esc(r.notes)}</td>`:""}${ro?"":`<td>${rmBtn("overload",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
 function skillTable(p,ro){ const L=p.logs.skill; if(!L.length) return "";
-  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>PSFS</th><th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${r.psfs==null?"":r.psfs+"/10"}</td><td class="wrap">${esc(r.notes)}</td>${ro?"":`<td>${rmBtn("skill",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
+  const tc=L.some(r=>r.trend); return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>PSFS</th>${tc?"<th>Trend</th>":""}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${r.psfs==null?"":r.psfs+"/10"}</td>${tc?`<td>${trChip(r.trend)}</td>`:""}<td class="wrap">${esc(r.notes)}</td>${ro?"":`<td>${rmBtn("skill",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
 
 /* ---------- Check-in ---------- */
 function summaryText(p){
@@ -581,13 +632,13 @@ function summaryText(p){
   `${skillLabel(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
   `Pain-Free Motion: ${p.approach.pfm||"-"} | done ${c.pfm} of last 14 days`,
   `Comfortable Contraction: ${p.approach.cc||"-"} | done ${c.cc} of last 14 days`,
-  `Testing Movement: ${p.determine.move||"-"}`,
+  `Testing Movement: ${p.determine.move||(p.determine.none?"none found yet (flagged)":"-")}`,
   `  Start: ${[p.determine.dose,p.determine.range,p.determine.load].filter(Boolean).join(", ")||"-"}${p.determine.nrsop!=null?` | NRSoP ${p.determine.nrsop}/10`:""}`,
   last?`  Latest (${fmtDate(last.date)}): ${[last.dose,last.range,last.load].filter(Boolean).join(", ")||"-"}${last.nrsop!=null?` | NRSoP ${last.nrsop}/10`:""}${last.notes?` | ${last.notes}`:""}`:"  No weekly tests logged yet",
-  `  Tests logged: ${L.length}`,
-  `Overload: ${p.program.skip?"skipped for now":(p.program.ov||"-")} | sessions in last 7 days: ${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length}`];
+  `  Tests logged: ${L.length}${trendCount(L,14)?` | last 14 days: ${trendCount(L,14)}`:""}`,
+  `Overload: ${p.program.skip?"skipped for now":(p.program.ov||"-")} | sessions in last 7 days: ${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length}${trendCount(p.logs.overload,14)?` | last 14 days: ${trendCount(p.logs.overload,14)}`:""}`];
   const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
-  const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.notes?` | ${ls.notes}`:""}`);
+  const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
   const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
@@ -663,16 +714,13 @@ V.more = () => { const p=P(); const plans=Object.values(store.plans); const clie
   <div class="card flat"><span class="eyebrow">More</span><h1>Settings and plans</h1></div>
   <div class="card"><h2>This plan</h2>
   ${field(p.origin==="coach"?"Client's first name":"Your first name","person")}
-  <div class="row" role="group" aria-label="Support"><span class="small"><b>Support:</b></span>
-   <button class="btn small ${p.support==="self"?"":"plain"}" data-act="support" data-v="self" aria-pressed="${p.support==="self"}">Self-guided</button>
-   <button class="btn small ${p.support==="sam"?"":"plain"}" data-act="support" data-v="sam" aria-pressed="${p.support==="sam"}">Working with Sam</button></div>
-  <p class="fine">Plans Sam sends you are set to “Working with Sam.” In the full version this comes from the plan you buy.</p>
+  <p class="small"><b>Support:</b> ${p.support==="sam"?"Working with Sam. Set by the plan Sam sent you; new plans you start keep it.":"Self-guided."}</p>
   ${p.origin==="coach"?sendPlanCard(p):""}</div>
   <div class="card"><h2>Plans on this device</h2>
   ${plans.map(x=>`<div class="row spread"><span class="small"><b>${esc(x.assess.skill||"New plan")}</b> <span class="muted">${esc(x.origin==="coach"?"for "+(x.person||"client"):x.person||"")} · ${esc(fmtDate(x.created))}</span></span>${x.id===store.activeId?`<span class="chip good">Open</span>`:`<button class="btn small plain" data-act="switch" data-v="${x.id}">Open</button>`}</div>`).join("")}
   <div class="row"><button class="btn small plain" data-act="new" data-v="self">New plan (new area or injury)</button><button class="btn small plain" data-act="new" data-v="coach">New client plan</button></div></div>
   ${clients.length?`<div class="card"><h2>Client check-ins received</h2>${clients.map(c=>`<div class="row spread"><span class="small"><b>${esc(c.data.person||"Client")}</b> <span class="muted">${esc(c.data.assess.skill||"")} · received ${esc(fmtDate(c.received))}</span></span><button class="btn small plain" data-act="view-client" data-v="${c.data.id}">View</button></div>`).join("")}</div>`:""}
-  <div class="card"><h2>Open a link or code</h2><p class="small">Paste a plan link from Sam, or a client's check-in link.</p>
+  <div class="card"><h2>Open a link or code</h2><p class="small">Paste a plan link from your coach, or a client's check-in link.</p>
   <textarea id="open-code" placeholder="Paste here"></textarea><button class="btn plain" data-act="open-code">Open</button></div>
   <div class="card"><h2>Backup</h2><p class="small">Everything is saved on this device only. Copy a backup now and then, and before switching phones.</p>
   <div class="row"><button class="btn small plain" data-act="export">Copy backup</button><button class="btn small plain" data-act="go" data-v="restore">Restore a backup</button></div>
@@ -681,13 +729,13 @@ V.more = () => { const p=P(); const plans=Object.values(store.plans); const clie
   ${legal()}
   </div>`; };
 
-V.open = () => `<div class="stack"><div class="card flat"><span class="eyebrow">From Sam</span><h1>Open a link or code</h1></div>
-  <div class="card"><textarea id="open-code" placeholder="Paste the link or code Sam sent you"></textarea><button class="btn" data-act="open-code">Open</button>
+V.open = () => `<div class="stack"><div class="card flat"><span class="eyebrow">From your coach</span><h1>Open a plan link</h1></div>
+  <div class="card"><textarea id="open-code" placeholder="Paste the link or code your coach sent you"></textarea><button class="btn" data-act="open-code">Open</button>
   <button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 V.restore = () => `<div class="stack"><div class="card flat"><span class="eyebrow">Backup</span><h1>Restore a backup</h1></div>
   <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 
-V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from Sam</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
+V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from your coach</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
   <div class="card"><p><b>${esc(skillLabel(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Comfortable Contraction:</b> ${esc(d.approach.cc||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
   <button class="btn" data-act="import-save">Save to this device and start</button>
   <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
@@ -699,9 +747,9 @@ V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenRe
   <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Comfortable Contraction: <b>${c.cc}/14</b> days</p>
    <div class="week">${[...Array(14)].map((_,i)=>addDays(today(),i-13)).map(dd=>{const x=d.logs.daily[dd]||{};return `<div class="d"><span>${new Date(dd+"T12:00:00").getDate()}</span><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></div>`;}).join("")}</div></div>
   <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Comfortable Contraction:</b> ${esc(d.approach.cc||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
-  <div class="card"><h2>Testing Movement: ${esc(d.determine.move||"")}</h2>${testTrend(d,true)}</div>
-  <div class="card"><h2>Overload sessions</h2>${ovTable(d,true)}</div>
-  <div class="card"><h2>Skill retests</h2>${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
+  <div class="card"><h2>Testing Movement: ${esc(d.determine.move||(d.determine.none?"none found yet (flagged)":""))}</h2>${recentTrends(d.logs.tests)}${testTrend(d,true)}</div>
+  <div class="card"><h2>Overload sessions</h2>${recentTrends(d.logs.overload)}${ovTable(d,true)}</div>
+  <div class="card"><h2>Skill retests</h2>${recentTrends(d.logs.skill)}${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
   <div class="row"><button class="btn" data-act="coach-save">Keep on this device</button><button class="btn plain" data-act="coach-close">Close</button></div></div>`; };
 
 /* ---------- Render ---------- */
@@ -717,7 +765,7 @@ function render(){
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
-function go(v, fromHistory){ const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; render(); window.scrollTo(0,0);
+function go(v, fromHistory){ const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
   if(!fromHistory && changed){ try{ history.pushState({view:v},"",baseURL()); }catch(e){} } }
 // Back button / back swipe moves between screens instead of leaving the app
 window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true); });
@@ -745,13 +793,15 @@ document.addEventListener("click", async e=>{
     case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
-    case "daily": { const t=today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,notes:g("t-notes")}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Test saved"); break; }
-    case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
-    case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Saved"); break; }
+    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes")}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
+    case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "support": p.support=v; save(true); render(); break;
+    case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "no-tm": { p.determine.none=!p.determine.none; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share": case "copy-sum": case "copy-link": {
       const text=summaryText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
