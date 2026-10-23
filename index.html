@@ -307,7 +307,7 @@ function screenMessages(p){
   let h="";
   const sam = p.support==="sam";
   if(r.emergency.length) h+=`<div class="msg alert" role="alert"><b>May be an emergency</b><p>${esc(MSG_EMERGENCY)}</p></div>`;
-  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p>${notifies(p)?`<p>${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div>`;
   else if((r.other.length || r.yesHH.length) && !r.emergency.length) h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
@@ -315,7 +315,7 @@ function screenMessages(p){
 
 const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skills, lifting, and conditioning that don’t provoke it, within whatever your provider advises."; // DRAFT: from 01's second-step rule; Sam to approve
 function noTmMsg(p){ const sam=p.support==="sam";
-  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p>${notifies(p)?`<p>${esc(MSG_NOTIFIED)}</p>`:""}</div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
+  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
 
 // Body regions and codes (approved by Sam, October 23, 2026)
 const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ar","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["UB","Upper back"],["LB","Low back"],["Hp","Hip"],["Gr","Groin"],["Gt","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["An","Ankle"],["Ft","Foot"],["T","Toe"]];
