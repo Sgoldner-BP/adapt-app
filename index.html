@@ -71,6 +71,7 @@ textarea{min-height:76px;resize:vertical}
 .scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
 .scale button{font:inherit;font-variant-numeric:tabular-nums;font-weight:700;min-height:40px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:0}
 .scale button[aria-pressed="true"]{color:#fff;border-color:transparent}
+@media (max-width:520px){.scale{grid-template-columns:repeat(6,1fr);gap:6px}.scale button{min-height:44px}}
 .scale-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
 .yn{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding-block:10px;border-top:1px solid var(--line)}
 .yn:first-of-type{border-top:0}
@@ -100,6 +101,7 @@ textarea{min-height:76px;resize:vertical}
 .done-btn b{font-family:var(--display);font-size:.95rem}
 .done-btn span{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
 .done-btn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good)}
+.done-btn:disabled{opacity:.6;cursor:default}
 .done-btn[aria-pressed="true"] .state{color:var(--good)}
 .state{font-weight:700;font-size:.85rem}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.75rem;color:var(--muted)}
@@ -160,7 +162,7 @@ const UPGRADE_LINK = ""; // add the upgrade URL here when it exists
 const MSG_EMERGENCY = "Based on your selection, we officially advise that you IMMEDIATELY follow up in-person with a medical professional as this may be an EMERGENCY. While there is plenty you can learn from reading through the remainder of the ADAPT protocol, please note our recommendation and use your judgement as to when it is safe to proceed with ADAPT.";
 const MSG_INPERSON_A = "Based on your selection, we officially advise that you follow up with a medical professional for additional support and screening. That could be in-person, or you can get personalized guidance from our ADAPT team ";
 const MSG_INPERSON_B = ". There is plenty you can learn from reading through the remainder of the ADAPT protocol, though, and you can use your judgement as to what questions you can still answer.";
-const MSG_TAG_SAM = "Your answers are flagged for Sam. Send them to him so he can follow up with you."; // DRAFT: Sam to approve
+const MSG_TAG_SAM = "Your answers are flagged for Sam. Send them to him so he can follow up with you."; // Sam approved Oct 22, 2026
 const RED_FLAGS = [
 "Significant pain at rest",
 "Pain that spikes during activities to overwhelming levels and then stays flared at rest",
@@ -181,6 +183,7 @@ const RED_FLAGS = [
 "Pain that migrates to seemingly unrelated locations",
 "Worsening of current symptoms/onset of new symptoms despite appropriate self-care"];
 const EMERGENCY_FLAGS = [8,10,16];
+const HEALTH_SHORT = ["heart condition or high blood pressure","chest pain","dizziness or loss of consciousness","other chronic medical condition","prescribed medication for a chronic condition","regular over-the-counter medication","doctor advised medically supervised activity only"];
 const HEALTH = [
 "Has your doctor ever said that you have a heart condition OR high blood pressure?",
 "Do you feel pain in your chest at rest, during your daily activities of living, OR when you do physical activity?",
@@ -284,10 +287,8 @@ function screenMessages(p){
   let h="";
   const sam = p.support==="sam";
   if(r.emergency.length) h+=`<div class="msg alert" role="alert"><b>May be an emergency</b><p>${esc(MSG_EMERGENCY)}</p></div>`;
-  if(r.other.length || r.yesHH.length){
-    if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div>`;
-    else if(!r.emergency.length) h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
-  }
+  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div>`;
+  else if((r.other.length || r.yesHH.length) && !r.emergency.length) h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
 }
@@ -332,6 +333,7 @@ V.welcome = () => `
       <label class="f" for="f-name">Your first name<span class="hint">Shown on your plan and check-ins.</span><input type="text" id="f-name" placeholder="First name"></label>
       <button class="btn" data-act="start" data-v="self">Start my plan</button>
       <button class="btn ghost" data-act="go" data-v="open">I have a link or code from Sam</button>
+      <button class="btn plain small" data-act="go" data-v="restore">Restore a backup from another device</button>
     </div>
     <details><summary>Coach: build a plan for a client</summary><div class="body">
       <p class="small">For live sessions. Fill in the plan during the call, then send the client a link. Their plan opens and saves on their phone.</p>
@@ -499,10 +501,10 @@ function dashboard(p){
   const due = since>=7;
   const c14 = consistency(p,14);
   return `<div class="stack">
-  <div class="card"><div class="row spread"><span class="eyebrow">Today, ${esc(fmtDate(t))}</span><span class="chip ${c14.both>=70?"good":""}">${c14.pfm}/14 &middot; ${c14.cc}/14 days</span></div>
+  <div class="card"><div class="row spread"><span class="eyebrow">Today, ${esc(fmtDate(t))}</span></div>
     <div class="today">
-      <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}"><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${day.pfm?"✅ Done":"Tap when done"}</span></button>
-      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}"><b>Comfortable Contraction</b><span>${esc(p.approach.cc||"Not set yet")}</span><span class="state">${day.cc?"✅ Done":"Tap when done"}</span></button>
+      <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of the last 14 days</span></button>
+      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${p.approach.cc.trim()?"":"disabled"}><b>Comfortable Contraction</b><span>${esc(p.approach.cc||"Not set yet")}</span><span class="state">${!p.approach.cc.trim()?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of the last 14 days</span></button>
     </div>
     <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
     <div class="week" aria-label="Last 7 days">${days.map(d=>{const x=p.logs.daily[d]||{};return `<div class="d"><span>${new Date(d+"T12:00:00").toLocaleDateString(undefined,{weekday:"narrow"})}</span><span class="dot ${x.pfm?"on":""}" title="Pain-Free Motion"></span><span class="dot ${x.cc?"on":""}" title="Comfortable Contraction"></span></div>`;}).join("")}</div>
@@ -586,7 +588,7 @@ function summaryText(p){
   `Overload: ${p.program.skip?"skipped for now":(p.program.ov||"-")} | sessions in last 7 days: ${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length}`];
   const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
   const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.notes?` | ${ls.notes}`:""}`);
-  const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1].split(/[,(]/)[0].trim()+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH[n-1].replace(/^(Has your doctor ever said that you |Do you |Have you ever been |Are you currently )/,"").split(/[?(]/)[0].trim()+")")].join("; ")}`);
+  const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
@@ -683,7 +685,7 @@ V.open = () => `<div class="stack"><div class="card flat"><span class="eyebrow">
   <div class="card"><textarea id="open-code" placeholder="Paste the link or code Sam sent you"></textarea><button class="btn" data-act="open-code">Open</button>
   <button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 V.restore = () => `<div class="stack"><div class="card flat"><span class="eyebrow">Backup</span><h1>Restore a backup</h1></div>
-  <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="more">Back</button></div></div>`;
+  <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 
 V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from Sam</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
   <div class="card"><p><b>${esc(skillLabel(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Comfortable Contraction:</b> ${esc(d.approach.cc||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
@@ -708,8 +710,9 @@ function render(){
   let v=view;
   if(v==="coach"&&!coachData) v="home";
   if(v==="import"&&!importData) v="home";
-  if(!store.activeId && !["welcome","open","coach","import"].includes(v)) v="welcome";
+  if(!store.activeId && !["welcome","open","coach","import","restore"].includes(v)) v="welcome";
   tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
+  if(v==="restore" && !store.activeId) tabs.hidden=true;
   app.innerHTML = (v==="welcome"?"":header()) + V[v]();
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
