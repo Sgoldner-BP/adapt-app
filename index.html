@@ -68,6 +68,7 @@ label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
 label.f .hint{font-weight:400;color:var(--muted);font-size:.86rem}
 input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
 textarea{min-height:76px;resize:vertical}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
 .scale button{font:inherit;font-variant-numeric:tabular-nums;font-weight:700;min-height:40px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:0}
 .scale button[aria-pressed="true"]{color:#fff;border-color:transparent}
@@ -198,7 +199,9 @@ const RED_FLAGS = [
 "Unexplained fatigue",
 "Atypical shortness of breath",
 "Pain that migrates to seemingly unrelated locations",
-"Worsening of current symptoms/onset of new symptoms despite appropriate self-care"];
+"Worsening of current symptoms/onset of new symptoms despite appropriate self-care",
+"Recent surgical procedure any body region",
+"Prior surgical procedure in painful body region"];
 const EMERGENCY_FLAGS = [8,10,16];
 const HEALTH_SHORT = ["heart condition or high blood pressure","chest pain","dizziness or loss of consciousness","other chronic medical condition","prescribed medication for a chronic condition","regular over-the-counter medication","doctor advised medically supervised activity only"];
 const HEALTH = [
@@ -226,7 +229,7 @@ function fmtDate(iso){ if(!iso) return ""; const d=new Date(iso+"T12:00:00"); re
 
 function newPlan(o={}){
   return Object.assign({
-    id:uid(), v:1, created:today(), person:"", support:"self", origin:"self",
+    id:uid(), v:1, created:today(), person:"", last:"", side:"", region:"", support:"self", origin:"self",
     screen:{ rf:{}, hh:{}, done:false, date:null },
     assess:{ kind:"painful", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
     determine:{ crux:"", move:"", dose:"", range:"", load:"", nrsop:null },
@@ -314,6 +317,12 @@ const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skill
 function noTmMsg(p){ const sam=p.support==="sam";
   return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
 
+// Body regions and codes (Sam: joints Oct 23, 2026; non-joint codes PROPOSED, awaiting Sam)
+const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ua","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["B","Back"],["Hp","Hip"],["G","Groin"],["Gl","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["A","Ankle"],["Ft","Foot"],["T","Toe"]];
+const SIDES=[["R","Right"],["L","Left"],["B","Both"]];
+function fullName(p){ return [p.person,p.last].map(x=>(x||"").trim()).filter(Boolean).join(" "); }
+function planCode(p){ const n=fullName(p); const c=(p.side||"")+(p.region||""); return [n,c].filter(Boolean).join(" "); }
+
 /* ---------- Step completion ---------- */
 const STEPS = [
   {k:"screen", n:"0", t:"Pre-ADAPT Screening", done:p=>p.screen.done},
@@ -338,7 +347,7 @@ const nextStep = p => STEPS.find(s=>!s.done(p));
 let view = "home", coachData = null, importData = null, armed = null, logForm = null, selDay = null;
 
 function header(){
-  const p=P(); const who = p ? (p.origin==="coach" ? `Plan for ${p.person||"client"}` : (p.person||"")) : "";
+  const p=P(); const who = p ? (p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : (planCode(p)||"")) : "";
   return `<div class="top"><span class="brand">ADAPT</span><span class="who">${esc(who)}</span></div>`;
 }
 
@@ -351,7 +360,8 @@ V.welcome = () => `
   </div>
   <div class="stack">
     <div class="card">
-      <label class="f" for="f-name">Your first name<span class="hint">Shown on your plan and check-ins.</span><input type="text" id="f-name" placeholder="First name"></label>
+      <label class="f" for="f-name">Your first name<span class="hint">Shown on your plan and check-ins.</span><input type="text" id="f-name" placeholder="First name" autocomplete="given-name"></label>
+      <label class="f" for="f-last">Your last name<input type="text" id="f-last" placeholder="Last name" autocomplete="family-name"></label>
       <button class="btn" data-act="start" data-v="self">Start my plan</button>
       <button class="btn plain small" data-act="go" data-v="open">I have a plan link from my coach</button>
       <button class="btn plain small" data-act="go" data-v="restore">Restore a backup from another device</button>
@@ -359,6 +369,7 @@ V.welcome = () => `
     <details><summary>Coach: build a plan for a client</summary><div class="body">
       <p class="small">For live sessions. Fill in the plan during the call, then send the client a link. Their plan opens and saves on their phone.</p>
       <label class="f" for="f-client">Client's first name<input type="text" id="f-client" placeholder="Client's first name"></label>
+      <label class="f" for="f-client-last">Client's last name<input type="text" id="f-client-last" placeholder="Client's last name"></label>
       <button class="btn plain" data-act="start" data-v="coach">Start a client plan</button>
     </div></details>
     ${legal()}
@@ -418,6 +429,9 @@ V.step1 = () => {
   ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}
   </div>
   <div class="card"><h2>${isPainful(p)?"Pain/Injury Details":"Details"}</h2>
+    <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
+    <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
+    <label class="f" for="f-region"><span class="sr">Body region</span><select id="f-region" data-bind="region"><option value="">Choose a body region</option>${REGIONS.map(([k,l])=>`<option value="${k}" ${p.region===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label></div>
     ${field("When did this start?","assess.start")}
     ${field("How did it start?","assess.how","",{area:true})}
     ${field("What have you noticed recently?","assess.recent","",{area:true})}
@@ -628,7 +642,7 @@ function skillTable(p,ro){ const L=p.logs.skill; if(!L.length) return "";
 /* ---------- Check-in ---------- */
 function summaryText(p){
   const t=today(); const c=consistency(p,14); const L=p.logs.tests; const first=L[0], last=L[L.length-1];
-  const lines=[`ADAPT check-in: ${p.person||"(no name)"}, ${fmtDate(t)}`,
+  const lines=[`ADAPT check-in: ${planCode(p)||"(no name)"}, ${fmtDate(t)}`,
   `${skillLabel(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
   `Pain-Free Motion: ${p.approach.pfm||"-"} | done ${c.pfm} of last 14 days`,
   `Comfortable Contraction: ${p.approach.cc||"-"} | done ${c.cc} of last 14 days`,
@@ -714,12 +728,14 @@ V.more = () => { const p=P(); const plans=Object.values(store.plans); const clie
   <div class="card flat"><span class="eyebrow">More</span><h1>Settings and plans</h1></div>
   <div class="card"><h2>This plan</h2>
   ${field(p.origin==="coach"?"Client's first name":"Your first name","person")}
+  ${field(p.origin==="coach"?"Client's last name":"Your last name","last")}
+  ${planCode(p)?`<p class="fine">Plan code: <b>${esc(planCode(p))}</b></p>`:""}
   <p class="small"><b>Support:</b> ${p.support==="sam"?"Working with Sam. Set by the plan Sam sent you; new plans you start keep it.":"Self-guided."}</p>
   ${p.origin==="coach"?sendPlanCard(p):""}</div>
   <div class="card"><h2>Plans on this device</h2>
   ${plans.map(x=>`<div class="row spread"><span class="small"><b>${esc(x.assess.skill||"New plan")}</b> <span class="muted">${esc(x.origin==="coach"?"for "+(x.person||"client"):x.person||"")} · ${esc(fmtDate(x.created))}</span></span>${x.id===store.activeId?`<span class="chip good">Open</span>`:`<button class="btn small plain" data-act="switch" data-v="${x.id}">Open</button>`}</div>`).join("")}
   <div class="row"><button class="btn small plain" data-act="new" data-v="self">New plan (new area or injury)</button><button class="btn small plain" data-act="new" data-v="coach">New client plan</button></div></div>
-  ${clients.length?`<div class="card"><h2>Client check-ins received</h2>${clients.map(c=>`<div class="row spread"><span class="small"><b>${esc(c.data.person||"Client")}</b> <span class="muted">${esc(c.data.assess.skill||"")} · received ${esc(fmtDate(c.received))}</span></span><button class="btn small plain" data-act="view-client" data-v="${c.data.id}">View</button></div>`).join("")}</div>`:""}
+  ${clients.length?`<div class="card"><h2>Client check-ins received</h2>${clients.map(c=>`<div class="row spread"><span class="small"><b>${esc(planCode(c.data)||"Client")}</b> <span class="muted">${esc(c.data.assess.skill||"")} · received ${esc(fmtDate(c.received))}</span></span><button class="btn small plain" data-act="view-client" data-v="${c.data.id}">View</button></div>`).join("")}</div>`:""}
   <div class="card"><h2>Open a link or code</h2><p class="small">Paste a plan link from your coach, or a client's check-in link.</p>
   <textarea id="open-code" placeholder="Paste here"></textarea><button class="btn plain" data-act="open-code">Open</button></div>
   <div class="card"><h2>Backup</h2><p class="small">Everything is saved on this device only. Copy a backup now and then, and before switching phones.</p>
@@ -741,7 +757,7 @@ V.import = () => { const d=importData; return `<div class="stack"><div class="ca
   <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
 
 V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenResult(d);
-  return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(d.person||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p></div>
+  return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(planCode(d)||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p></div>
   ${r.any?`<div class="msg ${r.emergency.length?"alert":"warn"}"><b>Screening flags</b><p class="small">${[...r.yesRF.map(n=>"Red flag "+n+": "+RED_FLAGS[n-1]),...r.yesHH.map(n=>"Health "+n+": "+HEALTH[n-1])].map(esc).join("<br>")}</p></div>`:""}
   ${d.note?`<div class="card"><h2>Their note</h2><p>${esc(d.note)}</p></div>`:""}
   <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Comfortable Contraction: <b>${c.cc}/14</b> days</p>
@@ -774,6 +790,7 @@ window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) r
 document.addEventListener("input", e=>{
   const el=e.target; if(!el.dataset.bind) return; const p=P(); if(!p) return;
   setPath(p, el.dataset.bind, el.value); save();
+  if(["region","person","last"].includes(el.dataset.bind)){ const w=document.querySelector(".top .who"); if(w) w.textContent = p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : planCode(p); }
   if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=summaryText(p); }
 });
 document.addEventListener("click", async e=>{
@@ -782,14 +799,15 @@ document.addEventListener("click", async e=>{
     case "tab": go(v); break;
     case "go": go(v); break;
     case "start": {
-      const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||"";
-      const np=newPlan({person:name.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
+      const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
+      const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
       store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); break; }
-    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p?p.support:"self"), person:v==="coach"?"":(p?p.person:"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
+    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p?p.support:"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
     case "switch": store.activeId=v; save(true); go("home"); break;
     case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
     case "setnum": { const n=Number(v); if(a.dataset.path.startsWith("_tmp.")) tmp[a.dataset.path.slice(5)]=n; else setPath(p,a.dataset.path,n); save(); const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
