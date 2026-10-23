@@ -9,9 +9,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Source+Sans+3:wght@400;600;700&display=swap">
 <style>
+/* Fonts hosted with the app (SIL Open Font License; see fonts/). No requests to Google. */
+@font-face{font-family:'Archivo';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/archivo-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/archivo-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/source-sans-3-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/source-sans-3-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/source-sans-3-latin-700-normal.woff2) format('woff2')}
+
 /* Layout: one phone-width column, step-by-step cards, fixed bottom tab bar. Colors: Aaron's brand blues from his Instagram graphics (pale #d8f0fc, deep #06669c) + orange accents #e8692a (option A, Oct 22; revisit later). Buttons use the deep blue; green = done/pain-free, red only for emergencies. */
 :root{
   --bg:#f4f9fc; --surface:#ffffff; --fg:#1b1e21; --muted:#5d656c; --line:#dadfe3; --soft:#eef0f2;
