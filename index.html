@@ -200,7 +200,7 @@ const RED_FLAGS = [
 "Atypical shortness of breath",
 "Pain that migrates to seemingly unrelated locations",
 "Worsening of current symptoms/onset of new symptoms despite appropriate self-care",
-"Recent surgical procedure any body region",
+"Recent surgical procedure in any body region",
 "Prior surgical procedure in painful body region"];
 const EMERGENCY_FLAGS = [8,10,16];
 const HEALTH_SHORT = ["heart condition or high blood pressure","chest pain","dizziness or loss of consciousness","other chronic medical condition","prescribed medication for a chronic condition","regular over-the-counter medication","doctor advised medically supervised activity only"];
@@ -217,7 +217,7 @@ const HEALTH = [
 const KEY = "adapt-app-v1";
 let store = { activeId:null, plans:{}, clients:{} };
 let saveOk = true;
-function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)||"null"); if(s && s.plans) store = Object.assign({activeId:null,plans:{},clients:{}}, s); }catch(e){ saveOk=false; } }
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)||"null"); if(s && s.plans) store = Object.assign({activeId:null,plans:{},clients:{}}, s); Object.values(store.plans).forEach(x=>{ if(x.region in OLD_REGION) x.region=OLD_REGION[x.region]; }); }catch(e){ saveOk=false; } }
 let saveTimer = null;
 function save(now){ clearTimeout(saveTimer); const run=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(store)); saveOk=true; }catch(e){ saveOk=false; } }; if(now) run(); else saveTimer=setTimeout(run,300); }
 
@@ -317,8 +317,9 @@ const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skill
 function noTmMsg(p){ const sam=p.support==="sam";
   return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
 
-// Body regions and codes (Sam: joints Oct 23, 2026; non-joint codes PROPOSED, awaiting Sam)
-const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ua","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["B","Back"],["Hp","Hip"],["G","Groin"],["Gl","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["A","Ankle"],["Ft","Foot"],["T","Toe"]];
+// Body regions and codes (approved by Sam, October 23, 2026)
+const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ar","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["UB","Upper back"],["LB","Low back"],["Hp","Hip"],["Gr","Groin"],["Gt","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["An","Ankle"],["Ft","Foot"],["T","Toe"]];
+const OLD_REGION={Ua:"Ar",G:"Gr",Gl:"Gt",A:"An",B:""};
 const SIDES=[["R","Right"],["L","Left"],["B","Both"]];
 function fullName(p){ return [p.person,p.last].map(x=>(x||"").trim()).filter(Boolean).join(" "); }
 function planCode(p){ const n=fullName(p); const c=(p.side||"")+(p.region||""); return [n,c].filter(Boolean).join(" "); }
