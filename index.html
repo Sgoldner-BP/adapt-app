@@ -307,7 +307,7 @@ function screenMessages(p){
   let h="";
   const sam = p.support==="sam";
   if(r.emergency.length) h+=`<div class="msg alert" role="alert"><b>May be an emergency</b><p>${esc(MSG_EMERGENCY)}</p></div>`;
-  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div>`;
+  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p>${notifies(p)?`<p>${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
   else if((r.other.length || r.yesHH.length) && !r.emergency.length) h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
@@ -315,7 +315,7 @@ function screenMessages(p){
 
 const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skills, lifting, and conditioning that don’t provoke it, within whatever your provider advises."; // DRAFT: from 01's second-step rule; Sam to approve
 function noTmMsg(p){ const sam=p.support==="sam";
-  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
+  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(MSG_TAG_SAM)}</p>${notifies(p)?`<p>${esc(MSG_NOTIFIED)}</p>`:""}</div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
 
 // Body regions and codes (approved by Sam, October 23, 2026)
 const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ar","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["UB","Upper back"],["LB","Low back"],["Hp","Hip"],["Gr","Groin"],["Gt","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["An","Ankle"],["Ft","Foot"],["T","Toe"]];
@@ -323,6 +323,23 @@ const OLD_REGION={Ua:"Ar",G:"Gr",Gl:"Gt",A:"An",B:""};
 const SIDES=[["R","Right"],["L","Left"],["B","Both"]];
 function fullName(p){ return [p.person,p.last].map(x=>(x||"").trim()).filter(Boolean).join(" "); }
 function planCode(p){ const n=fullName(p); const c=(p.side||"")+(p.region||""); return [n,c].filter(Boolean).join(" "); }
+
+/* ---------- Flag notice to Sam (06, item 22) ---------- */
+// Supported clients only. Sends the plan code and the step that flagged; no answers or details.
+const FLAG_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdzJUo7gAYaWohke7ktNMm9tUiqjZTOQ22_JlyQFyiaiqIxKQ/formResponse";
+const FLAG_ENTRY = { client:"entry.192607587", step:"entry.112180385" };
+const FLAG_LIVE_HOST = "app.adaptbeyondlimits.com"; // only the live site sends; previews and tests just queue
+const MSG_NOTIFIED = "Sam has been notified to reach out to you. Send him your answers so he has the details.";
+const notifies = p => p.support==="sam" && p.origin!=="coach";
+function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
+let flushing=false;
+async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushing=true;
+  try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step);
+      await fetch(FLAG_FORM,{method:"POST",mode:"no-cors",body}); store.outbox.shift(); save(true); } }catch(e){} finally{ flushing=false; } }
+window.addEventListener("online", flushFlags);
+function checkScreenFlag(p){ if(!p||!screenResult(p).answered) return; const sig=screenSig(p); p.notified=p.notified||{}; if(sig && sig!==p.notified.screen) queueFlag(p,"Pre-ADAPT Screening"); p.notified.screen=sig; save(true); }
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && view==="screen") checkScreenFlag(P()); });
+function screenSig(p){ const r=screenResult(p); return r.any ? [...r.yesRF.map(n=>"rf"+n),...r.yesHH.map(n=>"hh"+n)].sort().join(",") : ""; }
 
 /* ---------- Step completion ---------- */
 const STEPS = [
@@ -782,7 +799,7 @@ function render(){
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
-function go(v, fromHistory){ const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
+function go(v, fromHistory){ if(view==="screen" && v!=="screen") checkScreenFlag(P()); const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
   if(!fromHistory && changed){ try{ history.pushState({view:v},"",baseURL()); }catch(e){} } }
 // Back button / back swipe moves between screens instead of leaving the app
 window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true); });
@@ -820,7 +837,7 @@ document.addEventListener("click", async e=>{
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "no-tm": { p.determine.none=!p.determine.none; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Determine"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share": case "copy-sum": case "copy-link": {
       const text=summaryText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
@@ -861,6 +878,7 @@ async function openCode(raw){
 
 /* ---------- Boot ---------- */
 load();
+flushFlags();
 (async()=>{
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
