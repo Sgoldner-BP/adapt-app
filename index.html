@@ -314,7 +314,19 @@ function screenMessages(p){
   return h;
 }
 
-const MSG_SECOND_STEP = "In the meantime, keep training what you can: your skills, lifting, and conditioning that don’t provoke it, within whatever your provider advises."; // DRAFT: from 01's second-step rule; Sam to approve
+const MSG_SECOND_STEP = "In the meantime, use your judgement as to what training you can still continue that does not provoke your symptoms."; // Sam, October 23, 2026
+// Progress checks on the weekly Testing Movement (Sam, October 23, 2026). "Unclear" counts as "Same".
+const MSG_TWO_WEEK = "Your last two weekly tests didn't show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps."; // DRAFT wording
+const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention."; // DRAFT wording
+function progressCheck(p){ const L=p.logs.tests.filter(t=>t.trend); const last2=L.slice(-2);
+  if(last2.length<2) return {stalled:false, regressed:false, key:null};
+  const stalled=last2.every(t=>t.trend!=="progressed"); const regressed=last2.every(t=>t.trend==="regressed");
+  return {stalled, regressed, key: stalled ? last2[1].date+":"+L.length : null}; }
+function checkTrackFlag(p){ const c=progressCheck(p); if(!c.stalled) return; p.notified=p.notified||{}; if(p.notified.track!==c.key){ p.notified.track=c.key; queueFlag(p,"Track"); save(true); } }
+function progressMsgs(p){ const c=progressCheck(p); let h="";
+  if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
+  if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(MSG_TWO_WEEK)}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  return h; }
 function noTmMsg(p){ const sam=p.support==="sam";
   return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
 
@@ -588,6 +600,7 @@ function dashboard(p){
   <div class="card"><div class="row spread"><h2>Weekly Testing Movement</h2>${!tmSet?(tmNone?`<span class="chip alert">None found yet</span>`:`<span class="chip">Not set</span>`):due?`<span class="chip due">Due</span>`:`<span class="chip good">Next in ${7-since} days</span>`}</div>
     ${!tmSet?(tmNone?`<p class="small">No movement reliably reproduces it yet. ${p.support==="sam"?"Sam has been flagged.":"See the follow-up advice in Step 2."} If you find one, add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`:`<p class="small">Not set yet. Add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`):`<p class="small">${esc(p.determine.move)}</p>
     ${recentTrends(p.logs.tests)}
+    ${progressMsgs(p)}
     ${testTrend(p)}
     ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}`}
   </div>
@@ -673,6 +686,7 @@ function summaryText(p){
   const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
   const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
   const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
+  { const c=progressCheck(p); if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); else if(c.stalled) lines.push("Two-week check: no progress on the last 2 tests"); }
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
@@ -832,7 +846,7 @@ document.addEventListener("click", async e=>{
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes")}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes")}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
     case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
     case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
