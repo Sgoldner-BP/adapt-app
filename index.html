@@ -177,7 +177,6 @@ const DISCLAIMER = "All information gathered and recommendations given do not co
 const CONFIDENTIAL = "We will treat all your information as confidential and not reveal it unnecessarily.";
 const SCREEN_DISCLAIMER = "This table cannot be used to definitively determine what you do/do not have or the severity of it. That can only be done under the direct care of a medical provider. Seek care if you feel you should. You are assuming your own risk with whatever actions you take.";
 const UPGRADE_LINK = ""; // add the upgrade URL here when it exists
-const MSG_EMERGENCY = "Based on your selection, we officially advise that you IMMEDIATELY follow up in-person with a medical professional as this may be an EMERGENCY. While there is plenty you can learn from reading through the remainder of the ADAPT protocol, please note our recommendation and use your judgement as to when it is safe to proceed with ADAPT.";
 const MSG_INPERSON_A = "Based on your selection, we officially advise that you follow up with a medical professional for additional support and screening. That could be in-person, or you can get personalized guidance from our ADAPT team ";
 const MSG_INPERSON_B = ". There is plenty you can learn from reading through the remainder of the ADAPT protocol, though, and you can use your judgement as to what questions you can still answer.";
 const MSG_TAG_SAM = "Your answers are flagged for Sam. Send them to him so he can follow up with you."; // Sam approved Oct 22, 2026
@@ -202,7 +201,9 @@ const RED_FLAGS = [
 "Worsening of current symptoms/onset of new symptoms despite appropriate self-care",
 "Recent surgical procedure in any body region",
 "Prior surgical procedure in painful body region"];
-const EMERGENCY_FLAGS = [8,10,16];
+const EMERGENCY_FLAGS = [8,10,16]; // plus health question 3 (overlaps red flag 8). Sam, October 23, 2026: no separate emergency outcome; these add MSG_RIGHT_NOW
+const EMERGENCY_HH = [3];
+const MSG_RIGHT_NOW = "If you are experiencing these symptoms right now, we officially advise that you IMMEDIATELY follow up in-person with a medical professional, as this may be an EMERGENCY.";
 const HEALTH_SHORT = ["heart condition or high blood pressure","chest pain","dizziness or loss of consciousness","other chronic medical condition","prescribed medication for a chronic condition","regular over-the-counter medication","doctor advised medically supervised activity only"];
 const HEALTH = [
 "Has your doctor ever said that you have a heart condition OR high blood pressure?",
@@ -293,7 +294,7 @@ function screenResult(p){
   const rf=p.screen.rf, hh=p.screen.hh;
   const yesRF = Object.keys(rf).filter(k=>rf[k]==="yes").map(Number);
   const yesHH = Object.keys(hh).filter(k=>hh[k]==="yes").map(Number);
-  const emergency = yesRF.filter(n=>EMERGENCY_FLAGS.includes(n));
+  const emergency = [...yesRF.filter(n=>EMERGENCY_FLAGS.includes(n)).map(n=>"rf"+n), ...yesHH.filter(n=>EMERGENCY_HH.includes(n)).map(n=>"hh"+n)];
   const other = yesRF.filter(n=>!EMERGENCY_FLAGS.includes(n));
   const answered = Object.keys(rf).length===RED_FLAGS.length && Object.keys(hh).length===HEALTH.length;
   return { yesRF, yesHH, emergency, other, any: yesRF.length+yesHH.length>0, answered };
@@ -306,9 +307,9 @@ function screenMessages(p){
   const r=screenResult(p); if(!r.any) return `<div class="msg good"><b>No red flags or health flags selected.</b><p class="small">You can continue to Step 1.</p></div>`;
   let h="";
   const sam = p.support==="sam";
-  if(r.emergency.length) h+=`<div class="msg alert" role="alert"><b>May be an emergency</b><p>${esc(MSG_EMERGENCY)}</p></div>`;
   if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div>`;
-  else if((r.other.length || r.yesHH.length) && !r.emergency.length) h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
+  else h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`;
+  if(r.emergency.length) h+=`<div class="msg alert" role="alert"><p>${esc(MSG_RIGHT_NOW)}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
 }
