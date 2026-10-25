@@ -353,7 +353,7 @@ const notifies = p => p.support==="sam" && p.origin!=="coach";
 function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
 let flushing=false;
 async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushing=true;
-  try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step);
+  try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step==="Determine"?"Discover":f.step);
       await fetch(FLAG_FORM,{method:"POST",mode:"no-cors",body}); store.outbox.shift(); save(true); } }catch(e){} finally{ flushing=false; } }
 window.addEventListener("online", flushFlags);
 function checkScreenFlag(p){ if(!p||!screenResult(p).answered) return; const sig=screenSig(p); p.notified=p.notified||{}; if(sig && sig!==p.notified.screen) queueFlag(p,"Pre-ADAPT Screening"); p.notified.screen=sig; save(true); }
@@ -364,7 +364,7 @@ function screenSig(p){ const r=screenResult(p); return r.any ? [...r.yesRF.map(n
 const STEPS = [
   {k:"screen", n:"0", t:"Pre-ADAPT Screening", done:p=>p.screen.done},
   {k:"step1", n:"1", t:"Assess", done:p=>!!p.assess.skill.trim()},
-  {k:"step2", n:"2", t:"Determine", done:p=>!!p.determine.move.trim()||!!p.determine.none},
+  {k:"step2", n:"2", t:"Discover", done:p=>!!p.determine.move.trim()||!!p.determine.none},
   {k:"step3", n:"3", t:"Approach", done:p=>!!(p.approach.pfm.trim()||p.approach.cc.trim())},
   {k:"step4", n:"4", t:"Program", done:p=>!!(p.program.ov.trim()||p.program.skip)},
   {k:"step5", n:"5", t:"Track", done:p=>p.tracking}];
@@ -432,7 +432,7 @@ V.home = () => {
 function stepsList(p){
   return `<div class="steps">${STEPS.map(s=>`<button class="stepbtn" data-act="go" data-v="${s.k}" data-done="${s.done(p)}"><span class="stepnum">${s.done(p)?"&#10003;":s.n}</span><span class="t"><b>${esc(s.t)}</b><span>${esc(stepSub(p,s.k))}</span></span><span class="chev">&rsaquo;</span></button>`).join("")}</div>`;
 }
-V.steps = () => { const p=P(); return `<div class="stack"><div class="card flat"><span class="eyebrow">The 5 steps</span><h1>Assess, Determine, Approach, Program, Track</h1></div>${stepsList(p)}${p.origin==="coach"?sendPlanCard(p):""}</div>`; };
+V.steps = () => { const p=P(); return `<div class="stack"><div class="card flat"><span class="eyebrow">The 5 steps</span><h1>Assess, Discover, Approach, Program, Track</h1></div>${stepsList(p)}${p.origin==="coach"?sendPlanCard(p):""}</div>`; };
 
 function stepNav(prev,next,nextLabel){
   return `<div class="row spread">${prev?`<button class="btn plain" data-act="go" data-v="${prev}">Back</button>`:"<span></span>"}<button class="btn" data-act="go" data-v="${next}">${esc(nextLabel||"Next")}</button></div>`;
@@ -482,14 +482,14 @@ V.step1 = () => {
     <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">Patient Specific Functional Scale. Higher score = more ability.</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
     ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? E.g.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
   </div>
-  ${stepNav("screen","step2","Next: Determine")}</div>`;
+  ${stepNav("screen","step2","Next: Discover")}</div>`;
 };
 
 V.step2 = () => {
   const p=P(); const d=p.determine;
   return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Step 2</span><h1>Determine: Testing Movement</h1></div>
-  <img class="fig" src="img/step2.jpg" alt="Determine your Testing Movement." width="1600" height="1189">
+  <div class="card flat"><span class="eyebrow">Step 2</span><h1>Discover: Testing Movement</h1></div>
+  <img class="fig" src="img/step2.jpg" alt="Discover your Testing Movement." width="1600" height="1189">
   <div class="card"><p>The purpose of the Testing Movement is to find a reasonable way to determine where you are right now, and, in the future, whether you are progressing, plateauing, or regressing. Your ${esc(skillLabel(p).toLowerCase())} is not a good testing movement, for a number of reasons. It may not be safe to perform due to your injury, or due to pain inhibiting confident performance (ever bailed in the middle of a backflip? Not fun and potentially dangerous). It may also create or reinforce doubt about your ability to successfully perform that skill in the future. It may also be something you need to warm up for, which makes wiggle room from test to test for inconsistency and therefore unreliable results. The Testing Movement avoids all those issues.</p>
   <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p></div>
   <div class="card"><h2>Crux of the issue</h2>
@@ -560,7 +560,7 @@ V.step5 = () => { const p=P(); return `<div class="stack">
   <div class="card"><p>How can you guarantee you’ll see progress, make necessary course corrections, and reach your destination? By checking your map to see if you’re moving in the right direction. That means tracking results in your workout and with your weekly retest.</p>
   <ul class="tight small"><li><b>Overload Exercise:</b> track as part of your conditioning routine, with Dose, Range, Load, and NRSoP</li>
   <li><b>Pain-Free Motion and Comfortable Contraction:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good</li>
-  <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Determine step</li>
+  <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Discover step</li>
   <li>Test your Painful Skill when you feel ready (you’ll know when)</li></ul>
   <p class="small">It is easy to get frustrated when we do not see results. This level of tracking avoids many of the common pitfalls that lead to frustration. If you are not actually improving, you will notice it and know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
   ${(()=>{ const miss=missingSteps(p); return miss.length&&!p.tracking?`<div class="msg warn"><b>Still blank</b><ul class="tight small">${miss.map(([s,l])=>`<li><button class="linkbtn" data-act="go" data-v="${s}">${l}</button></li>`).join("")}</ul><p class="small">You can start tracking anyway and fill these in later.</p></div>`:""; })()}
@@ -757,7 +757,7 @@ V.learn = () => `<div class="stack">
   <p>Everyone can find their <b>ideal</b> Testing Movement, Pain-Free Motion, Comfortable Contraction, and Overload Exercise. But finding them can take time. Your first guess for your Pain-Free Motion might fail. You may think “There is nothing I can do right now. My back just hurts when I extend it, period,” and feel defeated.</p>
   <p>Or you could stay curious, explore lying on your back, hands folded behind your lumbar spine, take a deep breath, and finally feel a big wave of release wash over you as the pain subsides for the first time in days. Resilience is a skill. So is getting to know your body and your injuries. Skills take practice, work, and time to develop, but these skills are likely the most important for your overall movement career.</p>
   <p>As you explore, you may need to modify your Pain-Free Motion. Your Comfortable Contraction might need repeated positional adjustments. Your Overload exercise may need to be changed. You don’t need to know the exact architecture and anatomy of your body, but you need to stay curious and keep track of your progress. Slow or non-existent? Then try turning your foot 15 degrees outwards. Or pull your arm more in towards your midline. Or bend the arm a little less during the chin-up hold.</p>
-  <p>Don’t expect every step will be in the right direction, but expect that you will arrive as long as you continue to Assess, Determine, Approach, Program, Track.</p></div></details>
+  <p>Don’t expect every step will be in the right direction, but expect that you will arrive as long as you continue to Assess, Discover, Approach, Program, Track.</p></div></details>
   ${legal()}
   </div>`;
 
@@ -858,7 +858,7 @@ document.addEventListener("click", async e=>{
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Determine"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share": case "copy-sum": case "copy-link": {
       const text=summaryText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
