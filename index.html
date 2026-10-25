@@ -458,7 +458,7 @@ V.step1 = () => {
   const p=P(); const a=p.assess; const L=skillLabel(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 1</span><h1>Assess: ${esc(L)}</h1></div>
-  <img class="fig" src="img/step1.jpg" alt="Assess your Painful Skill: the starting point of the resilience journey." width="1000" height="742">
+  <img class="fig" src="img/step1.jpg" alt="Assess your Painful Skill: the starting point of the resilience journey." width="1600" height="1189">
   <div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
   <div class="row" role="group" aria-label="Kind of limitation">
     <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
@@ -478,7 +478,7 @@ V.step1 = () => {
     ${field("What skill is inhibited?","assess.skill","",{ph:"e.g., macaco"})}
     ${field("How is the skill inhibited?","assess.inhibited","For example: pain, apprehension, weakness, loss of control.",{area:true})}
     ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"e.g., 8 out of 10"})}
-    <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1000" height="402">
+    <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
     <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">Patient Specific Functional Scale. Higher score = more ability.</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
     ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? E.g.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
   </div>
@@ -489,7 +489,7 @@ V.step2 = () => {
   const p=P(); const d=p.determine;
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 2</span><h1>Determine: Testing Movement</h1></div>
-  <img class="fig" src="img/step2.jpg" alt="Determine your Testing Movement." width="1000" height="743">
+  <img class="fig" src="img/step2.jpg" alt="Determine your Testing Movement." width="1600" height="1189">
   <div class="card"><p>The purpose of the Testing Movement is to find a reasonable way to determine where you are right now, and, in the future, whether you are progressing, plateauing, or regressing. Your ${esc(skillLabel(p).toLowerCase())} is not a good testing movement, for a number of reasons. It may not be safe to perform due to your injury, or due to pain inhibiting confident performance (ever bailed in the middle of a backflip? Not fun and potentially dangerous). It may also create or reinforce doubt about your ability to successfully perform that skill in the future. It may also be something you need to warm up for, which makes wiggle room from test to test for inconsistency and therefore unreliable results. The Testing Movement avoids all those issues.</p>
   <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p></div>
   <div class="card"><h2>Crux of the issue</h2>
@@ -513,7 +513,7 @@ V.step2 = () => {
 
 V.step3 = () => `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 3</span><h1>Approach: Pain-Free Motion and Comfortable Contraction</h1></div>
-  <img class="fig" src="img/step3.jpg" alt="Approach your Pain-Free Motion and Comfortable Contraction." width="1000" height="742">
+  <img class="fig" src="img/step3.jpg" alt="Approach your Pain-Free Motion and Comfortable Contraction." width="1600" height="1189">
   <div class="card"><p>How can we safely and comfortably approach the crux in order to gradually improve our abilities? First, we find the Pain-Free Motion, the way we will experience the crux range of motion without pain. This is a crucial part of the healing journey. Gentle movements increase blood flow, stimulate healing, and teach the brain those positions and movements are not inherently unsafe. Second, we find a Comfortable Contraction to experience loading the crux position with minimal pain. Prolonged isometric contractions with low levels of pain are great for safely initiating the strengthening process, decreasing the pain response to loading over time, stimulating healing of soft tissue, and teaching the brain that loading that position is not inherently unsafe.</p></div>
   <div class="card"><h2>Pain-Free Motion</h2>
   <ul class="tight small"><li>Explore various related motions to find one as similar as possible in range and positioning to the crux but without any pain or discomfort during/after</li>
@@ -531,7 +531,7 @@ V.step3 = () => `<div class="stack">
 
 V.step4 = () => { const p=P(); return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 4</span><h1>Program: Overload Exercise</h1></div>
-  <img class="fig" src="img/step4.jpg" alt="Program your Overload Exercise." width="1000" height="743">
+  <img class="fig" src="img/step4.jpg" alt="Program your Overload Exercise." width="1600" height="1189">
   <div class="card"><p>Your Overload Exercise is a true conditioning exercise. This should feel less like joint care and more like pushing boundaries. Like the other conditioning exercises in your program, it demands progressive overload and will improve your strength accordingly. It is an important driver for stimulating healing, and for teaching the brain that this range/intensity is still safe to perform. Its specificity also means maximizing carryover to the skill training you are so passionate about.</p></div>
   <div class="card"><h2>Find your Overload Exercise</h2>
   <ul class="tight small"><li><b>The intensity</b> of your Overload Exercise sits above your Comfortable Contraction, but below the Painful Skill; ideally it fits right alongside the intensity of your regular conditioning exercises</li>
@@ -539,7 +539,7 @@ V.step4 = () => { const p=P(); return `<div class="stack">
   <li><b>The goal:</b> find a safe conditioning exercise you can progressively overload to help unlock your Painful Skill</li>
   <li><b>Orientation:</b> Stay in the direction that hurts; if pushing hurts, your Overload Exercise is a push, not a pull</li>
   <li><b>Example:</b> if your right shoulder hurts during a macaco, try a scaled back version of a bridge walkover. Too tough? Then try wall chest reaches</li></ul>
-  <img class="fig" src="img/ex-wall-1.jpg" alt="Wall chest reach example: hands on the floor, chest moving toward the wall." width="1000" height="706">
+  <img class="fig" src="img/ex-wall-1.jpg" alt="Wall chest reach example: hands on the floor, chest moving toward the wall." width="1600" height="1130">
   <ul class="tight small"><li>Explore various related exercises to find one as similar as possible in range and positioning to your normal conditioning exercise for this movement</li>
   <li><i>If nothing fits the pain guidelines yet, skip it for now.</i> However, if you keep exploring and modifying, it is highly likely you <i>will</i> find an Overload Exercise that works</li></ul>
   ${field("My Overload Exercise","program.ov","",{area:true})}
@@ -550,13 +550,13 @@ V.step4 = () => { const p=P(); return `<div class="stack">
   <ul class="tight small"><li><b>Dose:</b> 6-9 repetitions per set; 6-9 weekly sets, ideally spread across 2-3 practice sessions. Progress your variation from 6,6,6 repetitions to 9,9,9. The exact way you progress through that spread is up to you</li>
   <li><b>Range:</b> begin at a range that doesn’t aggravate your pain. Gradually increase the range of motion until you can move through the full range of motion your joint allows</li>
   <li><b>Load:</b> for exercises utilizing external resistance, add more. For purely bodyweight exercises, you can add load by progressing from bilateral to unilateral, increasing the angle of inversion, or increasing the lever length. Regardless of which method you use, make sure you stay within the Dose requirements</li></ul>
-  <img class="fig" src="img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1000" height="469">
+  <img class="fig" src="img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1600" height="754">
   <p class="small">Remember to also stay within the “Respect But Don’t Fear Your Pain” guidelines when doing your Overload Exercise.</p></div>
   ${stepNav("step3","step5","Next: Track")}</div>`; };
 
 V.step5 = () => { const p=P(); return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 5</span><h1>Track Progress</h1></div>
-  <img class="fig" src="img/step5.jpg" alt="Track progress." width="1000" height="743">
+  <img class="fig" src="img/step5.jpg" alt="Track progress." width="1600" height="1189">
   <div class="card"><p>How can you guarantee you’ll see progress, make necessary course corrections, and reach your destination? By checking your map to see if you’re moving in the right direction. That means tracking results in your workout and with your weekly retest.</p>
   <ul class="tight small"><li><b>Overload Exercise:</b> track as part of your conditioning routine, with Dose, Range, Load, and NRSoP</li>
   <li><b>Pain-Free Motion and Comfortable Contraction:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good</li>
@@ -716,7 +716,7 @@ function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},te
 /* ---------- Learn ---------- */
 V.learn = () => `<div class="stack">
   <div class="card flat"><span class="eyebrow">Learn</span><h1>The ideas behind ADAPT</h1></div>
-  <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, Overload Exercise." width="1000" height="387">
+  <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, Overload Exercise." width="1600" height="622">
   <details open><summary>Introduction</summary><div class="body">
   <p>This guide contains all the information you need to use the ADAPT method independently. Pain and injuries are inevitable parts of any training approach and life in general. Having the tools, and the knowledge for how to use them, to address the inevitable is therefore critically important to rescue and protect your Movement Freedom.</p>
   <p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skill-first approach, meaning, the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p></div></details>
@@ -750,9 +750,9 @@ V.learn = () => `<div class="stack">
   <p>The 5 resilience movements each have a universal and a personal dimension. <b>The universal dimension:</b> Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, and Overload Exercise. <b>The personal dimension:</b> the specific movements that go into each category are 100% customized to fit you and your unique situation. There aren’t “shoulder” exercises, “back” exercises, etc.; there are only “your” exercises.</p>
   <p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>
   <p>In order for our method to reliably work for people with elbow tendonitis, chronic back pain, and a strained knee ligament, we need to cover the entire range of pain-intensity. No matter where you are or how functionally limited you are currently, we can gradually progress you through the low-intensity to high-intensity continuum, along the way utilizing pain as the useful warning light it is supposed to be.</p>
-  <img class="fig" src="img/continuum.jpg" alt="The pain-intensity continuum of the five Resilience Movements, from Pain-Free Motion to the Painful Skill." width="1000" height="686">
+  <img class="fig" src="img/continuum.jpg" alt="The pain-intensity continuum of the five Resilience Movements, from Pain-Free Motion to the Painful Skill." width="1600" height="1098">
   <p>On the left, we have a low intensity, Pain-Free Motion, often assisted by a prop like a band, a wall, or your hand to allow pain-free exploration. On the right is your painful skill. The goal: color the entire band green, which means you have reached high intensity, pain-free movement!</p>
-  <img class="fig" src="img/before-after.jpg" alt="Before ADAPT the band runs from no pain to high pain; after ADAPT it is green all the way." width="1000" height="421"></div></details>
+  <img class="fig" src="img/before-after.jpg" alt="Before ADAPT the band runs from no pain to high pain; after ADAPT it is green all the way." width="1600" height="678"></div></details>
   <details><summary>Resilience is a journey</summary><div class="body">
   <p>Everyone can find their <b>ideal</b> Testing Movement, Pain-Free Motion, Comfortable Contraction, and Overload Exercise. But finding them can take time. Your first guess for your Pain-Free Motion might fail. You may think “There is nothing I can do right now. My back just hurts when I extend it, period,” and feel defeated.</p>
   <p>Or you could stay curious, explore lying on your back, hands folded behind your lumbar spine, take a deep breath, and finally feel a big wave of release wash over you as the pain subsides for the first time in days. Resilience is a skill. So is getting to know your body and your injuries. Skills take practice, work, and time to develop, but these skills are likely the most important for your overall movement career.</p>
