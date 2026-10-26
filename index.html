@@ -312,9 +312,9 @@ function screenMessages(p){
   const r=screenResult(p); if(!r.any) return `<div class="msg good"><b>No red flags or health flags selected.</b><p class="small">You can continue to Step 1.</p></div>`;
   let h="";
   const sam = p.support==="sam";
+  if(r.emergency.length) h+=`<div class="msg alert" role="alert"><p>${esc(MSG_RIGHT_NOW)}</p></div>`;
   if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
   else h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
-  if(r.emergency.length) h+=`<div class="msg alert" role="alert"><p>${esc(MSG_RIGHT_NOW)}</p></div>`;
   if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
   return h;
 }
@@ -493,7 +493,7 @@ function stepNav(prev,next,nextLabel){
 
 V.screen = () => {
   const p=P(); const rf=p.screen.rf, hh=p.screen.hh;
-  const yn=(g,i,q,cur)=>`<div class="yn"><span class="q">${esc(q)}</span><span class="btns"><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="yes" aria-pressed="${cur==="yes"}">Yes</button><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="no" aria-pressed="${cur==="no"}">No</button></span></div>`;
+  const yn=(g,i,q,cur)=>`<div class="yn"><span class="q">${esc(q)}</span><span class="btns"><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="yes" aria-pressed="${cur==="yes"}">Yes</button><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="no" aria-pressed="${cur==="no"}">No</button></span></div>${cur==="yes"&&((g==="rf"&&EMERGENCY_FLAGS.includes(+i))||(g==="hh"&&EMERGENCY_HH.includes(+i)))?`<div class="msg alert" role="alert"><p class="small">${esc(MSG_RIGHT_NOW)}</p></div>`:""}`;
   const r=screenResult(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Before you start</span><h1>Pre-ADAPT Screening</h1></div>
