@@ -305,9 +305,14 @@ function screenResult(p){
   const answered = Object.keys(rf).length===RED_FLAGS.length && Object.keys(hh).length===HEALTH.length;
   return { yesRF, yesHH, emergency, other, any: yesRF.length+yesHH.length>0, answered };
 }
-function upgradeMsg(basis){ // basis "tracking": the 6-week trigger, where "your selection" doesn't fit
-  const link = UPGRADE_LINK ? `<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>` : "[INSERT LINK TO UPGRADE]";
-  return esc(basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A)+link+esc(MSG_INPERSON_B);
+// PLACEHOLDER (Sam, October 26, 2026): until the upgrade link and its landing page exist, point people to Sam by email.
+// When UPGRADE_LINK is set, the original wording with the link comes back automatically.
+const SAM_EMAIL = "sam@bulldogperformance.us";
+const emailLink = () => `<a href="mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}">${SAM_EMAIL}</a>`;
+function upgradeMsg(basis){ // basis "tracking": the ladder's referral, where "your selection" doesn't fit
+  const a = basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A;
+  if(UPGRADE_LINK) return esc(a)+`<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`+esc(MSG_INPERSON_B);
+  return esc(a.replace("you can get personalized guidance from our ADAPT team ","you can get personalized guidance through ADAPT\u2019s direct-support coaching option; email Sam at "))+emailLink()+esc(" to ask about details and pricing")+esc(MSG_INPERSON_B);
 }
 function screenMessages(p){
   const r=screenResult(p); if(!r.any) return `<div class="msg good"><b>No red flags or health flags selected.</b><p class="small">You can continue to Step 1.</p></div>`;
@@ -793,7 +798,7 @@ let linkCache = {};
 V.checkin = () => { const p=P(); const s=summaryText(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Check-in</span><h1>${p.support==="sam"?"Send Sam an update":"Share your progress"}</h1><p class="muted">${p.support==="sam"?"Sam sees what you send him. Nothing leaves this device until you do.":"Nothing leaves this device until you share it."}</p></div>
-  ${p.support==="sam"?"":`<div class="msg info"><p class="small">Want personalized guidance? You can get it from our ADAPT team: ${UPGRADE_LINK?`<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:"[INSERT LINK TO UPGRADE]"}</p></div>`}
+  ${p.support==="sam"?"":`<div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p></div>`}
   <div class="card">${field(p.support==="sam"?"Anything to tell Sam?":"Notes","note","How it's going, questions, anything that changed.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
   <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
