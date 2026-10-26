@@ -321,20 +321,73 @@ function screenMessages(p){
 
 const MSG_SECOND_STEP = "In the meantime, use your judgement as to what training you can still continue that does not provoke your symptoms."; // Sam, October 23, 2026
 // Progress checks on the weekly Testing Movement (Sam, October 23, 2026). "Unclear" counts as "Same".
-const MSG_TWO_WEEK = "Your last two weekly tests didn't show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
+const MSG_TWO_WEEK = "Your last two weekly tests didn’t show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
 const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention.";  // Sam approved, October 23, 2026
-function progressCheck(p){ const L=p.logs.tests.filter(t=>t.trend); let run=0; for(let i=L.length-1;i>=0&&L[i].trend!=="progressed";i--) run++;
+// Item 18 decisions (Sam, October 25, 2026)
+const MSG_PAUSE = "Pause your ADAPT movements until you’ve been checked.";
+const MSG_HARDER = "Make your Testing Movement one notch harder (ex., more reps, range, load, etc.) and use that as your new starting point.";
+const MSG_DAILY_TARGET = "Daily is the target. If life gets in the way, fewer days still counts; 2-3 days a week beats zero. The “good enough” you do is better than the “perfect” you don’t. Just keep in mind, if your progress plateaus, this is probably the first place to make an adjustment.";
+const PSFS_PAIN = "How well can you do this skill right now? 0 = can’t do it at all due to pain/injury; 10 = as well as before the pain/injury. This is not asking how skilled you are (for example, if you are pain-free but just aren’t good at doing a backflip, that would still score 10/10); it’s asking how much is the pain/injury interfering with your current skill level.";
+const PSFS_RESTR = "How well can you do this skill right now? 0 = can’t do it at all due to the restriction; 10 = the restriction no longer holds you back. This is not asking how skilled you are overall; it’s asking how much that specific limitation (ex., range, strength, control, confidence, etc.) is interfering with the skill.";
+const psfsExplain = p => isPainful(p) ? PSFS_PAIN : PSFS_RESTR;
+// Tests since the latest "new starting point" (a Testing Movement made harder)
+function testsSinceBase(p){ const a=p.tmBase&&p.tmBase.after; return p.logs.tests.filter(t=>!a||t.date>a); }
+function ceilingCheck(p){ const T=testsSinceBase(p); const last2=T.slice(-2);
+  const on = last2.length===2 && last2.every(t=> isPainful(p) ? t.nrsop===0 : t.free===true);
+  return on ? {since:last2[0].date, key:last2[1].date} : null; }
+function progressCheck(p){ const ceil=ceilingCheck(p);
+  if(ceil) return {stalled:false, refer:false, regressed:false, checks:0, key:null, ceiling:ceil};
+  const L=testsSinceBase(p).filter(t=>t.trend); let run=0; for(let i=L.length-1;i>=0&&L[i].trend!=="progressed";i--) run++;
   const checks=Math.floor(run/2); const last2=L.slice(-2);
   return {stalled:checks>=1, refer:checks>=3, regressed:last2.length===2&&last2.every(t=>t.trend==="regressed"), checks, key: checks ? (L[L.length-run].date+":"+checks) : null}; }
+// Movements still to find: the first exercise adjustment (Sam)
+function missingMoves(p){ const m=[];
+  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
+  if(!p.approach.cc.trim()) m.push(["step3","Comfortable Contraction"]);
+  if(!p.program.ov.trim()||p.program.skip) m.push(["step4","Overload Exercise"]);
+  return m; }
+function missingPhrase(m){ const and=a=>a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+  const g={}; m.forEach(([s,l])=>{(g[s]=g[s]||[]).push(l);});
+  return and(Object.keys(g).map(s=>and(g[s])+" (Step "+s.slice(-1)+")")); }
+// Consistency over a 14-day window ending `back` days ago: a day counts when every daily movement that is set was done
+function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.trim(), hasC=!!p.approach.cc.trim(); let d=0;
+  for(let i=back;i<back+14;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
+  const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,t); return k>=back&&k<back+14; }).length;
+  return {d,o}; }
+const times = n => n===1?"1 time":n+" times";
+function stallMsg(p,c){
+  const miss=missingMoves(p);
+  if(miss.length) return `Your last two weekly tests didn’t show progress. First, find your ${missingPhrase(miss)}; that’s the first adjustment to make. Keep the Testing Movement the same so you can see whether the change helps.`;
+  const cur=windowCounts(p,0);
+  if(c.checks===1){
+    if(cur.d<10||cur.o<6) return `Your last two weekly tests didn’t show progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}. For the next 2 weeks, aim for your daily movements on at least 10 days and your Overload Exercise 3 times a week, and keep everything else the same.`;
+    return MSG_TWO_WEEK; }
+  let T=null; if(cur.d<8||cur.o<4) T=[8,2]; else if(cur.d<10||cur.o<6) T=[10,3];
+  if(!T) return MSG_TWO_WEEK;
+  const prev=windowCounts(p,14); const ud=cur.d>prev.d, uo=cur.o>prev.o;
+  const up = ud&&uo ? `, up from ${prev.d} days and ${times(prev.o)} before, so the extra effort is showing` : ud ? `, up from ${prev.d} days before, so the extra effort is showing` : uo ? `, up from ${times(prev.o)} before, so the extra effort is showing` : "";
+  return `Your tests still haven’t shown progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}${up}. For the next 2 weeks, aim for your daily movements on at least ${T[0]} days and your Overload Exercise ${T[1]} times a week. If hitting that doesn’t help, the next adjustment we’ll make is changing the exercises themselves.`; }
+function ceilingMsg(p,ceil){
+  const line = isPainful(p) ? "Your Testing Movement has been at 0/10 for two weeks, so it isn’t measuring much anymore." : "Your Testing Movement hasn’t felt limited for two weeks, so it isn’t measuring much anymore.";
+  const rt=p.logs.skill.filter(r=>r.date>=ceil.since&&r.psfs!=null).pop();
+  if(rt&&rt.psfs===10) return "";
+  const harder = `<p class="small">${esc(MSG_HARDER)}</p><div class="row"><button class="btn small" data-act="new-base">I made it harder: new starting point</button></div>`;
+  if((rt&&rt.psfs<10) || (p.ceilAns===ceil.key)) return `<div class="msg warn"><p class="small">${esc(line)}</p>${harder}</div>`;
+  return `<div class="msg warn"><p class="small">${esc(line)} Do you feel ready to test your ${esc(skillLabel(p))}?</p><div class="row"><button class="btn small" data-act="ceil-yes">Yes, test it now</button><button class="btn small plain" data-act="ceil-no">Not yet</button></div></div>`; }
+function psfs10Msg(p){ const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); if(!ls||ls.psfs!==10) return "";
+  const what = isPainful(p) ? "the pain/injury isn’t" : "the restriction isn’t";
+  const goal = (p.assess.goal||"").trim();
+  return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore. Now aim past where you were: ${goal?`your 11/10 goal is ${esc(goal)}`:`set your 11/10 goal in Step 1`}.</p></div>`; }
 function checkTrackFlag(p){ const c=progressCheck(p); if(!c.stalled) return; p.notified=p.notified||{}; if(p.notified.track!==c.key){ p.notified.track=c.key; queueFlag(p,"Track"); save(true); } }
 function progressMsgs(p){ const c=progressCheck(p); let h="";
   if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
   if(c.refer) h+= p.support==="sam" ? `<div class="msg warn"><b>Flagged for Sam</b><p class="small">${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div><button class="btn small" data-act="go" data-v="checkin">Send my answers to Sam</button>`
     : `<div class="msg warn"><b>Follow up</b><p class="small">${upgradeMsg("tracking")}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div>`;
-  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(MSG_TWO_WEEK)}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(stallMsg(p,c))}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  if(c.ceiling) h+=ceilingMsg(p,c.ceiling);
   return h; }
 function noTmMsg(p){ const sam=p.support==="sam";
-  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_SECOND_STEP)}</p>`; }
+  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_PAUSE+" "+MSG_SECOND_STEP)}</p>`; }
 
 // Body regions and codes (approved by Sam, October 23, 2026)
 const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ar","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["UB","Upper back"],["LB","Low back"],["Hp","Hip"],["Gr","Groin"],["Gt","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["An","Ankle"],["Ft","Foot"],["T","Toe"]];
@@ -475,12 +528,12 @@ V.step1 = () => {
     ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",a.nrsop,"nrsop")}</div>`:""}
   </div>
   <div class="card"><h2>${esc(L)}</h2>
-    ${field("What skill is inhibited?","assess.skill","",{ph:"e.g., macaco"})}
-    ${field("How is the skill inhibited?","assess.inhibited","For example: pain, apprehension, weakness, loss of control.",{area:true})}
-    ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"e.g., 8 out of 10"})}
+    ${field("What skill is inhibited?","assess.skill","",{ph:"ex., macaco"})}
+    ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
+    ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 8 out of 10"})}
     <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
-    <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">Patient Specific Functional Scale. Higher score = more ability.</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
-    ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? E.g.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
+    <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
+    ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
   </div>
   ${stepNav("screen","step2","Next: Discover")}</div>`;
 };
@@ -494,7 +547,7 @@ V.step2 = () => {
   <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p></div>
   <div class="card"><h2>Crux of the issue</h2>
   <p class="small">What simpler, smaller, more focused component seems to be preventing free execution of the painful skill task in its entirety? Explore various related movements to determine. For example: from macaco think bridge, from bridge think end-range shoulder flexion; from back flip think squat, from squat think mid-range loaded knee extension when plantarflexed; from cartwheel think left single leg side handstand press, from press think left trunk sidebending. You are trying to boil the painful skill down to its smallest unit, likely the joint position and loading pattern that is painful.</p>
-  ${field("The crux of my issue","determine.crux","",{area:true,ph:"E.g.: “The crux of the issue is loading my right shoulder, when I’m upside down. I feel this most in macacos or in handstand weight shifts. If I keep the weight balanced between both hands in a bridge, I don’t feel pain.”"})}</div>
+  ${field("The crux of my issue","determine.crux","",{area:true,ph:"ex.: “The crux of the issue is loading my right shoulder, when I’m upside down. I feel this most in macacos or in handstand weight shifts. If I keep the weight balanced between both hands in a bridge, I don’t feel pain.”"})}</div>
   <div class="card"><h2>Testing Movement</h2>
   <p class="small">This should be uncomfortable; otherwise it is not an effective test for the crux of the issue. But you also need to be able to get into it with ease, without risk, and without warm-up. We recommend movements where you are completely in control of the speed and leverage. If you are struggling to keep balance or control the speed the test is likely too challenging to be reliable.</p>
   <p class="small">As an example, for lower back pain this could be a slow, controlled, Jefferson Curl roll-down with a light weight. For knee pain this could be a partial range of motion single leg squat, holding a pole for stability and assistance. The key is <b>you can control when and how much pain you feel</b> as you go through the movement.</p>
@@ -559,7 +612,7 @@ V.step5 = () => { const p=P(); return `<div class="stack">
   <img class="fig" src="img/step5.jpg" alt="Track progress." width="1600" height="1189">
   <div class="card"><p>How can you guarantee you’ll see progress, make necessary course corrections, and reach your destination? By checking your map to see if you’re moving in the right direction. That means tracking results in your workout and with your weekly retest.</p>
   <ul class="tight small"><li><b>Overload Exercise:</b> track as part of your conditioning routine, with Dose, Range, Load, and NRSoP</li>
-  <li><b>Pain-Free Motion and Comfortable Contraction:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good</li>
+  <li><b>Pain-Free Motion and Comfortable Contraction:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good. ${esc(MSG_DAILY_TARGET)}</li>
   <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Discover step</li>
   <li>Test your Painful Skill when you feel ready (you’ll know when)</li></ul>
   <p class="small">It is easy to get frustrated when we do not see results. This level of tracking avoids many of the common pitfalls that lead to frustration. If you are not actually improving, you will notice it and know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
@@ -586,7 +639,9 @@ function dashboard(p){
   const since = daysBetween(lastTest ? lastTest.date : (p.trackStart||p.created), t);
   const due = since>=7;
   const c14 = consistency(p,14);
+  const mm=missingMoves(p);
   return `<div class="stack">
+  ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
       <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of the last 14 days</span></button>
@@ -595,6 +650,7 @@ function dashboard(p){
     <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
     <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Comfortable Contraction ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
     <p class="fine">Last 14 days. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Comfortable Contraction.</p>
+    <p class="fine">${esc(MSG_DAILY_TARGET)}</p>
   </div>
   <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
     <p class="small">${p.program.skip?"Skipped for now. Keep exploring and modifying.":esc(p.program.ov||"Not set yet")}${p.program.replaces?` <span class="muted">(replaces ${esc(p.program.replaces)})</span>`:""}</p>
@@ -606,6 +662,7 @@ function dashboard(p){
   <div class="card"><div class="row spread"><h2>Weekly Testing Movement</h2>${!tmSet?(tmNone?`<span class="chip alert">None found yet</span>`:`<span class="chip">Not set</span>`):due?`<span class="chip due">Due</span>`:`<span class="chip good">Next in ${7-since} days</span>`}</div>
     ${!tmSet?(tmNone?`<p class="small">No movement reliably reproduces it yet. ${p.support==="sam"?"Sam has been flagged.":"See the follow-up advice in Step 2."} If you find one, add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`:`<p class="small">Not set yet. Add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`):`<p class="small">${esc(p.determine.move)}</p>
     ${recentTrends(p.logs.tests)}
+    ${p.tmBase&&!p.logs.tests.some(r=>r.date>p.tmBase.after)?`<p class="fine"><b>New starting point set.</b> Your next test is the new baseline.</p>`:""}
     ${progressMsgs(p)}
     ${testTrend(p)}
     ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}`}
@@ -613,6 +670,7 @@ function dashboard(p){
   <div class="card"><h2>${esc(skillLabel(p))} retest <span style="font-family:var(--body);font-size:.9rem;font-weight:700;color:var(--warn)">only when you feel ready (you’ll know when)</span></h2>
     <p class="small">${esc(p.assess.skill||"")}${p.assess.psfs!=null?` <span class="muted">· started at PSFS ${p.assess.psfs}/10</span>`:""}</p>
     ${recentTrends(p.logs.skill)}
+    ${psfs10Msg(p)}
     ${skillTable(p)}
     ${logForm==="skill"?skillForm(p):`<button class="btn plain" data-act="logform" data-v="skill">I tried my skill</button>`}
   </div>
@@ -627,13 +685,13 @@ function testForm(p){ const f=p._draft||{}; return `<div class="card" style="bac
   <label class="f" for="t-dose">Dose<input type="text" id="t-dose" placeholder="${esc(p.determine.dose||"reps or time")}"></label>
   <label class="f" for="t-range">Range of motion<input type="text" id="t-range" placeholder="${esc(p.determine.range||"")}"></label>
   <label class="f" for="t-load">Load<input type="text" id="t-load" placeholder="${esc(p.determine.load||"")}"></label>
-  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:`<div style="display:grid;gap:6px"><b>Did it still feel limited?</b><div class="trend-pick" role="group" aria-label="Did it still feel limited?"><button type="button" data-act="setfree" data-v="no" aria-pressed="${tmp.free===false}">Still limited</button><button type="button" data-act="setfree" data-v="yes" aria-pressed="${tmp.free===true}">Didn’t feel limited</button></div></div>`}
   ${trendPick()}
   <label class="f" for="t-notes">Notes<input type="text" id="t-notes"></label>
   <div class="row"><button class="btn" data-act="save-test">Save test</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 function ovForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="o-date">Date<input type="date" id="o-date" value="${today()}"></label>
-  <label class="f" for="o-sets">Reps per set<span class="hint">For example 6,6,6. Progress toward 9,9,9.</span><input type="text" id="o-sets" placeholder="6,6,6"></label>
+  <label class="f" for="o-sets">Reps per set<span class="hint">ex., 6,6,6. Progress toward 9,9,9.</span><input type="text" id="o-sets" placeholder="ex., 6,6,6"></label>
   <label class="f" for="o-range">Range<input type="text" id="o-range"></label>
   <label class="f" for="o-load">Load<input type="text" id="o-load"></label>
   ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
@@ -643,7 +701,7 @@ function ovForm(p){ return `<div class="card" style="background:var(--soft)">
   <div class="row"><button class="btn" data-act="save-ov">Save session</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 function skillForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="s-date">Date<input type="date" id="s-date" value="${today()}"></label>
-  <div style="display:grid;gap:6px"><b>PSFS</b>${scale("_tmp.psfs",tmp.psfs,"psfs")}</div>
+  <div style="display:grid;gap:6px"><b>PSFS</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("_tmp.psfs",tmp.psfs,"psfs")}</div>
   ${trendPick()}
   <label class="f" for="s-notes">Notes<input type="text" id="s-notes"></label>
   <div class="row"><button class="btn" data-act="save-skill">Save</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
@@ -668,7 +726,8 @@ function testTrend(p, ro){
     const last=pts[pts.length-1];
     spark=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Testing Movement NRSoP over time, lower is better"><line x1="${left}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><line x1="${left}" x2="${W-pad}" y1="${Y(5)}" y2="${Y(5)}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="${left}" x2="${W-pad}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--line)"/><text x="${left-6}" y="${Y(0)+4}" font-size="11" fill="var(--muted)" text-anchor="end">0</text><text x="${left-6}" y="${Y(5)+4}" font-size="11" fill="var(--muted)" text-anchor="end">5</text><text x="${left-6}" y="${Y(10)+4}" font-size="11" fill="var(--muted)" text-anchor="end">10</text><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3" fill="var(--blue)"/>`).join("")}<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="var(--blue)"/></svg><p class="fine">NRSoP during the test (0 at the top: higher on the chart means less pain). Improvement in dose, range, or load counts as progress too.</p>`; }
   const cols=[["Dose","dose"],["Range","range"],["Load","load"]].filter(([,k])=>rows.some(r=>r[k]));
-  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${i?trChip(r.trend):""}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
+  const nb = p.tmBase ? L.find(r=>r.date>p.tmBase.after) : null;
+  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${i?trChip(r.trend):""}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${i&&nb&&r===nb?`<b>New starting point.</b> `:""}${!isPainful(p)&&i&&r.free!=null?(r.free?"Didn’t feel limited. ":"Still limited. "):""}${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
   return spark+tbl;
 }
 function ovTable(p,ro){ const L=p.logs.overload; if(!L.length) return `<p class="fine">No sessions logged yet.</p>`;
@@ -724,7 +783,8 @@ V.learn = () => `<div class="stack">
   <p><b>Injury:</b> the tissue damage resulting from tissue overload. Lives in the tissue.</p>
   <p><b>Pain:</b> the negative physical experience frequently associated with injury. Lives in the brain.</p>
   <p><b>Numeric Rating Scale of Pain (NRSoP):</b> 0-10 scale to measure pain intensity. 0 is no pain, 10 is the worst pain.</p>
-  <p><b>Patient Specific Functional Scale (PSFS):</b> 0-10 scale to measure your ability to do a specific self-selected task. 0 is completely limited by pain/injury, 10 is completely unlimited by pain/injury. Yes, the PSFS scale is inverted from the NRSoP.</p></div></details>
+  <p><b>Patient Specific Functional Scale (PSFS):</b> 0-10 scale to measure your ability to do a specific self-selected task. 0 is completely limited by pain/injury, 10 is completely unlimited by pain/injury. Yes, the PSFS scale is inverted from the NRSoP.</p>
+  <p class="small">${esc(PSFS_PAIN)}</p><p class="small">For a Restricted Skill: ${esc(PSFS_RESTR)}</p></div></details>
   <details><summary>Respect but don’t fear your pain</summary><div class="body">
   <ul class="tight"><li><b>Avoiding all pain</b> entirely is fear, and fear feeds danger signals into the brain, which further amplifies the pain response</li>
   <li><b>Ignoring pain</b> and just powering through is disrespecting your pain, and means alarm bells are constantly blaring during your activity, which feeds danger signals into the brain, which further amplifies the pain response</li>
@@ -852,10 +912,15 @@ document.addEventListener("click", async e=>{
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes")}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
     case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
-    case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Saved"); break; }
+    case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
+      { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "setfree": { const nv = v==="yes"; tmp.free = tmp.free===nv?null:nv; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "ceil-no": { const c=ceilingCheck(p); if(c){ p.ceilAns=c.key; save(true); } const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "ceil-yes": { logForm="skill"; tmp={}; render(); const f=document.getElementById("s-date"); if(f) f.scrollIntoView({block:"center"}); break; }
+    case "new-base": { const L=p.logs.tests; if(L.length){ p.tmBase={after:L[L.length-1].date, set:today()}; save(true); } toast("New starting point set. Update the details in Step 2 if they changed."); go("step2"); break; }
     case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
