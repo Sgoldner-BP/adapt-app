@@ -336,11 +336,34 @@ function testsSinceBase(p){ const a=p.tmBase&&p.tmBase.after; return p.logs.test
 function ceilingCheck(p){ const T=testsSinceBase(p); const last2=T.slice(-2);
   const on = last2.length===2 && last2.every(t=> isPainful(p) ? t.nrsop===0 : t.free===true);
   return on ? {since:last2[0].date, key:last2[1].date} : null; }
+// Stall ladder (Sam, October 26, 2026; awaiting Aaron): each stalled check (2 rated tests without Progressed)
+// looks at the 2 weeks before it. Missing movement: find it (no step). Under the consistency target: target prompt,
+// up to 2 in a row; the 3rd in a row moves on to exercise changes. On target: next rung. Rungs: change #1, #2, #3, then referral.
+const MOVES=[["pfm","Pain-Free Motion"],["cc","Comfortable Contraction"],["ov","Overload Exercise"]];
+function countsAt(p,end){ const hasP=!!p.approach.pfm.trim(), hasC=!!p.approach.cc.trim(); let d=0;
+  for(let i=0;i<14;i++){ const x=p.logs.daily[addDays(end,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
+  const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,end); return k>=0&&k<14; }).length;
+  return {d,o}; }
 function progressCheck(p){ const ceil=ceilingCheck(p);
   if(ceil) return {stalled:false, refer:false, regressed:false, checks:0, key:null, ceiling:ceil};
   const L=testsSinceBase(p).filter(t=>t.trend); let run=0; for(let i=L.length-1;i>=0&&L[i].trend!=="progressed";i--) run++;
   const checks=Math.floor(run/2); const last2=L.slice(-2);
-  return {stalled:checks>=1, refer:checks>=3, regressed:last2.length===2&&last2.every(t=>t.trend==="regressed"), checks, key: checks ? (L[L.length-run].date+":"+checks) : null}; }
+  const regressed=last2.length===2&&last2.every(t=>t.trend==="regressed");
+  if(!checks) return {stalled:false, refer:false, regressed, checks:0, key:null};
+  const ep=L.slice(L.length-run), epStart=ep[0].date, lad=p.ladder||{}, miss=missingMoves(p).length>0;
+  let rung=0, under=0, refer=false, step=null, outcome=null;
+  for(let k=1;k<=checks;k++){
+    const t=ep[2*k-1], key=epStart+":"+k, last=k===checks;
+    let o=lad[key]; if(!o){ if(last&&miss) o="M"; else { const c=countsAt(p,t.date); o=(c.d>=10&&c.o>=6)?"C":"I"; } }
+    if(last) outcome=o;
+    if(refer) step={type:"refer"};
+    else if(o==="M") step={type:"missing"};
+    else if(o==="I"&&under<2){ under++; const c=countsAt(p,t.date), pv=countsAt(p,addDays(t.date,-14)); step={type:"target", second:under===2, T:(under===2&&(c.d<8||c.o<4))?[8,2]:[10,3], c, pv, date:t.date}; }
+    else { under = o==="I" ? under+1 : 0; rung++; if(rung>3){ refer=true; step={type:"refer"}; } else step={type:"change", rung, date:t.date}; }
+  }
+  return {stalled:true, refer, regressed, checks, rung, step, outcome, epStart, key: epStart+":"+checks}; }
+function freezeCheck(p){ const c=progressCheck(p); if(c.stalled&&c.key&&c.outcome){ p.ladder=p.ladder||{}; p.ladder[c.key]=c.outcome; } }
+function changedSince(p,since){ return (p.changed||[]).filter(x=>x.date>=since); }
 // Movements still to find: the first exercise adjustment (Sam)
 function missingMoves(p){ const m=[];
   if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
@@ -357,17 +380,23 @@ function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.tri
   return {d,o}; }
 const times = n => n===1?"1 time":n+" times";
 function stallMsg(p,c){
-  const miss=missingMoves(p);
-  if(miss.length) return `Your last two weekly tests didn’t show progress. First, find your ${missingPhrase(miss)}; that’s the first adjustment to make. Keep the Testing Movement the same so you can see whether the change helps.`;
-  const cur=windowCounts(p,0);
-  if(c.checks===1){
-    if(cur.d<10||cur.o<6) return `Your last two weekly tests didn’t show progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}. For the next 2 weeks, aim for your daily movements on at least 10 days and your Overload Exercise 3 times a week, and keep everything else the same.`;
-    return MSG_TWO_WEEK; }
-  let T=null; if(cur.d<8||cur.o<4) T=[8,2]; else if(cur.d<10||cur.o<6) T=[10,3];
-  if(!T) return MSG_TWO_WEEK;
-  const prev=windowCounts(p,14); const ud=cur.d>prev.d, uo=cur.o>prev.o;
-  const up = ud&&uo ? `, up from ${prev.d} days and ${times(prev.o)} before, so the extra effort is showing` : ud ? `, up from ${prev.d} days before, so the extra effort is showing` : uo ? `, up from ${times(prev.o)} before, so the extra effort is showing` : "";
-  return `Your tests still haven’t shown progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}${up}. For the next 2 weeks, aim for your daily movements on at least ${T[0]} days and your Overload Exercise ${T[1]} times a week. If hitting that doesn’t help, the next adjustment we’ll make is changing the exercises themselves.`; }
+  const st=c.step||{};
+  if(st.type==="missing"){ const miss=missingMoves(p); if(miss.length) return `Your last two weekly tests didn’t show progress. First, find your ${missingPhrase(miss)}; that’s the first adjustment to make. Keep the Testing Movement the same so you can see whether the change helps.`; }
+  if(st.type==="target"){ const cur=st.c;
+    if(!st.second) return `Your last two weekly tests didn’t show progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}. For the next 2 weeks, aim for your daily movements on at least 10 days and your Overload Exercise 3 times a week, and keep everything else the same.`;
+    const prev=st.pv, ud=cur.d>prev.d, uo=cur.o>prev.o;
+    const up = ud&&uo ? `, up from ${prev.d} days and ${times(prev.o)} before, so the extra effort is showing` : ud ? `, up from ${prev.d} days before, so the extra effort is showing` : uo ? `, up from ${times(prev.o)} before, so the extra effort is showing` : "";
+    return `Your tests still haven’t shown progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}${up}. For the next 2 weeks, aim for your daily movements on at least ${st.T[0]} days and your Overload Exercise ${st.T[1]} times a week. If hitting that doesn’t help, the next adjustment we’ll make is changing the exercises themselves.`; }
+  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k)).map(x=>x[1]);
+  const tail=" Keep the Testing Movement the same so you can see whether the change helps.";
+  if(rem.length===2) return `Your last two weekly tests didn’t show progress. Time to change one of the two you haven’t changed yet: your ${rem[0]} or ${rem[1]}.`+tail;
+  if(rem.length===1) return `Your last two weekly tests didn’t show progress. Time to change the last one: your ${rem[0]}.`+tail;
+  if(rem.length===0) return `Your last two weekly tests didn’t show progress. Time to change one thing again: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise.`+tail;
+  return MSG_TWO_WEEK; }
+function changePick(p,c){ const st=c.step||{}; if(st.type!=="change") return "";
+  const mine=changedSince(p,st.date); if(mine.length) return `<p class="small"><b>Changed:</b> your ${esc(MOVES.find(m=>m[0]===mine[mine.length-1].k)[1])} (${esc(fmtDate(mine[mine.length-1].date))}).</p>`;
+  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k));
+  return `<p class="small">Which did you change?</p><div class="row">${(rem.length?rem:MOVES).map(([k,l])=>`<button class="btn small plain" data-act="changed" data-v="${k}">${l}</button>`).join("")}</div>`; }
 function ceilingMsg(p,ceil){
   const line = isPainful(p) ? "Your Testing Movement has been at 0/10 for two weeks, so it isn’t measuring much anymore." : "Your Testing Movement hasn’t felt limited for two weeks, so it isn’t measuring much anymore.";
   const rt=p.logs.skill.filter(r=>r.date>=ceil.since&&r.psfs!=null).pop();
@@ -384,7 +413,7 @@ function progressMsgs(p){ const c=progressCheck(p); let h="";
   if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
   if(c.refer) h+= p.support==="sam" ? `<div class="msg warn"><b>Flagged for Sam</b><p class="small">${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div><button class="btn small" data-act="go" data-v="checkin">Send my answers to Sam</button>`
     : `<div class="msg warn"><b>Follow up</b><p class="small">${upgradeMsg("tracking")}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div>`;
-  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(stallMsg(p,c))}</p>${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(stallMsg(p,c))}</p>${changePick(p,c)}${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
   if(c.ceiling) h+=ceilingMsg(p,c.ceiling);
   return h; }
 function noTmMsg(p){ const sam=p.support==="sam";
@@ -752,7 +781,11 @@ function summaryText(p){
   const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
   const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
   const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
-  { const c=progressCheck(p); if(c.refer) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row (follow-up shown)`); else if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); else if(c.stalled) lines.push("Two-week check: no progress on the last 2 tests"); }
+  { const c=progressCheck(p); const ch=c.stalled?changedSince(p,c.epStart).map(x=>MOVES.find(m=>m[0]===x.k)[1]):[];
+    if(c.refer) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row, after 3 exercise changes (follow-up shown)`);
+    else if(c.stalled) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row; suggested now: ${({missing:"find the missing movement",target:"consistency target",change:"exercise change #"+c.rung}[c.step.type])}`);
+    if(ch.length) lines.push(`Changed so far: ${ch.join(", ")}`);
+    if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); }
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
@@ -913,11 +946,12 @@ document.addEventListener("click", async e=>{
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "save-test": { freezeCheck(p); const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
     case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
     case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
       { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "changed": { p.changed=p.changed||[]; p.changed.push({k:v,date:today()}); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); toast("Noted"); break; }
     case "setfree": { const nv = v==="yes"; tmp.free = tmp.free===nv?null:nv; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "ceil-no": { const c=ceilingCheck(p); if(c){ p.ceilAns=c.key; save(true); } const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "ceil-yes": { logForm="skill"; tmp={}; render(); const f=document.getElementById("s-date"); if(f) f.scrollIntoView({block:"center"}); break; }
