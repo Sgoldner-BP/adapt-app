@@ -87,7 +87,8 @@ textarea{min-height:76px;resize:vertical}
 .yn button[aria-pressed="true"][data-v="yes"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
 .yn button[aria-pressed="true"][data-v="no"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .msg{border-radius:8px;padding:14px;display:grid;gap:10px;border:1px solid}
-.msg.alert{background:var(--alert-soft);border-color:var(--alert)}
+.msg.alert{background:var(--alert-soft);border:2px solid var(--alert);border-left-width:7px;color:var(--alert);font-weight:700}
+.msg.alert a{color:inherit}
 .msg.warn{background:var(--warn-soft);border-color:var(--warn)}
 .msg.good{background:var(--good-soft);border-color:var(--good)}
 .msg.info{background:var(--blue-soft);border-color:var(--blue-line)}
@@ -530,7 +531,7 @@ V.step1 = () => {
   <div class="card"><h2>${esc(L)}</h2>
     ${field("What skill is inhibited?","assess.skill","",{ph:"ex., macaco"})}
     ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
-    ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 8 out of 10"})}
+    ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 80%"})}
     <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
     <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
     ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
@@ -901,7 +902,7 @@ document.addEventListener("click", async e=>{
       const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
       const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
       store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); break; }
-    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p?p.support:"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
+    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
     case "switch": store.activeId=v; save(true); go("home"); break;
     case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
