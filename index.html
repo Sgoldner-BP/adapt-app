@@ -603,7 +603,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
   <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1">Add it in Step 1</button>`}</p>
     <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
     ${win}</div>
-  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button><button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button></div></div>
+  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button>${armed==="reentry"?`<div class="row"><button class="btn small" data-act="reentry">Yes, it’s getting limited again</button><button class="btn plain small" data-act="reentry-cancel">Cancel</button></div>`:`<button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button>`}</div></div>
   </div>`; }
 function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}: ${p.assess.skill||"-"}`,
   `Support: ${s.support}`,`Side and region: ${[s.side,s.region].filter(Boolean).join(" ")||"-"}`,`Skill type: ${s.kind}`,`PSFS at start: ${s.psfs===""?"-":s.psfs+"/10"}`,
@@ -1106,7 +1106,8 @@ document.addEventListener("click", async e=>{
     case "handoff-yes": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoff={date:today(), at10:ls?ls.date:today()}; save(true); logEvent(p,"10/10 hand-off",p.handoff.at10); go("home"); window.scrollTo(0,0); break; }
     case "handoff-no": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoffNo=ls?ls.date:today(); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "read-next": { const l=nextRead(); go("learn"); if(l){ const d=[...document.querySelectorAll("details[data-lesson]")].find(x=>x.dataset.lesson===l.t); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } } break; }
-    case "reentry": { if(p.handoff){ p.reentries=(p.reentries||[]).concat([{date:today(), from:p.handoff}]); p.handoffNo=p.handoff.at10; delete p.handoff;
+    case "reentry-cancel": { armed=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "reentry": { if(armed!=="reentry"){ armed="reentry"; const y=window.scrollY; render(); window.scrollTo(0,y); break; } armed=null; if(p.handoff){ p.reentries=(p.reentries||[]).concat([{date:today(), from:p.handoff}]); p.handoffNo=p.handoff.at10; delete p.handoff;
         p.tmBase={after:addDays(today(),-1), set:today()}; save(true); queueFlag(p,"Re-entry"); logEvent(p,"Re-entry"); } go("home"); break; }
     case "handoff-undo": { if(p.handoff){ p.handoffNo=p.handoff.at10; delete p.handoff; save(true); logEvent(p,"10/10 hand-off undone"); } go("home"); break; }
     case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
