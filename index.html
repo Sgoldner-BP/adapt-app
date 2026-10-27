@@ -268,7 +268,7 @@ async function pack(obj){
 }
 async function unpack(code){
   code = code.trim();
-  const m = code.match(/#([cp])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
+  const m = code.match(/#([cpr])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
   const kind = code[0], body = code.slice(1);
   let bytes = unb64url(body);
   if(kind==="z"){ bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
@@ -591,6 +591,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
       + (w.shared ? `<p class="small">Shared ${esc(fmtDate(w.shared))}. Thank you for letting us celebrate with you.</p>`
         : `<button class="btn" data-act="win-share">Share it with the ADAPT team</button><p class="fine">This opens an email to Sam with your summary, and lets the ADAPT team know about your win.</p>`);
   return `<div class="stack">
+  ${supportEndedCard(p)}
   <div class="card"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
     <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
     <p><b>Take these with you:</b></p><ul class="tight">
@@ -769,6 +770,7 @@ function dashboard(p){
   const c14 = consistency(p,14);
   const mm=missingMoves(p);
   return `<div class="stack">
+  ${supportEndedCard(p)}
   ${reentryCard(p)}
   ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
@@ -1039,6 +1041,7 @@ V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenRe
   <div class="card"><h2>Testing Movement: ${esc(d.determine.move||(d.determine.none?"none found yet (flagged)":""))}</h2>${recentTrends(d.logs.tests)}${testTrend(d,true)}</div>
   <div class="card"><h2>Overload sessions</h2>${recentTrends(d.logs.overload)}${ovTable(d,true)}</div>
   <div class="card"><h2>Skill retests</h2>${recentTrends(d.logs.skill)}${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
+  <div class="card"><h2>Renew direct support</h2><p class="small">Sends ${esc(d.person||"them")} a short link that gives 12 more weeks of support. It changes nothing else in their plan or tracking.</p><button class="btn plain" data-act="renew-link">Send a renewal link</button></div>
   <div class="row"><button class="btn" data-act="coach-save">Keep on this device</button><button class="btn plain" data-act="coach-close">Close</button></div></div>`; };
 
 /* ---------- Render ---------- */
@@ -1050,6 +1053,7 @@ function render(){
   if(!store.activeId && !["welcome","open","coach","import","restore"].includes(v)) v="welcome";
   tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
   if(v==="restore" && !store.activeId) tabs.hidden=true;
+  supportCheck(P());
   app.innerHTML = (v==="welcome"?"":header()) + V[v]();
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
@@ -1134,6 +1138,11 @@ document.addEventListener("click", async e=>{
       else if(act==="copy-link"){ if(!await copy(link)) showFallback(link); }
       else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data: "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data: "+link)) showFallback(text+"\n\nFull data: "+link); } }
       break; }
+    case "support-ended-ok": { p.supportEndedSeen=true; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "renew-link": { const d=coachData; if(!d) break; const link=baseURL()+"#r="+await pack({renew:d.id, at:today()});
+      const msg=`Your ADAPT direct support with Sam is renewed for 12 more weeks. Tap this on your phone to update your app: ${link}`;
+      if(navigator.share){ try{ await navigator.share({title:"ADAPT support renewed", text:msg}); }catch(err){} } else if(!await copy(msg)) showFallback(msg); else toast("Renewal message copied");
+      break; }
     case "share-plan": case "copy-plan": {
       const link=baseURL()+"#p="+await pack(planOnly(p));
       const msg=`Here's your ADAPT plan${p.person?", "+p.person:""}. Open it on your phone and add it to your home screen: ${link}`;
@@ -1141,7 +1150,7 @@ document.addEventListener("click", async e=>{
       else if(!await copy(msg)) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
-    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam"}); if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:today()}); delete np.supportEnded; delete np.supportEndedSeen; if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
     case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
     case "view-client": coachData=store.clients[v].data; go("coach"); break;
@@ -1157,21 +1166,34 @@ function rerenderKeepInputs(){ // keep typed values in log forms when tapping a 
 }
 function showFallback(text){ const el=document.createElement("div"); el.className="card"; el.innerHTML=`<p class="small">Copy this:</p><textarea readonly style="min-height:120px">${esc(text)}</textarea>`; document.getElementById("app").appendChild(el); const ta=el.querySelector("textarea"); ta.focus(); ta.select(); el.scrollIntoView({block:"center"}); }
 function clearHash(){ try{ history.replaceState(null,"",baseURL()); }catch(e){} }
+// 12 weeks of direct support (Sam, October 27, 2026): after that the plan switches to solo and keeps everything.
+// Sam renews with a short link from his coach view; it changes nothing but the support dates.
+const SUPPORT_DAYS = 84;
+function supportCheck(p){ if(!p||p.support!=="sam"||p.origin==="coach") return; const s=p.supportStart||p.trackStart||p.created;
+  if(daysBetween(s,today())>=SUPPORT_DAYS){ p.support="self"; p.supportEnded=today(); delete p.supportEndedSeen; save(true); } }
+function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support==="sam") return "";
+  return `<div class="msg info"><p class="small">Your 12 weeks of direct support with Sam have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. To keep working with him, email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`; }
+function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
+  if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
+  p.support="sam"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
+  store.activeId=p.id; save(true); go("home"); toast("Direct support with Sam renewed for 12 weeks"); }
 async function openCode(raw){
-  try{ const kindMatch=raw.match(/#([cp])=/); const d=await unpack(raw);
+  try{ const kindMatch=raw.match(/#([cpr])=/); const d=await unpack(raw);
+    if(d && d.renew){ renewSupport(d); return; }
     if(!d || !d.assess) throw new Error("bad");
     const isCheckin = kindMatch ? kindMatch[1]==="c" : !!d._sent;
     if(isCheckin){ coachData=d; go("coach"); } else { importData=d; go("import"); }
   }catch(e){ toast("That link or code couldn't be read"); render(); }
 }
 
+window.addEventListener("hashchange", ()=>{ if(/^#[cpr]=/.test(location.hash)) openCode(location.hash); });
 /* ---------- Boot ---------- */
 load();
 flushFlags(); flushData();
 (async()=>{
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
-  if(/^#[cp]=/.test(h)){ view=startView; await openCode(h); }
+  if(/^#[cpr]=/.test(h)){ view=startView; await openCode(h); }
   else { view = startView; render(); }
 })();
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
