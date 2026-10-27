@@ -832,8 +832,11 @@ function summaryText(p){
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
+// Supported plans open with the same line every time so Sam can spot check-ins in his messages (Sam, October 27, 2026)
+function checkinText(p){ return (p.support==="sam"?"Hi Sam, here's my ADAPT check-in.\n\n":"")+summaryText(p); }
+const checkinSubject = p => "ADAPT check-in: "+(planCode(p)||"(no name)");
 let linkCache = {};
-V.checkin = () => { const p=P(); const s=summaryText(p); const sam=p.support==="sam";
+V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="sam";
   if(!sam){ // Solo: a self-review page with optional sharing, and the route to direct support (Sam, October 27, 2026)
     return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Check-in</span><h1>Your progress</h1><p class="muted">A quick review of where you are. Nothing leaves this device unless you share it.</p></div>
@@ -847,8 +850,8 @@ V.checkin = () => { const p=P(); const s=summaryText(p); const sam=p.support==="
   <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. Nothing leaves this device until you do.</p></div>
   <div class="card">${field("Anything to tell Sam?","note","How it's going, questions, anything that changed.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
-  <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
-  <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view.</p></div>
+  <div class="row"><button class="btn" data-act="email-update">Email it to Sam</button><button class="btn plain" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
+  <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view. Email it, or use Share or Copy to send it however you usually reach Sam.</p></div>
   </div>`; };
 
 /* ---------- Send plan (coach) ---------- */
@@ -976,7 +979,7 @@ document.addEventListener("input", e=>{
   const el=e.target; if(!el.dataset.bind) return; const p=P(); if(!p) return;
   setPath(p, el.dataset.bind, el.value); save();
   if(["region","person","last"].includes(el.dataset.bind)){ const w=document.querySelector(".top .who"); if(w) w.textContent = p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : planCode(p); }
-  if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=summaryText(p); }
+  if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=checkinText(p); }
 });
 document.addEventListener("click", async e=>{
   const a=e.target.closest("[data-act]"); if(!a) return; const act=a.dataset.act, v=a.dataset.v; const p=P();
@@ -1021,12 +1024,17 @@ document.addEventListener("click", async e=>{
       const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data: "+link;
       location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}&body=${encodeURIComponent(body)}`;
       break; }
+    case "email-update": {
+      const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const link=baseURL()+"#c="+await pack(data);
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent(checkinSubject(p))}&body=${encodeURIComponent(checkinText(p)+"\n\nFull data: "+link)}`;
+      break; }
     case "share": case "copy-sum": case "copy-link": {
-      const text=summaryText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const text=checkinText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
       if(act==="copy-sum"){ if(!await copy(text)) showFallback(text); }
       else if(act==="copy-link"){ if(!await copy(link)) showFallback(link); }
-      else { if(navigator.share){ try{ await navigator.share({title:"ADAPT check-in", text:text+"\n\nFull data: "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data: "+link)) showFallback(text+"\n\nFull data: "+link); } }
+      else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data: "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data: "+link)) showFallback(text+"\n\nFull data: "+link); } }
       break; }
     case "share-plan": case "copy-plan": {
       const link=baseURL()+"#p="+await pack(planOnly(p));
