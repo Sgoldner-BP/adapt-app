@@ -414,10 +414,10 @@ function ceilingMsg(p,ceil){
   const harder = `<p class="small">${esc(MSG_HARDER)}</p><div class="row"><button class="btn small" data-act="new-base">I made it harder: new starting point</button></div>`;
   if((rt&&rt.psfs<10) || (p.ceilAns===ceil.key)) return `<div class="msg warn"><p class="small">${esc(line)}</p>${harder}</div>`;
   return `<div class="msg warn"><p class="small">${esc(line)} Do you feel ready to test your ${esc(skillLabel(p))}?</p><div class="row"><button class="btn small" data-act="ceil-yes">Yes, test it now</button><button class="btn small plain" data-act="ceil-no">Not yet</button></div></div>`; }
-function psfs10Msg(p){ const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); if(!ls||ls.psfs!==10) return "";
+function psfs10Msg(p){ if(p.handoff) return ""; const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); if(!ls||ls.psfs!==10) return "";
   const what = isPainful(p) ? "the pain/injury isn’t" : "the restriction isn’t";
-  const goal = (p.assess.goal||"").trim();
-  return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore. Now aim past where you were: ${goal?`your 11/10 goal is ${esc(goal)}`:`set your 11/10 goal in Step 1`}.</p></div>`; }
+  if(p.handoffNo===ls.date) return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore. No rush: keep your plan going and retest your ${esc(p.assess.skill||skillLabel(p))} in about two weeks.</p></div>`;
+  return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore.</p><p class="small"><b>Ready to wrap up ADAPT and take it back into your regular training?</b></p><div class="row"><button class="btn small" data-act="handoff-yes">Yes, wrap it up</button><button class="btn small plain" data-act="handoff-no">Not yet</button></div></div>`; }
 function checkTrackFlag(p){ const c=progressCheck(p); if(!c.stalled) return; p.notified=p.notified||{}; if(p.notified.track!==c.key){ p.notified.track=c.key; queueFlag(p,"Track"); save(true); } }
 function progressMsgs(p){ const c=progressCheck(p); let h="";
   if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
@@ -449,6 +449,24 @@ async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||l
   try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step==="Determine"?"Discover":f.step);
       await fetch(FLAG_FORM,{method:"POST",mode:"no-cors",body}); store.outbox.shift(); save(true); } }catch(e){} finally{ flushing=false; } }
 window.addEventListener("online", flushFlags);
+// Anonymous counts (Sam, October 27, 2026): plan started, 10/10 hand-off, 11/10 win. No names; a random id per plan
+// that lives outside the plan (so check-in links never carry it). Rows land in the flag sheet's Data tab.
+const DATA_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfONIYwOEZgeUU9I4zcAt1wGpZMi95isI1YRXTdzRlbuAByqQ/formResponse";
+const DATA_ENTRY = { event:"entry.1610803726", data:"entry.1226649088" };
+function anonId(p){ store.anon=store.anon||{}; return store.anon[p.id]=store.anon[p.id]||uid(); }
+const weeksSince = (p,end) => Math.max(0, Math.round(daysBetween(p.trackStart||p.created, end||today())/7));
+function statRow(p,end){ return { support:p.support==="sam"?"Supported":"Solo", side:(SIDES.find(s=>s[0]===p.side)||[0,""])[1], region:(REGIONS.find(r=>r[0]===p.region)||[0,""])[1],
+  kind:isPainful(p)?"Painful":"Restricted", psfs:p.assess.psfs??"", weeks:weeksSince(p,end), changes:(p.changed||[]).length, test:/^test$/i.test((p.last||"").trim())?"yes":"no" }; }
+function logEvent(p, event, end){ if(!p||p.origin==="coach") return; const s=statRow(p,end);
+  const data=[anonId(p),s.support,s.side,s.region,s.kind,s.psfs,s.weeks,s.changes,s.test].map(v=>String(v).replace(/\|/g,"/")).join("|");
+  (store.dataOut=store.dataOut||[]).push({event,data}); save(true); flushData(); }
+let flushingData=false;
+async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushingData=true;
+  try{ while(store.dataOut.length){ const d=store.dataOut[0]; const body=new URLSearchParams(); body.append(DATA_ENTRY.event,d.event); body.append(DATA_ENTRY.data,d.data);
+      await fetch(DATA_FORM,{method:"POST",mode:"no-cors",body}); store.dataOut.shift(); save(true); } }catch(e){} finally{ flushingData=false; } }
+window.addEventListener("online", flushData);
+// An 11/10 win shared by the person goes to Sam's inbox for every plan type (the person chose to send it)
+function queueWin(p){ (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step:"11/10 win", at:new Date().toISOString()}); save(true); flushFlags(); }
 function checkScreenFlag(p){ if(!p||!screenResult(p).answered) return; const sig=screenSig(p); p.notified=p.notified||{}; if(sig && sig!==p.notified.screen) queueFlag(p,"Pre-ADAPT Screening"); p.notified.screen=sig; save(true); }
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && view==="screen") checkScreenFlag(P()); });
 function screenSig(p){ const r=screenResult(p); return r.any ? [...r.yesRF.map(n=>"rf"+n),...r.yesHH.map(n=>"hh"+n)].sort().join(",") : ""; }
@@ -506,7 +524,7 @@ function tourCards(p){ const name=esc((p&&p.person)||"there"); const link=fromLi
     <li><b>Learn:</b> the why behind it all</li>
     <li><b>Check-in:</b> send a summary to a coach</li>
     <li><b>More:</b> your plans and backups</li></ul>${installTip()}`;
-  const c5 = `<h1>Before you start</h1><p>Everything you enter stays on your phone unless you choose to send it. ADAPT is education and coaching, not medical care; if something feels serious, get it checked.</p>`;
+  const c5 = `<h1>Before you start</h1><p>Nothing that identifies you leaves your phone unless you choose to send it. ADAPT is education and coaching, not medical care; if something feels serious, get it checked.</p>`;
   return link ? [c1,c2,c3,c4] : [c1,c2,c3,c4,c5]; }
 V.tour = () => { const p=P(); const cards=tourCards(p); const n=cards.length; const i=Math.min(tourStep,n-1); const last=i===n-1;
   const toPlan = fromLink(p) || p.screen.done; const dest = toPlan ? "home" : "screen";
@@ -552,8 +570,39 @@ V.home = () => {
       ${p.origin==="coach" ? sendPlanCard(p) : ""}
     </div>`;
   }
-  return dashboard(p);
+  return p.handoff ? handoffView(p) : dashboard(p);
 };
+V.track = () => { const p=P(); return `<div class="stack"><button class="btn plain small" data-act="go" data-v="home">Back to your send-off</button>${dashboard(p)}</div>`; };
+// The hand-off after PSFS 10/10 (Sam, October 27, 2026; awaiting Aaron). Wind-down and re-entry are still being designed (06, item 24).
+function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal||"").trim(); const sk=esc(p.assess.skill||skillLabel(p));
+  const who = isPainful(p) ? "Pain isn’t" : "The restriction isn’t"; const h=p.handoff, w=p.win;
+  const next = sam ? `<div class="msg info"><p class="small">Sam will reach out to talk through your next steps.</p></div>`
+    : `<div class="card"><h2>Do you have a training program to go back to?</h2>
+      ${h.program==="yes"?`<p class="small">Perfect. Take all of this back into it.</p>`
+        :h.program==="no"?`<p class="small">You’ve got options: run ADAPT again with your 11/10 goal as the new target, or get a training program built around what you love. Email Sam at ${emailLink()} to ask about programs.</p><button class="btn plain" data-act="rerun">Run ADAPT again</button>`
+        :`<div class="row"><button class="btn" data-act="handoff-prog" data-v="yes">Yes</button><button class="btn plain" data-act="handoff-prog" data-v="no">No</button></div>`}</div>`;
+  const win = !w ? `<button class="btn" data-act="win">I hit my 11/10</button>`
+    : `<div class="msg good"><p class="small"><b>11/10.</b> You’re past your old limits. That’s what ADAPT is for.</p></div>`
+      + (w.shared ? `<p class="small">Shared ${esc(fmtDate(w.shared))}. Thank you for letting us celebrate with you.</p>`
+        : `<button class="btn" data-act="win-share">Share it with the ADAPT team</button><p class="fine">This opens an email to Sam with your summary, and lets the ADAPT team know about your win.</p>`);
+  return `<div class="stack">
+  <div class="card"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
+    <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
+    <p><b>Take these with you:</b></p><ul class="tight">
+    <li><b>Your Pain-Free Motion and Comfortable Contraction:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off.</li>
+    <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through.</li>
+    <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign.</li>
+    <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving.</li></ul></div>
+  ${next}
+  <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1">Add it in Step 1</button>`}</p>
+    <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
+    ${win}</div>
+  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button><button class="btn plain small" data-act="handoff-undo">Not done after all? Keep going</button></div></div>
+  </div>`; }
+function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}: ${p.assess.skill||"-"}`,
+  `Support: ${s.support}`,`Side and region: ${[s.side,s.region].filter(Boolean).join(" ")||"-"}`,`Skill type: ${s.kind}`,`PSFS at start: ${s.psfs===""?"-":s.psfs+"/10"}`,
+  `Weeks to 10/10: ${p.handoff?weeksSince(p,p.handoff.at10):"-"}`,`Weeks to 11/10: ${s.weeks}`,`Exercise changes: ${s.changes}`];
+  return lines.join("\n"); }
 
 function stepsList(p){
   return `<div class="steps">${STEPS.map(s=>`<button class="stepbtn" data-act="go" data-v="${s.k}" data-done="${s.done(p)}"><span class="stepnum">${s.done(p)?"&#10003;":s.n}</span><span class="t"><b>${esc(s.t)}</b><span>${esc(stepSub(p,s.k))}</span></span><span class="chev">&rsaquo;</span></button>`).join("")}</div>`;
@@ -839,7 +888,7 @@ let linkCache = {};
 V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="sam";
   if(!sam){ // Solo: a self-review page with optional sharing, and the route to direct support (Sam, October 27, 2026)
     return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Your progress</h1><p class="muted">A quick review of where you are. Nothing leaves this device unless you share it.</p></div>
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Your progress</h1><p class="muted">A quick review of where you are. This summary stays on this device unless you share it.</p></div>
   <div class="card">${field("Notes","note","How it's going, what's improved, what's been hard, anything to change.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div></div>
   <div class="card"><h2>Share it (optional)</h2><p class="small">Send it to a coach, physio, or training partner. The message is a short summary; the link opens your full plan and tracking in a read-only view.</p>
@@ -847,7 +896,7 @@ V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="
   <div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p>${UPGRADE_LINK?"":`<button class="btn plain small" data-act="email-sam">Email Sam with this summary</button>`}</div>
   </div>`; }
   return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. Nothing leaves this device until you do.</p></div>
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. This update stays on this device until you send it.</p></div>
   <div class="card">${field("Anything to tell Sam?","note","How it's going, questions, anything that changed.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
   <div class="row"><button class="btn" data-act="email-update">Email it to Sam</button><button class="btn plain" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
@@ -999,7 +1048,7 @@ document.addEventListener("click", async e=>{
     case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "skip": p.program.skip=a.checked; save(); break;
-    case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); } save(true); go("home"); break;
+    case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "save-test": { freezeCheck(p); const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
@@ -1018,6 +1067,15 @@ document.addEventListener("click", async e=>{
     case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "handoff-yes": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoff={date:today(), at10:ls?ls.date:today()}; save(true); logEvent(p,"10/10 hand-off",p.handoff.at10); go("home"); window.scrollTo(0,0); break; }
+    case "handoff-no": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoffNo=ls?ls.date:today(); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "handoff-undo": { if(p.handoff){ p.handoffNo=p.handoff.at10; delete p.handoff; save(true); logEvent(p,"10/10 hand-off undone"); } go("home"); break; }
+    case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
+    case "win": { p.win={date:today()}; save(true); logEvent(p,"11/10 win",p.win.date); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "win-share": { const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today(); const link=baseURL()+"#c="+await pack(data);
+      const body=winEmail(p)+"\n\nFull data: "+link; queueWin(p); p.win.shared=today(); save(true); render();
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT 11/10: "+(planCode(p)||"(no name)"))}&body=${encodeURIComponent(body)}`; break; }
     case "email-sam": { // builds the email at click time so the notes just typed are included
       const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
@@ -1043,7 +1101,7 @@ document.addEventListener("click", async e=>{
       else if(!await copy(msg)) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
-    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam"}); if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; } store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam"}); if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
     case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
     case "view-client": coachData=store.clients[v].data; go("coach"); break;
@@ -1069,7 +1127,7 @@ async function openCode(raw){
 
 /* ---------- Boot ---------- */
 load();
-flushFlags();
+flushFlags(); flushData();
 (async()=>{
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
