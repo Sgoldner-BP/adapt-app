@@ -1,5 +1,5 @@
 // ADAPT offline cache. Bump VERSION on every release so phones pick up the new files.
-const VERSION = "adapt-v37";
+const VERSION = "adapt-v38";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "img/journey.jpg","img/five-movements.jpg","img/continuum.jpg","img/before-after.jpg",
   "img/step1.jpg","img/step2.jpg","img/step3.jpg","img/step4.jpg","img/step5.jpg",

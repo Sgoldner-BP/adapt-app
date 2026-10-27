@@ -98,6 +98,8 @@ textarea{min-height:76px;resize:vertical}
 .stepnum{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:var(--soft);color:var(--muted)}
 .stepbtn[data-done="true"] .stepnum{background:var(--good);color:#fff}
 .stepnum{border:2px solid var(--blue-line)}
+.lchk{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;border-radius:50%;border:2px solid var(--blue-line);font-size:12px;vertical-align:-3px}
+.lchk[data-done="true"]{background:var(--good);border-color:var(--good);color:#fff}
 .stepbtn[data-done="true"] .stepnum{border-color:var(--good)}
 .stepbtn .t{min-width:0}
 .stepbtn .t b{display:block}
@@ -389,6 +391,9 @@ function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.tri
   const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,t); return k>=back&&k<back+14; }).length;
   return {d,o}; }
 const times = n => n===1?"1 time":n+" times";
+// The person's own movement next to its label, once they've filled it in (Sam, October 27, 2026)
+function mvn(p,k){ const l=MOVES.find(m=>m[0]===k)[1]; const n=(k==="pfm"?p.approach.pfm:k==="cc"?p.approach.cc:(p.program.skip?"":p.program.ov)||"").trim(); return n?`${l} (${n})`:l; }
+const allThree = p => `your ${mvn(p,"pfm")}, ${mvn(p,"cc")}, or ${mvn(p,"ov")}`;
 function stallMsg(p,c){
   const st=c.step||{};
   if(st.type==="missing"){ const miss=missingMoves(p); if(miss.length) return `Your last two weekly tests didn’t show progress. First, find your ${missingPhrase(miss)}; that’s the first adjustment to make. Keep the Testing Movement the same so you can see whether the change helps.`; }
@@ -397,12 +402,12 @@ function stallMsg(p,c){
     const prev=st.pv, ud=cur.d>prev.d, uo=cur.o>prev.o;
     const up = ud&&uo ? `, up from ${prev.d} days and ${times(prev.o)} before, so the extra effort is showing` : ud ? `, up from ${prev.d} days before, so the extra effort is showing` : uo ? `, up from ${times(prev.o)} before, so the extra effort is showing` : "";
     return `Your tests still haven’t shown progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}${up}. For the next 2 weeks, aim for your daily movements on at least ${st.T[0]} days and your Overload Exercise ${st.T[1]} times a week. If hitting that doesn’t help, the next adjustment we’ll make is changing the exercises themselves.`; }
-  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k)).map(x=>x[1]);
+  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k)).map(x=>mvn(p,x[0]));
   const tail=" Keep the Testing Movement the same so you can see whether the change helps.";
   if(rem.length===2) return `Your last two weekly tests didn’t show progress. Time to change one of the two you haven’t changed yet: your ${rem[0]} or ${rem[1]}.`+tail;
   if(rem.length===1) return `Your last two weekly tests didn’t show progress. Time to change the last one: your ${rem[0]}.`+tail;
-  if(rem.length===0) return `Your last two weekly tests didn’t show progress. Time to change one thing again: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise.`+tail;
-  return MSG_TWO_WEEK; }
+  if(rem.length===0) return `Your last two weekly tests didn’t show progress. Time to change one thing again: ${allThree(p)}.`+tail;
+  return MSG_TWO_WEEK.replace("your Pain-Free Motion, Comfortable Contraction, or Overload Exercise", allThree(p)); }
 function changePick(p,c){ const st=c.step||{}; if(st.type!=="change") return "";
   const mine=changedSince(p,st.date); if(mine.length) return `<p class="small"><b>Changed:</b> your ${esc(MOVES.find(m=>m[0]===mine[mine.length-1].k)[1])} (${esc(fmtDate(mine[mine.length-1].date))}).</p>`;
   const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k));
@@ -589,15 +594,16 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
   <div class="card"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
     <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
     <p><b>Take these with you:</b></p><ul class="tight">
-    <li><b>Your Pain-Free Motion and Comfortable Contraction:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off.</li>
-    <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through.</li>
-    <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign.</li>
-    <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving.</li></ul></div>
+    <li><b>Your ${esc(mvn(p,"pfm"))} and ${esc(mvn(p,"cc"))}:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off</li>
+    ${(!p.program.skip&&(p.program.ov||"").trim())?`<li><b>Your ${esc(mvn(p,"ov"))}:</b> you can swap back to ${esc((p.program.replaces||"").trim()||"your original exercise")} now, or keep it in your rotation. Keeping it for a couple of weeks means one less change while you ramp up your skill practice; swapping it now puts your whole program back the way it was originally</li>`:""}
+    <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through</li>
+    <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign</li>
+    <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving</li></ul></div>
   ${next}
   <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1">Add it in Step 1</button>`}</p>
     <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
     ${win}</div>
-  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button><button class="btn plain small" data-act="handoff-undo">Not done after all? Keep going</button></div></div>
+  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button><button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button></div></div>
   </div>`; }
 function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}: ${p.assess.skill||"-"}`,
   `Support: ${s.support}`,`Side and region: ${[s.side,s.region].filter(Boolean).join(" ")||"-"}`,`Skill type: ${s.kind}`,`PSFS at start: ${s.psfs===""?"-":s.psfs+"/10"}`,
@@ -763,6 +769,7 @@ function dashboard(p){
   const c14 = consistency(p,14);
   const mm=missingMoves(p);
   return `<div class="stack">
+  ${reentryCard(p)}
   ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
@@ -786,6 +793,7 @@ function dashboard(p){
     ${recentTrends(p.logs.tests)}
     ${p.tmBase&&!p.logs.tests.some(r=>r.date>p.tmBase.after)?`<p class="fine"><b>New starting point set.</b> Your next test is the new baseline.</p>`:""}
     ${progressMsgs(p)}
+    ${postTestRead(p)}
     ${testTrend(p)}
     ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}`}
   </div>
@@ -796,10 +804,24 @@ function dashboard(p){
     ${skillTable(p)}
     ${logForm==="skill"?skillForm(p):`<button class="btn plain" data-act="logform" data-v="skill">I tried my skill</button>`}
   </div>
+  ${nextReadCard()}
   <div class="card"><h2>Something changed?</h2><p class="small">If your symptoms got worse or something new showed up, run the screening again.</p><button class="btn plain" data-act="go" data-v="screen">Re-check the screening</button></div>
   <button class="btn" data-act="go" data-v="checkin">${p.support==="sam"?"Send a check-in to Sam":"Share my progress"}</button>
   </div>`;
 }
+// Re-entry (approved by Sam, October 27, 2026): screening re-check, quick retest, then the same plan or a new one
+function reentryCard(p){ const r=(p.reentries||[]).slice(-1)[0]; if(!r) return "";
+  const s1=(p.screen.date||"")>=r.date, s2=p.logs.tests.some(x=>x.date>=r.date), s3=p.logs.skill.some(x=>x.date>=r.date);
+  if(s1&&s2&&s3) return "";
+  const row=(done,label,btn)=>`<div class="row spread"><span class="small">${done?"&#10003; ":""}${label}</span>${done?"":btn}</div>`;
+  return `<div class="card"><span class="eyebrow">Welcome back</span><h2>Let’s see where you are</h2>
+    <p class="small">It happens. You’ve done this once, so you know the way back.</p>
+    ${row(s1,"1. Re-check the screening",`<button class="btn small" data-act="go" data-v="screen">Start</button>`)}
+    ${row(s2,"2. Log your Testing Movement",`<button class="btn small plain" data-act="logform" data-v="test">Log it</button>`)}
+    ${row(s3,`3. Check your ${esc(p.assess.skill||skillLabel(p))}`,`<button class="btn small plain" data-act="logform" data-v="skill">Log it</button>`)}
+    <p class="small">Your plan is back on with a fresh starting point. If it’s a different area or skill this time, start a new plan instead.</p>
+    <button class="btn plain small" data-act="new" data-v="self">Start a new plan</button>
+    ${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`; }
 function consistency(p,n){ const t=today(); let a=0,b=0,both=0; for(let i=0;i<n;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if(x.pfm)a++; if(x.cc)b++; } return {pfm:a,cc:b,both:Math.round(100*(a+b)/(2*n))}; }
 
 function testForm(p){ const f=p._draft||{}; return `<div class="card" style="background:var(--soft)">
@@ -903,6 +925,20 @@ V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="
   <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view. Email it, or use Share or Copy to send it however you usually reach Sam.</p></div>
   </div>`; };
 
+// Learn check-offs (Sam, October 27, 2026): a lesson counts as read once it's opened
+function lessons(){ const h=learnRaw(); return [...h.matchAll(/<details><summary>([^<]+)<\/summary>([\s\S]*?)<\/details>/g)].map(m=>({t:m[1], min:Math.max(1,Math.round(m[2].replace(/<[^>]+>/g," ").split(/\s+/).filter(Boolean).length/200))})); }
+const isRead = t => !!(store.learn||{})[t];
+function nextRead(){ return lessons().find(l=>!isRead(l.t)); }
+V.learn = () => { const L=lessons(), n=L.filter(l=>isRead(l.t)).length;
+  return learnRaw().replace("<h1>The ideas behind ADAPT</h1></div>", `<h1>The ideas behind ADAPT</h1><p class="muted">${n} of ${L.length} read. Tap a lesson to open it; it gets a check once you’ve read it.</p></div>`)
+    .replace(/<details><summary>([^<]+)<\/summary>/g, (m,ti)=>`<details data-lesson="${esc(ti)}"><summary><span class="lchk" data-done="${isRead(ti)}">${isRead(ti)?"&#10003;":""}</span>${ti}</summary>`); };
+document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||!d.open||!d.dataset.lesson) return;
+  store.learn=store.learn||{}; if(!store.learn[d.dataset.lesson]){ store.learn[d.dataset.lesson]=today(); save(true); const c=d.querySelector(".lchk"); if(c){ c.dataset.done="true"; c.innerHTML="&#10003;"; }
+    const m=document.querySelector(".card.flat .muted"); if(m){ const L=lessons(); m.textContent=`${L.filter(l=>isRead(l.t)).length} of ${L.length} read. Tap a lesson to open it; it gets a check once you’ve read it.`; } } }, true);
+function nextReadCard(){ const l=nextRead(); if(!l) return ""; return `<div class="card"><h2>Next read</h2><p class="small">${esc(l.t)} <span class="muted">· ${l.min} min</span></p><button class="btn plain small" data-act="read-next">Read it</button></div>`; }
+function postTestRead(p){ const l=nextRead(), last=p.logs.tests[p.logs.tests.length-1]; if(!l||!last||last.date!==today()) return "";
+  return `<p class="small">Nice. Want a ${l.min}-minute read while you’re here? <button class="linkbtn" data-act="read-next">${esc(l.t)}</button></p>`; }
+
 /* ---------- Send plan (coach) ---------- */
 function sendPlanCard(p){ return `<div class="card"><span class="eyebrow">Coach</span><h2>Send this plan to ${esc(p.person||"your client")}</h2>
   <p class="small">The link carries the plan itself. When they open it, it saves on their phone and works offline from then on.</p>
@@ -910,10 +946,10 @@ function sendPlanCard(p){ return `<div class="card"><span class="eyebrow">Coach<
 function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; return c; }
 
 /* ---------- Learn ---------- */
-V.learn = () => `<div class="stack">
+const learnRaw = () => `<div class="stack">
   <div class="card flat"><span class="eyebrow">Learn</span><h1>The ideas behind ADAPT</h1></div>
   <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, Overload Exercise." width="1600" height="622">
-  <details open><summary>Introduction</summary><div class="body">
+  <details><summary>Introduction</summary><div class="body">
   <p>This guide contains all the information you need to use the ADAPT method independently. Pain and injuries are inevitable parts of any training approach and life in general. Having the tools, and the knowledge for how to use them, to address the inevitable is therefore critically important to rescue and protect your Movement Freedom.</p>
   <p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skill-first approach, meaning, the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p></div></details>
   <details><summary>Prerequisite knowledge</summary><div class="body">
@@ -1015,7 +1051,7 @@ function render(){
   tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
   if(v==="restore" && !store.activeId) tabs.hidden=true;
   app.innerHTML = (v==="welcome"?"":header()) + V[v]();
-  const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",checkin:"checkin",more:"more",restore:"more",open:"more"};
+  const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
 function go(v, fromHistory){ if(view==="screen" && v!=="screen") checkScreenFlag(P()); const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
@@ -1069,6 +1105,9 @@ document.addEventListener("click", async e=>{
     case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "handoff-yes": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoff={date:today(), at10:ls?ls.date:today()}; save(true); logEvent(p,"10/10 hand-off",p.handoff.at10); go("home"); window.scrollTo(0,0); break; }
     case "handoff-no": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoffNo=ls?ls.date:today(); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "read-next": { const l=nextRead(); go("learn"); if(l){ const d=[...document.querySelectorAll("details[data-lesson]")].find(x=>x.dataset.lesson===l.t); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } } break; }
+    case "reentry": { if(p.handoff){ p.reentries=(p.reentries||[]).concat([{date:today(), from:p.handoff}]); p.handoffNo=p.handoff.at10; delete p.handoff;
+        p.tmBase={after:addDays(today(),-1), set:today()}; save(true); queueFlag(p,"Re-entry"); logEvent(p,"Re-entry"); } go("home"); break; }
     case "handoff-undo": { if(p.handoff){ p.handoffNo=p.handoff.at10; delete p.handoff; save(true); logEvent(p,"10/10 hand-off undone"); } go("home"); break; }
     case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
