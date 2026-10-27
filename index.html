@@ -115,6 +115,11 @@ textarea{min-height:76px;resize:vertical}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.75rem;color:var(--muted)}
 .week .d{display:grid;gap:3px;justify-items:center}
 .dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line);background:transparent}
+.tour-dots{display:flex;gap:8px;justify-content:center;margin:4px 0}
+.tour-dots span{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.tour-dots span.on{background:var(--blue)}
+.tour ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.tour p{margin:0}
 .dot.on{background:var(--good);border-color:var(--good)}
 .tbl-wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
@@ -477,6 +482,39 @@ function header(){
 }
 
 const V = {};
+/* ---------- Welcome tour (Sam's wording, October 27, 2026) ---------- */
+let tourStep=0;
+const fromLink = p => p && p.support==="sam" && p.origin!=="coach";
+function installed(){ try{ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }catch(e){ return false; } }
+function installTip(){ if(installed()) return "";
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  return `<div class="msg info"><p class="small"><b>Tip:</b> add the app to your home screen so it opens like an app and works offline. ${ios?"In Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>.":"In Chrome, tap the <b>&#8942;</b> menu, then <b>Install app</b> or <b>Add to Home screen</b>."}</p></div>`; }
+function tourCards(p){ const name=esc((p&&p.person)||"there"); const link=fromLink(p);
+  const c1 = link ? `<h1>Welcome, ${name}.</h1><p>Sam set up this plan with you, so the hard part is done.</p>`
+    : `<h1>Welcome to ADAPT, ${name}.</h1><p>Pain or injury is interfering with doing what you love. This app helps you use what you love to make it love you back. The goal is to be better than before, not just cycle back to where you were.</p><p><b>Respect but don’t fear pain. Find victories obscured by losses. ADAPT beyond limits.</b></p>`;
+  const c2 = `<h1>Here’s the path</h1><img class="fig" src="img/journey.jpg" alt="The resilience journey, steps 1 through 5." width="1000" height="794"><p>First, a short safety screening. Then five steps:</p><ul>
+    <li><b>Assess:</b> name the skill that’s limited, and how much</li>
+    <li><b>Discover:</b> find a simple test you’ll repeat once a week</li>
+    <li><b>Approach:</b> find two gentle daily movements, about 3 minutes total</li>
+    <li><b>Program:</b> swap one exercise in your training for one that rebuilds the problem area</li>
+    <li><b>Track:</b> see your progress as you tick off your daily movements, log the new exercise, and record your weekly test results</li></ul>`;
+  const c3 = link ? `<h1>What it takes</h1><p>Your job now: about 3 minutes a day, your training with one exercise swapped, and one test a week. Send Sam a check-in whenever he asks, or anytime something changes.</p>`
+    : `<h1>What it takes</h1><p>Setup takes about 30-60 minutes, and everything saves as you go, so you can do it in pieces. You’ll need to move around and explore what hurts and what feels good, so be prepared with clothing/equipment/space.</p><p>After that, it’s about 3 minutes a day, your usual training with one exercise swapped, and one test a week. If progress stalls, the app tells you what to adjust next.</p>`;
+  const c4 = `<h1>Getting around</h1><ul>
+    <li><b>Plan:</b> today’s to-dos and your progress</li>
+    <li><b>Steps:</b> set up or change your plan</li>
+    <li><b>Learn:</b> the why behind it all</li>
+    <li><b>Check-in:</b> send a summary to a coach</li>
+    <li><b>More:</b> your plans and backups</li></ul>${installTip()}`;
+  const c5 = `<h1>Before you start</h1><p>Everything you enter stays on your phone unless you choose to send it. ADAPT is education and coaching, not medical care; if something feels serious, get it checked.</p>`;
+  return link ? [c1,c2,c3,c4] : [c1,c2,c3,c4,c5]; }
+V.tour = () => { const p=P(); const cards=tourCards(p); const n=cards.length; const i=Math.min(tourStep,n-1); const last=i===n-1;
+  const toPlan = fromLink(p) || p.screen.done; const dest = toPlan ? "home" : "screen";
+  const finish = `<button class="btn" data-act="tour-done" data-v="${dest}">${toPlan?"Go to my plan":"Start the screening"}</button>`;
+  return `<div class="stack tour"><div class="card">${cards[i]}</div>
+  <div class="tour-dots" aria-label="Card ${i+1} of ${n}">${cards.map((_,k)=>`<span class="${k===i?"on":""}"></span>`).join("")}</div>
+  <div class="row">${i>0?`<button class="btn plain" data-act="tour-step" data-v="${i-1}">Back</button>`:""}${last?finish:`<button class="btn" data-act="tour-step" data-v="${i+1}">Next</button>`}</div>
+  ${last?"":`<button class="btn plain small" data-act="tour-done" data-v="${dest}">Skip the tour</button>`}</div>`; };
 V.welcome = () => `
   <div class="hero">
     <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
@@ -870,6 +908,7 @@ V.more = () => { const p=P(); const plans=Object.values(store.plans); const clie
   ${planCode(p)?`<p class="fine">Plan code: <b>${esc(planCode(p))}</b></p>`:""}
   <p class="small"><b>Support:</b> ${p.support==="sam"?"Working with Sam. Set by the plan Sam sent you; new plans you start keep it.":"Self-guided."}</p>
   ${p.origin==="coach"?sendPlanCard(p):""}</div>
+  <div class="card"><h2>New here?</h2><p class="small">A two-minute walkthrough of how ADAPT works and how to get around the app.</p><button class="btn plain" data-act="tour">Take the tour again</button></div>
   <div class="card"><h2>Plans on this device</h2>
   ${plans.map(x=>`<div class="row spread"><span class="small"><b>${esc(x.assess.skill||"New plan")}</b> <span class="muted">${esc(x.origin==="coach"?"for "+(x.person||"client"):x.person||"")} · ${esc(fmtDate(x.created))}</span></span>${x.id===store.activeId?`<span class="chip good">Open</span>`:`<button class="btn small plain" data-act="switch" data-v="${x.id}">Open</button>`}</div>`).join("")}
   <div class="row"><button class="btn small plain" data-act="new" data-v="self">New plan (new area or injury)</button><button class="btn small plain" data-act="new" data-v="coach">New client plan</button></div></div>
@@ -939,7 +978,8 @@ document.addEventListener("click", async e=>{
     case "start": {
       const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
       const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
-      store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); break; }
+      store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{};
+      if(!coach && !store.tour.self){ store.tour.self=true; save(true); tourStep=0; go("tour"); } else { save(true); go("screen"); } break; }
     case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
     case "switch": store.activeId=v; save(true); go("home"); break;
     case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
@@ -957,6 +997,9 @@ document.addEventListener("click", async e=>{
       { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "changed": { p.changed=p.changed||[]; p.changed.push({k:v,date:today()}); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); toast("Noted"); break; }
+    case "tour-step": { tourStep=+v; render(); window.scrollTo(0,0); break; }
+    case "tour-done": { tourStep=0; go(v); break; }
+    case "tour": { tourStep=0; go("tour"); break; }
     case "setfree": { const nv = v==="yes"; tmp.free = tmp.free===nv?null:nv; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "ceil-no": { const c=ceilingCheck(p); if(c){ p.ceilAns=c.key; save(true); } const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "ceil-yes": { logForm="skill"; tmp={}; render(); const f=document.getElementById("s-date"); if(f) f.scrollIntoView({block:"center"}); break; }
@@ -978,7 +1021,7 @@ document.addEventListener("click", async e=>{
       else if(!await copy(msg)) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
-    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam"}); if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; } store.plans[np.id]=np; store.activeId=np.id; save(true); importData=null; clearHash(); go("home"); toast("Plan saved on this device"); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam"}); if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; } store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
     case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
     case "view-client": coachData=store.clients[v].data; go("coach"); break;
