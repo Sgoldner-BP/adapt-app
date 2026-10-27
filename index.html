@@ -902,6 +902,7 @@ function summaryText(p){
     else if(c.stalled) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row; suggested now: ${({missing:"find the missing movement",target:"consistency target",change:"exercise change #"+c.rung}[c.step.type])}`);
     if(ch.length) lines.push(`Changed so far: ${ch.join(", ")}`);
     if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); }
+  { const sl=supportLine(p); if(sl) lines.push(sl); }
   if(p.note) lines.push(`Note: ${p.note}`);
   return lines.join("\n");
 }
@@ -1032,7 +1033,7 @@ V.import = () => { const d=importData; return `<div class="stack"><div class="ca
   <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
 
 V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenResult(d);
-  return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(planCode(d)||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p></div>
+  return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(planCode(d)||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p>${(()=>{ const i=d.support==="sam"&&(d.supportStart||d.trackStart)?{s:d.supportStart||d.trackStart}:null; if(!i) return ""; const days=daysBetween(i.s,d._sent||today()), wk=Math.min(12,Math.floor(days/7)+1); return `<p class="small"><b>Direct support:</b> week ${wk} of 12, through ${esc(fmtDate(addDays(i.s,SUPPORT_DAYS-1)))}${days>=70?" · renewal coming up":""}</p>`; })()}</div>
   ${r.any?`<div class="msg ${r.emergency.length?"alert":"warn"}"><b>Screening flags</b><p class="small">${[...r.yesRF.map(n=>"Red flag "+n+": "+RED_FLAGS[n-1]),...r.yesHH.map(n=>"Health "+n+": "+HEALTH[n-1])].map(esc).join("<br>")}</p></div>`:""}
   ${d.note?`<div class="card"><h2>Their note</h2><p>${esc(d.note)}</p></div>`:""}
   <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Comfortable Contraction: <b>${c.cc}/14</b> days</p>
@@ -1169,7 +1170,12 @@ function clearHash(){ try{ history.replaceState(null,"",baseURL()); }catch(e){} 
 // 12 weeks of direct support (Sam, October 27, 2026): after that the plan switches to solo and keeps everything.
 // Sam renews with a short link from his coach view; it changes nothing but the support dates.
 const SUPPORT_DAYS = 84;
+// Week counter and a renewal heads-up at week 10 (Sam, October 27, 2026)
+function supportInfo(p){ if(!p||p.support!=="sam"||p.origin==="coach") return null; const s=p.supportStart||p.trackStart||p.created; const d=daysBetween(s,today());
+  return { week:Math.min(12,Math.floor(d/7)+1), end:addDays(s,SUPPORT_DAYS), days:d, start:s }; }
+function supportLine(p){ const i=supportInfo(p); return i?`Direct support: week ${i.week} of 12 (through ${fmtDate(addDays(i.end,-1))})`:""; }
 function supportCheck(p){ if(!p||p.support!=="sam"||p.origin==="coach") return; const s=p.supportStart||p.trackStart||p.created;
+  if(daysBetween(s,today())>=70 && daysBetween(s,today())<SUPPORT_DAYS){ p.notified=p.notified||{}; if(p.notified.renewal!==s){ p.notified.renewal=s; save(true); queueFlag(p,"Renewal in 2 weeks"); } }
   if(daysBetween(s,today())>=SUPPORT_DAYS){ p.support="self"; p.supportEnded=today(); delete p.supportEndedSeen; save(true); } }
 function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support==="sam") return "";
   return `<div class="msg info"><p class="small">Your 12 weeks of direct support with Sam have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. To keep working with him, email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`; }
