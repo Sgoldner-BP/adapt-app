@@ -495,7 +495,7 @@ function tourCards(p){ const name=esc((p&&p.person)||"there"); const link=fromLi
   const c2 = `<h1>Here’s the path</h1><img class="fig" src="img/journey.jpg" alt="The resilience journey, steps 1 through 5." width="1000" height="794"><p>First, a short safety screening. Then five steps:</p><ul>
     <li><b>Assess:</b> name the skill that’s limited, and how much</li>
     <li><b>Discover:</b> find a simple test you’ll repeat once a week</li>
-    <li><b>Approach:</b> find two gentle daily movements, about 3 minutes total</li>
+    <li><b>Approach:</b> find two, gentle, daily movements</li>
     <li><b>Program:</b> swap one exercise in your training for one that rebuilds the problem area</li>
     <li><b>Track:</b> see your progress as you tick off your daily movements, log the new exercise, and record your weekly test results</li></ul>`;
   const c3 = link ? `<h1>What it takes</h1><p>Your job now: about 3 minutes a day, your training with one exercise swapped, and one test a week. Send Sam a check-in whenever he asks, or anytime something changes.</p>`
@@ -833,11 +833,19 @@ function summaryText(p){
   return lines.join("\n");
 }
 let linkCache = {};
-V.checkin = () => { const p=P(); const s=summaryText(p);
+V.checkin = () => { const p=P(); const s=summaryText(p); const sam=p.support==="sam";
+  if(!sam){ // Solo: a self-review page with optional sharing, and the route to direct support (Sam, October 27, 2026)
+    return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Your progress</h1><p class="muted">A quick review of where you are. Nothing leaves this device unless you share it.</p></div>
+  <div class="card">${field("Notes","note","How it's going, what's improved, what's been hard, anything to change.",{area:true})}
+  <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div></div>
+  <div class="card"><h2>Share it (optional)</h2><p class="small">Send it to a coach, physio, or training partner. The message is a short summary; the link opens your full plan and tracking in a read-only view.</p>
+  <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div></div>
+  <div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p>${UPGRADE_LINK?"":`<button class="btn plain small" data-act="email-sam">Email Sam with this summary</button>`}</div>
+  </div>`; }
   return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Check-in</span><h1>${p.support==="sam"?"Send Sam an update":"Share your progress"}</h1><p class="muted">${p.support==="sam"?"Sam sees what you send him. Nothing leaves this device until you do.":"Nothing leaves this device until you share it."}</p></div>
-  ${p.support==="sam"?"":`<div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p></div>`}
-  <div class="card">${field(p.support==="sam"?"Anything to tell Sam?":"Notes","note","How it's going, questions, anything that changed.",{area:true})}
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. Nothing leaves this device until you do.</p></div>
+  <div class="card">${field("Anything to tell Sam?","note","How it's going, questions, anything that changed.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
   <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
   <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view.</p></div>
@@ -1007,6 +1015,12 @@ document.addEventListener("click", async e=>{
     case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "email-sam": { // builds the email at click time so the notes just typed are included
+      const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const link=baseURL()+"#c="+await pack(data);
+      const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data: "+link;
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}&body=${encodeURIComponent(body)}`;
+      break; }
     case "share": case "copy-sum": case "copy-link": {
       const text=summaryText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data);
