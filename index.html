@@ -542,7 +542,7 @@ V.welcome = () => `
   <div class="hero">
     <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
     <p class="muted" style="text-align:center">By Aaron Martin and Dr. Sam Goldner, DPT, CSCS, Pn1</p>
-    <img class="fig" src="img/welcome-mountain.jpg" alt="A sunlit orange peak rising above snowy blue ridges, pine forest, and a lake." width="1000" height="807">
+    <img class="fig" src="img/mountain-start.jpg" alt="A hiker at the lake shore looks up at a sunlit orange peak rising above snowy blue ridges." width="1000" height="807">
   </div>
   <div class="stack">
     <div class="card">
@@ -587,12 +587,12 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
         :h.program==="no"?`<p class="small">You’ve got options: run ADAPT again with your 11/10 goal as the new target, or get a training program built around what you love. Email Sam at ${emailLink()} to ask about programs.</p><button class="btn plain" data-act="rerun">Run ADAPT again</button>`
         :`<div class="row"><button class="btn" data-act="handoff-prog" data-v="yes">Yes</button><button class="btn plain" data-act="handoff-prog" data-v="no">No</button></div>`}</div>`;
   const win = !w ? `<button class="btn" data-act="win">I hit my 11/10</button>`
-    : `<div class="msg good"><p class="small"><b>11/10.</b> You’re past your old limits. That’s what ADAPT is for.</p></div>`
+    : `<img class="fig" src="img/mountain-11.jpg" alt="The hiker celebrates on the summit of the higher orange peak, holding a flag." width="1000" height="807"><div class="msg good"><p class="small"><b>11/10.</b> You’re past your old limits. That’s what ADAPT is for.</p></div>`
       + (w.shared ? `<p class="small">Shared ${esc(fmtDate(w.shared))}. Thank you for letting us celebrate with you.</p>`
         : `<button class="btn" data-act="win-share">Share it with the ADAPT team</button><p class="fine">This opens an email to Sam with your summary, and lets the ADAPT team know about your win.</p>`);
   return `<div class="stack">
   ${supportEndedCard(p)}
-  <div class="card"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
+  <div class="card"><img class="fig" src="img/mountain-10.jpg" alt="The hiker stands on top of the first ridge, looking up at the higher orange peak." width="1000" height="807"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
     <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
     <p><b>Take these with you:</b></p><ul class="tight">
     <li><b>Your ${esc(mvn(p,"pfm"))} and ${esc(mvn(p,"cc"))}:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off</li>

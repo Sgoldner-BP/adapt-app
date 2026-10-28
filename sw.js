@@ -1,7 +1,7 @@
 // ADAPT offline cache. Bump VERSION on every release so phones pick up the new files.
-const VERSION = "adapt-v43";
+const VERSION = "adapt-v44";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
-  "img/journey.jpg","img/welcome-mountain.jpg","img/five-movements.jpg","img/continuum.jpg","img/before-after.jpg",
+  "img/journey.jpg","img/mountain-start.jpg","img/mountain-10.jpg","img/mountain-11.jpg","img/five-movements.jpg","img/continuum.jpg","img/before-after.jpg",
   "img/step1.jpg","img/step2.jpg","img/step3.jpg","img/step4.jpg","img/step5.jpg",
   "img/psfs-scale.jpg","img/ex-wall-1.jpg","img/ex-load.jpg",
   "fonts/archivo-latin-600-normal.woff2","fonts/archivo-latin-800-normal.woff2","fonts/source-sans-3-latin-400-normal.woff2","fonts/source-sans-3-latin-600-normal.woff2","fonts/source-sans-3-latin-700-normal.woff2"];
