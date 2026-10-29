@@ -471,6 +471,12 @@ async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.leng
       await fetch(DATA_FORM,{method:"POST",mode:"no-cors",body}); store.dataOut.shift(); save(true); } }catch(e){} finally{ flushingData=false; } }
 window.addEventListener("online", flushData);
 // An 11/10 win shared by the person goes to Sam's inbox for every plan type (the person chose to send it)
+// Setup funnel (Sam, October 29, 2026, option B): one anonymous row when setup begins and the first time each
+// setup step is filled in, so drop-off before tracking shows. Only plans begun after this change carry p.funnel.
+function beginFunnel(np){ np.funnel={}; logEvent(np,"Setup began"); }
+const FUNNEL=[["screen","Screening done"],["step1","Assess done"],["step2","Discover done"],["step3","Approach done"],["step4","Program done"]];
+function funnelCheck(p){ if(!p||!p.funnel||p.origin==="coach") return;
+  FUNNEL.forEach(([k,label])=>{ const s=STEPS.find(x=>x.k===k); if(!p.funnel[k] && s && s.done(p)){ p.funnel[k]=today(); logEvent(p,label); } }); }
 function queueWin(p){ (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step:"11/10 win", at:new Date().toISOString()}); save(true); flushFlags(); }
 function checkScreenFlag(p){ if(!p||!screenResult(p).answered) return; const sig=screenSig(p); p.notified=p.notified||{}; if(sig && sig!==p.notified.screen) queueFlag(p,"Pre-ADAPT Screening"); p.notified.screen=sig; save(true); }
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && view==="screen") checkScreenFlag(P()); });
@@ -1054,7 +1060,7 @@ function render(){
   if(!store.activeId && !["welcome","open","coach","import","restore"].includes(v)) v="welcome";
   tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
   if(v==="restore" && !store.activeId) tabs.hidden=true;
-  supportCheck(P());
+  supportCheck(P()); funnelCheck(P());
   app.innerHTML = (v==="welcome"?"":header()) + V[v]();
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
@@ -1079,9 +1085,9 @@ document.addEventListener("click", async e=>{
     case "start": {
       const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
       const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
-      store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{};
+      store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{}; if(!coach) beginFunnel(np);
       if(!coach && !store.tour.self){ store.tour.self=true; save(true); tourStep=0; go("tour"); } else { save(true); go("screen"); } break; }
-    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
+    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; if(v!=="coach") beginFunnel(np); save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
     case "switch": store.activeId=v; save(true); go("home"); break;
     case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
@@ -1116,7 +1122,7 @@ document.addEventListener("click", async e=>{
         p.tmBase={after:addDays(today(),-1), set:today()}; save(true); queueFlag(p,"Re-entry"); logEvent(p,"Re-entry"); } go("home"); break; }
     case "handoff-undo": { if(p.handoff){ p.handoffNo=p.handoff.at10; delete p.handoff; save(true); logEvent(p,"10/10 hand-off undone"); } go("home"); break; }
     case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
+    case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; beginFunnel(np); save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
     case "win": { p.win={date:today()}; save(true); logEvent(p,"11/10 win",p.win.date); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "win-share": { const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today(); const link=baseURL()+"#c="+await pack(data);
       const body=winEmail(p)+"\n\nFull data: "+link; queueWin(p); p.win.shared=today(); save(true); render();
