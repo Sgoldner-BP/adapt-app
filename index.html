@@ -499,6 +499,7 @@ function statRow(p,end){ return { support:p.support==="sam"?"Supported":"Solo", 
 function logEvent(p, event, end){ if(!p||p.origin==="coach") return; const s=statRow(p,end);
   const data=[anonId(p),s.support,s.side,s.region,s.kind,s.psfs,s.weeks,s.changes,s.test].map(v=>String(v).replace(/\|/g,"/")).join("|");
   (store.dataOut=store.dataOut||[]).push({event,data}); save(true); flushData(); }
+function logCheckin(p){ if(!p||p.checkinLogged===today()) return; p.checkinLogged=today(); logEvent(p,"Check-in sent"); }
 let flushingData=false;
 async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushingData=true;
   try{ while(store.dataOut.length){ const d=store.dataOut[0]; const body=new URLSearchParams(); body.append(DATA_ENTRY.event,d.event); body.append(DATA_ENTRY.data,d.data);
@@ -1132,7 +1133,7 @@ document.addEventListener("click", async e=>{
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { freezeCheck(p); const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "save-test": { freezeCheck(p); if(p.testLogged!==today()){ p.testLogged=today(); logEvent(p,"Test logged"); } const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
     case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
     case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
       { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
@@ -1167,12 +1168,13 @@ document.addEventListener("click", async e=>{
       const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data (opens in the ADAPT app): "+link;
       location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}&body=${encodeURIComponent(body)}`;
       break; }
-    case "email-update": {
+    case "email-update": { logCheckin(p);
       const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data,true);
       location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent(checkinSubject(p))}&body=${encodeURIComponent(checkinText(p)+"\n\nFull data (opens in the ADAPT app): "+link)}`;
       break; }
     case "share": case "copy-sum": case "copy-link": {
+      logCheckin(p);
       const text=checkinText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
       const link=baseURL()+"#c="+await pack(data,true);
       if(act==="copy-sum"){ if(!await copy(text)) showFallback(text); }
@@ -1222,7 +1224,7 @@ function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support=
 function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
   if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
   p.support="sam"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
-  store.activeId=p.id; save(true); go("home"); toast("Direct support with Sam renewed for 12 weeks"); }
+  store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast("Direct support with Sam renewed for 12 weeks"); }
 async function openCode(raw){
   try{ const kindMatch=raw.match(/#([cpr])=/); const d=await unpack(raw);
     if(d && d.renew){ renewSupport(d); return; }
