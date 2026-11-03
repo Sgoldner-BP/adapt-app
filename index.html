@@ -259,7 +259,41 @@ const P = () => store.plans[store.activeId];
 /* ---------- Packing for links (plan travels in the link; never sent to a server) ---------- */
 function b64url(bytes){ let s=""; bytes.forEach(b=>s+=String.fromCharCode(b)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function unb64url(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; const bin=atob(str); return Uint8Array.from(bin,c=>c.charCodeAt(0)); }
-async function pack(obj){
+/* Check-in links carry the whole plan, so they're packed tighter (nothing is dropped; unpack restores the full plan):
+   blank fields that match a new plan's defaults are left out, screening answers become one letter each,
+   and the daily check-offs become one digit per day (2 = Pain-Free Motion, 1 = Comfortable Contraction, 3 = both). */
+function slimPlan(p){
+  if(!p||typeof p!=="object"||!p.logs||!p.screen||!p.logs.daily) return p;
+  const s=JSON.parse(JSON.stringify(p)), t=newPlan();
+  for(const k of Object.keys(t)){ const tv=t[k];
+    if(tv===""||tv===null){ if(s[k]===tv) delete s[k]; }
+    else if(tv&&typeof tv==="object"&&!Array.isArray(tv)&&k!=="logs"&&k!=="screen"&&s[k]&&typeof s[k]==="object"){
+      for(const kk of Object.keys(tv)) if((tv[kk]===""||tv[kk]===null)&&s[k][kk]===tv[kk]) delete s[k][kk]; } }
+  const okYN=(o,n)=>o&&typeof o==="object"&&Object.keys(o).every(k=>/^\d+$/.test(k)&&+k>=1&&+k<=n&&(o[k]==="yes"||o[k]==="no"));
+  const enc=(o,n)=>{ let str=""; for(let i=1;i<=n;i++) str+=o[i]==="yes"?"y":o[i]==="no"?"n":"-"; return str.replace(/-+$/,""); };
+  if(okYN(s.screen.rf||{},RED_FLAGS.length)&&okYN(s.screen.hh||{},HEALTH.length)){ s.screen.rf=enc(s.screen.rf||{},RED_FLAGS.length); s.screen.hh=enc(s.screen.hh||{},HEALTH.length); }
+  const D=s.logs.daily, keys=Object.keys(D);
+  if(keys.every(d=>/^\d{4}-\d\d-\d\d$/.test(d)&&D[d]&&typeof D[d]==="object"&&Object.keys(D[d]).every(k=>k==="pfm"||k==="cc"))){
+    const days=keys.filter(d=>D[d].pfm||D[d].cc).sort(); let b="";
+    if(days.length) for(let d=days[0]; d<=days[days.length-1]; d=addDays(d,1)){ const x=D[d]||{}; b+=String((x.pfm?2:0)+(x.cc?1:0)); }
+    s.logs.daily={from:days[0]||"", b}; }
+  s._slim=1; return s;
+}
+function fattenPlan(s){
+  if(!s||typeof s!=="object"||!s._slim) return s;
+  delete s._slim; const t=newPlan();
+  for(const k of Object.keys(t)){ const tv=t[k];
+    if(tv===""||tv===null){ if(!(k in s)) s[k]=tv; }
+    else if(tv&&typeof tv==="object"&&!Array.isArray(tv)&&k!=="logs"&&k!=="screen"&&s[k]&&typeof s[k]==="object"){
+      for(const kk of Object.keys(tv)) if(!(kk in s[k])) s[k][kk]=tv[kk]; } }
+  const dec=str=>{ const o={}; [...str].forEach((c,i)=>{ if(c==="y") o[i+1]="yes"; else if(c==="n") o[i+1]="no"; }); return o; };
+  if(s.screen){ if(typeof s.screen.rf==="string") s.screen.rf=dec(s.screen.rf); if(typeof s.screen.hh==="string") s.screen.hh=dec(s.screen.hh); }
+  const D=s.logs&&s.logs.daily;
+  if(D&&typeof D.b==="string"&&"from" in D){ const out={}; let d=D.from; for(const c of D.b){ const n=+c; if(n) out[d]=Object.assign(n&2?{pfm:true}:{}, n&1?{cc:true}:{}); d=addDays(d,1); } s.logs.daily=out; }
+  return s;
+}
+async function pack(obj, slim){
+  if(slim) obj=slimPlan(obj);
   const bytes = new TextEncoder().encode(JSON.stringify(obj));
   if("CompressionStream" in window){ try{
     const out = await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer();
@@ -273,7 +307,7 @@ async function unpack(code){
   let bytes = unb64url(body);
   if(kind==="z"){ bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
   else if(kind!=="j") throw new Error("not a code");
-  return JSON.parse(new TextDecoder().decode(bytes));
+  return fattenPlan(JSON.parse(new TextDecoder().decode(bytes)));
 }
 const baseURL = () => location.href.split("#")[0];
 
@@ -1124,26 +1158,26 @@ document.addEventListener("click", async e=>{
     case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; beginFunnel(np); save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
     case "win": { p.win={date:today()}; save(true); logEvent(p,"11/10 win",p.win.date); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "win-share": { const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today(); const link=baseURL()+"#c="+await pack(data);
-      const body=winEmail(p)+"\n\nFull data: "+link; queueWin(p); p.win.shared=today(); save(true); render();
+    case "win-share": { const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today(); const link=baseURL()+"#c="+await pack(data,true);
+      const body=winEmail(p)+"\n\nFull data (opens in the ADAPT app): "+link; queueWin(p); p.win.shared=today(); save(true); render();
       location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT 11/10: "+(planCode(p)||"(no name)"))}&body=${encodeURIComponent(body)}`; break; }
     case "email-sam": { // builds the email at click time so the notes just typed are included
       const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
-      const link=baseURL()+"#c="+await pack(data);
-      const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data: "+link;
+      const link=baseURL()+"#c="+await pack(data,true);
+      const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data (opens in the ADAPT app): "+link;
       location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}&body=${encodeURIComponent(body)}`;
       break; }
     case "email-update": {
       const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
-      const link=baseURL()+"#c="+await pack(data);
-      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent(checkinSubject(p))}&body=${encodeURIComponent(checkinText(p)+"\n\nFull data: "+link)}`;
+      const link=baseURL()+"#c="+await pack(data,true);
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent(checkinSubject(p))}&body=${encodeURIComponent(checkinText(p)+"\n\nFull data (opens in the ADAPT app): "+link)}`;
       break; }
     case "share": case "copy-sum": case "copy-link": {
       const text=checkinText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
-      const link=baseURL()+"#c="+await pack(data);
+      const link=baseURL()+"#c="+await pack(data,true);
       if(act==="copy-sum"){ if(!await copy(text)) showFallback(text); }
       else if(act==="copy-link"){ if(!await copy(link)) showFallback(link); }
-      else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data: "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data: "+link)) showFallback(text+"\n\nFull data: "+link); } }
+      else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data (opens in the ADAPT app): "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data (opens in the ADAPT app): "+link)) showFallback(text+"\n\nFull data (opens in the ADAPT app): "+link); } }
       break; }
     case "support-ended-ok": { p.supportEndedSeen=true; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "renew-link": { const d=coachData; if(!d) break; const link=baseURL()+"#r="+await pack({renew:d.id, at:today()});
