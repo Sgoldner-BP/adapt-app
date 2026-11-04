@@ -60,6 +60,27 @@ p{margin:0}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
 .fine{font-size:.8rem;color:var(--muted)}
+.sub{display:grid;gap:10px}
+.parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font:inherit;font-size:.8rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:32px}
+.chip .cn{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;font-size:.7rem}
+.chip[data-done="1"] .cn{background:var(--orange);border-color:var(--orange);color:#fff}
+.chip[aria-current="step"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.sumrow{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.sumtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sumrow dl{margin:0;display:grid;grid-template-columns:minmax(90px,auto) 1fr;gap:4px 12px;font-size:.9rem}
+.sumrow dt{color:var(--muted)}
+.sumrow dd{margin:0;overflow-wrap:anywhere}
+.sub-h{display:flex;align-items:center;gap:10px;margin:0}
+.sub-h .n{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.85rem;font-weight:700;color:var(--muted)}
+.sub[data-done="1"] .sub-h .n{background:var(--orange);border-color:var(--orange);color:#fff}
+.sub[data-done="1"] .sub-h .n span{display:none}
+.sub[data-done="1"] .sub-h .n::after{content:"\2713"}
+.ex{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
+.ex b{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+details.more{background:transparent;border:none;padding:0}
+details.more>summary{font-family:inherit;font-weight:600;font-size:.9rem;padding-block:6px;justify-content:flex-start;color:var(--fg)}
+details.more>div{padding-bottom:8px}
 img.fig{width:100%;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
 .btn{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:11px 16px;cursor:pointer;text-align:center;min-height:44px}
 .btn.ghost{background:transparent;color:var(--accent-text);border:2px solid var(--orange)}
@@ -247,7 +268,7 @@ function newPlan(o={}){
     screen:{ rf:{}, hh:{}, done:false, date:null },
     assess:{ kind:"painful", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
     determine:{ crux:"", move:"", dose:"", range:"", load:"", nrsop:null },
-    approach:{ pfm:"", cc:"" },
+    approach:{ pfm:"", cc:"", cc2:"" },
     program:{ ov:"", replaces:"", skip:false },
     tracking:false,
     logs:{ daily:{}, tests:[], overload:[], skill:[] },
@@ -261,7 +282,7 @@ function b64url(bytes){ let s=""; bytes.forEach(b=>s+=String.fromCharCode(b)); r
 function unb64url(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; const bin=atob(str); return Uint8Array.from(bin,c=>c.charCodeAt(0)); }
 /* Check-in links carry the whole plan, so they're packed tighter (nothing is dropped; unpack restores the full plan):
    blank fields that match a new plan's defaults are left out, screening answers become one letter each,
-   and the daily check-offs become one digit per day (2 = Pain-Free Motion, 1 = Comfortable Contraction, 3 = both). */
+   and the daily check-offs become one digit per day (2 = Pain-Free Motion, 1 = Contraction Couplet, 3 = both). */
 function slimPlan(p){
   if(!p||typeof p!=="object"||!p.logs||!p.screen||!p.logs.daily) return p;
   const s=JSON.parse(JSON.stringify(p)), t=newPlan();
@@ -368,7 +389,7 @@ function screenMessages(p){
 
 const MSG_SECOND_STEP = "In the meantime, use your judgement as to what training you can still continue that does not provoke your symptoms."; // Sam, October 23, 2026
 // Progress checks on the weekly Testing Movement (Sam, October 23, 2026). "Unclear" counts as "Same".
-const MSG_TWO_WEEK = "Your last two weekly tests didn’t show progress. Time to change one thing: your Pain-Free Motion, Comfortable Contraction, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
+const MSG_TWO_WEEK = "Your last two weekly tests didn’t show progress. Time to change one thing: your Pain-Free Motion, Contraction Couplet, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
 const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention.";  // Sam approved, October 23, 2026
 // Item 18 decisions (Sam, October 25, 2026)
 const MSG_PAUSE = "Pause your ADAPT movements until you’ve been checked.";
@@ -385,8 +406,8 @@ function ceilingCheck(p){ const T=testsSinceBase(p); const last2=T.slice(-2);
 // Stall ladder (Sam, October 26, 2026; awaiting Aaron): each stalled check (2 rated tests without Progressed)
 // looks at the 2 weeks before it. Missing movement: find it (no step). Under the consistency target: target prompt,
 // up to 2 in a row; the 3rd in a row moves on to exercise changes. On target: next rung. Rungs: change #1, #2, #3, then referral.
-const MOVES=[["pfm","Pain-Free Motion"],["cc","Comfortable Contraction"],["ov","Overload Exercise"]];
-function countsAt(p,end){ const hasP=!!p.approach.pfm.trim(), hasC=!!p.approach.cc.trim(); let d=0;
+const MOVES=[["pfm","Pain-Free Motion"],["cc","Contraction Couplet"],["ov","Overload Exercise"]];
+function countsAt(p,end){ const hasP=!!p.approach.pfm.trim(), hasC=!!ccText(p); let d=0;
   for(let i=0;i<14;i++){ const x=p.logs.daily[addDays(end,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
   const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,end); return k>=0&&k<14; }).length;
   return {d,o}; }
@@ -413,20 +434,21 @@ function changedSince(p,since){ return (p.changed||[]).filter(x=>x.date>=since);
 // Movements still to find: the first exercise adjustment (Sam)
 function missingMoves(p){ const m=[];
   if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
-  if(!p.approach.cc.trim()) m.push(["step3","Comfortable Contraction"]);
+  if(!ccText(p)) m.push(["step3","Contraction Couplet"]);
   if(!p.program.ov.trim()||p.program.skip) m.push(["step4","Overload Exercise"]);
   return m; }
 function missingPhrase(m){ const and=a=>a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1];
   const g={}; m.forEach(([s,l])=>{(g[s]=g[s]||[]).push(l);});
   return and(Object.keys(g).map(s=>and(g[s])+" (Step "+s.slice(-1)+")")); }
 // Consistency over a 14-day window ending `back` days ago: a day counts when every daily movement that is set was done
-function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.trim(), hasC=!!p.approach.cc.trim(); let d=0;
+function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.trim(), hasC=!!ccText(p); let d=0;
   for(let i=back;i<back+14;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
   const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,t); return k>=back&&k<back+14; }).length;
   return {d,o}; }
 const times = n => n===1?"1 time":n+" times";
 // The person's own movement next to its label, once they've filled it in (Sam, October 27, 2026)
-function mvn(p,k){ const l=MOVES.find(m=>m[0]===k)[1]; const n=(k==="pfm"?p.approach.pfm:k==="cc"?p.approach.cc:(p.program.skip?"":p.program.ov)||"").trim(); return n?`${l} (${n})`:l; }
+function ccText(p){ const a=p.approach||{}; return [a.cc,a.cc2].map(x=>(x||"").trim()).filter(Boolean).join(" / "); }
+function mvn(p,k){ const l=MOVES.find(m=>m[0]===k)[1]; const n=(k==="pfm"?p.approach.pfm:k==="cc"?ccText(p):(p.program.skip?"":p.program.ov)||"").trim(); return n?`${l} (${n})`:l; }
 const allThree = p => `your ${mvn(p,"pfm")}, ${mvn(p,"cc")}, or ${mvn(p,"ov")}`;
 function stallMsg(p,c){
   const st=c.step||{};
@@ -441,7 +463,7 @@ function stallMsg(p,c){
   if(rem.length===2) return `Your last two weekly tests didn’t show progress. Time to change one of the two you haven’t changed yet: your ${rem[0]} or ${rem[1]}.`+tail;
   if(rem.length===1) return `Your last two weekly tests didn’t show progress. Time to change the last one: your ${rem[0]}.`+tail;
   if(rem.length===0) return `Your last two weekly tests didn’t show progress. Time to change one thing again: ${allThree(p)}.`+tail;
-  return MSG_TWO_WEEK.replace("your Pain-Free Motion, Comfortable Contraction, or Overload Exercise", allThree(p)); }
+  return MSG_TWO_WEEK.replace("your Pain-Free Motion, Contraction Couplet, or Overload Exercise", allThree(p)); }
 function changePick(p,c){ const st=c.step||{}; if(st.type!=="change") return "";
   const mine=changedSince(p,st.date); if(mine.length) return `<p class="small"><b>Changed:</b> your ${esc(MOVES.find(m=>m[0]===mine[mine.length-1].k)[1])} (${esc(fmtDate(mine[mine.length-1].date))}).</p>`;
   const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k));
@@ -497,8 +519,12 @@ const weeksSince = (p,end) => Math.max(0, Math.round(daysBetween(p.trackStart||p
 function statRow(p,end){ return { support:p.support==="sam"?"Supported":"Solo", side:(SIDES.find(s=>s[0]===p.side)||[0,""])[1], region:(REGIONS.find(r=>r[0]===p.region)||[0,""])[1],
   kind:isPainful(p)?"Painful":"Restricted", psfs:p.assess.psfs??"", weeks:weeksSince(p,end), changes:(p.changed||[]).length, test:/^test$/i.test((p.last||"").trim())?"yes":"no" }; }
 function logEvent(p, event, end){ if(!p||p.origin==="coach") return; const s=statRow(p,end);
-  const data=[anonId(p),s.support,s.side,s.region,s.kind,s.psfs,s.weeks,s.changes,s.test].map(v=>String(v).replace(/\|/g,"/")).join("|");
+  const w=last7(p); const data=[anonId(p),s.support,s.side,s.region,s.kind,s.psfs,s.weeks,s.changes,s.test,w.pfm,w.cc].map(v=>String(v).replace(/\|/g,"/")).join("|");
   (store.dataOut=store.dataOut||[]).push({event,data}); save(true); flushData(); }
+function last7(p){ let a=0,b=0; const D=(p.logs&&p.logs.daily)||{}; for(let i=0;i<7;i++){ const x=D[addDays(today(),-i)]||{}; if(x.pfm)a++; if(x.cc)b++; } return {pfm:a,cc:b}; }
+function weeklyCheck(p){ if(!p||!p.tracking||p.handoff||p.origin==="coach") return;
+  if(!p.weekSent){ p.weekSent=today(); save(true); return; }
+  if(daysBetween(p.weekSent,today())>=7){ p.weekSent=today(); save(true); logEvent(p,"Weekly summary"); } }
 function logCheckin(p){ if(!p||p.checkinLogged===today()) return; p.checkinLogged=today(); logEvent(p,"Check-in sent"); }
 let flushingData=false;
 async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushingData=true;
@@ -522,7 +548,7 @@ const STEPS = [
   {k:"screen", n:"0", t:"Pre-ADAPT Screening", done:p=>p.screen.done},
   {k:"step1", n:"1", t:"Assess", done:p=>!!p.assess.skill.trim()},
   {k:"step2", n:"2", t:"Discover", done:p=>!!p.determine.move.trim()||!!p.determine.none},
-  {k:"step3", n:"3", t:"Approach", done:p=>!!(p.approach.pfm.trim()||p.approach.cc.trim())},
+  {k:"step3", n:"3", t:"Approach", done:p=>!!(p.approach.pfm.trim()||ccText(p))},
   {k:"step4", n:"4", t:"Program", done:p=>!!(p.program.ov.trim()||p.program.skip)},
   {k:"step5", n:"5", t:"Track", done:p=>p.tracking}];
 function stepSub(p,k){
@@ -530,7 +556,7 @@ function stepSub(p,k){
     case "screen": return p.screen.done ? (screenResult(p).any?"Done, with flags":"Done, no flags") : "Red flags and health questions";
     case "step1": return p.assess.skill || `Your ${skillLabel(p)}`;
     case "step2": return p.determine.move || (p.determine.none?"None found yet (flagged)":"Your Testing Movement");
-    case "step3": return [p.approach.pfm,p.approach.cc].filter(Boolean).join(" + ") || "Pain-Free Motion and Comfortable Contraction";
+    case "step3": return [p.approach.pfm,ccText(p)].filter(Boolean).join(" + ") || "Pain-Free Motion and Contraction Couplet";
     case "step4": return p.program.skip ? "Skipped for now" : (p.program.ov || "Your Overload Exercise");
     case "step5": return p.tracking ? "Tracking" : "How to track";
   }
@@ -538,6 +564,7 @@ function stepSub(p,k){
 const nextStep = p => STEPS.find(s=>!s.done(p));
 
 /* ---------- Views ---------- */
+let part = 0; // which page of a setup step is showing: a number, or "sum" for the step's summary
 let view = "home", coachData = null, importData = null, armed = null, logForm = null, selDay = null;
 
 function header(){
@@ -642,7 +669,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
     <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign</li>
     <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving</li></ul></div>
   ${next}
-  <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1">Add it in Step 1</button>`}</p>
+  <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1" data-p="4">Add it in Step 1</button>`}</p>
     <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
     ${win}</div>
   <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button>${armed==="reentry"?`<div class="row"><button class="btn small" data-act="reentry">Yes, it’s getting limited again</button><button class="btn plain small" data-act="reentry-cancel">Cancel</button></div>`:`<button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button>`}</div></div>
@@ -666,137 +693,262 @@ V.screen = () => {
   const yn=(g,i,q,cur)=>`<div class="yn"><span class="q">${esc(q)}</span><span class="btns"><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="yes" aria-pressed="${cur==="yes"}">Yes</button><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="no" aria-pressed="${cur==="no"}">No</button></span></div>${cur==="yes"&&((g==="rf"&&EMERGENCY_FLAGS.includes(+i))||(g==="hh"&&EMERGENCY_HH.includes(+i)))?`<div class="msg alert" role="alert"><p class="small">${esc(MSG_RIGHT_NOW)}</p></div>`:""}`;
   const r=screenResult(p);
   return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Before you start</span><h1>Pre-ADAPT Screening</h1></div>
-  <div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
-  <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>
-  <div class="card"><h2>Red flags</h2><div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>
+  <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
+  ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
+  <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
+  ${part!==1?`<div class="card"><h2>Red flags</h2><div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>
   <p class="fine"><b>*MEDICAL DISCLAIMER:</b> ${esc(SCREEN_DISCLAIMER)}</p></div>
-  <div class="card"><h2>Health status and history</h2><div>${HEALTH.map((q,i)=>yn("hh",i+1,q,hh[i+1])).join("")}</div></div>
-  <div id="screen-msg" class="stack">${r.answered?screenMessages(p):`<p class="fine">Answer every question to continue. ${Object.keys(rf).length+Object.keys(hh).length} of ${RED_FLAGS.length+HEALTH.length} answered.</p>`}</div>
-  <div class="row spread"><button class="btn plain" data-act="go" data-v="home">Back</button><button class="btn" data-act="screen-done" ${r.answered?"":"disabled"}>${p.tracking?"Back to my plan":"Continue to Step 1"}</button></div>
+  <div class="row spread"><button class="btn plain" data-act="go" data-v="home">Back</button><button class="btn" data-act="part" data-v="1">Next: Health status and history</button></div>`
+  :`<div class="card"><h2>Health status and history</h2><div>${HEALTH.map((q,i)=>yn("hh",i+1,q,hh[i+1])).join("")}</div></div>
+  <div id="screen-msg" class="stack">${r.answered?screenMessages(p):`<p class="fine">Answer every question to continue. ${Object.keys(rf).length+Object.keys(hh).length} of ${RED_FLAGS.length+HEALTH.length} answered.${RED_FLAGS.some((q,i)=>!rf[i+1])?` <button class="linkbtn" data-act="part" data-v="0">Some red-flag questions are still blank.</button>`:""}</p>`}</div>
+  <div class="row spread"><button class="btn plain" data-act="part" data-v="0">Back</button><button class="btn" data-act="screen-done" ${r.answered?"":"disabled"}>${p.tracking?"Back to my plan":"Continue to Step 1"}</button></div>`}
   </div>`;
 };
 
-V.step1 = () => {
-  const p=P(); const a=p.assess; const L=skillLabel(p);
-  return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Step 1</span><h1>Assess: ${esc(L)}</h1></div>
-  <img class="fig" src="img/step1.jpg" alt="Assess your Painful Skill: the starting point of the resilience journey." width="1600" height="1189">
-  <div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
-  <div class="row" role="group" aria-label="Kind of limitation">
-    <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
-    <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
-  ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}
-  </div>
-  <div class="card"><h2>${isPainful(p)?"Pain/Injury Details":"Details"}</h2>
-    <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
-    <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
-    <label class="f" for="f-region"><span class="sr">Body region</span><select id="f-region" data-bind="region"><option value="">Choose a body region</option>${REGIONS.map(([k,l])=>`<option value="${k}" ${p.region===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label></div>
-    ${field("When did this start?","assess.start")}
-    ${field("How did it start?","assess.how","",{area:true})}
-    ${field("What have you noticed recently?","assess.recent","",{area:true})}
-    ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",a.nrsop,"nrsop")}</div>`:""}
-  </div>
-  <div class="card"><h2>${esc(L)}</h2>
-    ${field("What skill is inhibited?","assess.skill","",{ph:"ex., macaco"})}
-    ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
-    ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 80%"})}
-    <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
-    <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",a.psfs,"psfs")}</div>
-    ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}
-  </div>
-  ${stepNav("screen","step2","Next: Discover")}</div>`;
+/* ---------- Setup steps, one part per page (November 4, 2026) ----------
+   Each step opens on an Overview, then one numbered part per page with Back/Next.
+   Once a step has anything filled in, opening it lands on its Summary, with an Edit button per part.
+   Examples change with the body region chosen in Assess (draft examples, for Sam's review). */
+const EX_GROUPS = {S:"shoulder",Ar:"shoulder",UB:"shoulder",Ch:"shoulder",K:"knee",Th:"knee",LB:"back",Ab:"back",Rb:"back",Gt:"back",W:"wrist",Hn:"wrist",Fi:"wrist",Fa:"wrist",
+  N:"neck",E:"elbow",Hp:"hip",Gr:"hip",Lg:"ankle",An:"ankle",Ft:"ankle",T:"ankle"};
+const EX = {
+  shoulder:{name:"a shoulder",
+    crux:"“My shoulder, with my arm overhead, while it holds my weight (like the bottom of a handstand or a kipping swing).”",
+    tm:"A controlled wall slide: forearms on a wall, slide your hands up as high as you can control. 5 controlled reps.",
+    pfm:"Hold a door frame or a band overhead and step under it, so your arm ends up overhead without your shoulder doing the lifting.",
+    into:"Arm overhead against a wall, push your hand into the wall and hold.",
+    away:"Same arm position, hook your hand over the door frame and gently pull down instead.",
+    rep:"Bridge walkovers",
+    ov:"Wall chest reaches: hands on the floor, walk your chest toward the wall, deeper over time."},
+  knee:{name:"a knee",
+    crux:"“My knee, bent deep, with my weight on it (like landing a jump or the bottom of a squat).”",
+    tm:"A partial single-leg squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
+    pfm:"Lying on your back, slide your heel toward your butt and back out (heel slides).",
+    into:"A wall sit at the depth just before it bothers you.",
+    away:"Lying on your back with your heel on a chair, press your heel down into the chair and hold.",
+    rep:"Pistol squats",
+    ov:"Step-downs from a low box, controlling the way down; raise the box over time."},
+  back:{name:"a low back",
+    crux:"“My low back, bending forward, with load (like picking something up or rolling down).”",
+    tm:"A controlled roll-down with a light weight (Jefferson curl), only as far as you control. 5 controlled reps.",
+    pfm:"On hands and knees, rock your hips back toward your heels and forward again.",
+    into:"Hold a hip hinge (like the start of a deadlift) with a light weight, just before it bothers you.",
+    away:"Glute bridge hold: on your back, lift your hips and hold.",
+    rep:"Deadlifts",
+    ov:"Back extensions on a bench or Roman chair, through a range that fits the pain guidelines."},
+  wrist:{name:"a wrist",
+    crux:"“My wrist, bent back, with my weight on it (like a handstand or a push-up).”",
+    tm:"Hands flat on a table, lean your weight forward over them as far as you control. 5 controlled reps.",
+    pfm:"Hands together in front of your chest (prayer position), slide them gently down and up.",
+    into:"Hands flat on a table, lean a little weight forward and hold.",
+    away:"Back of your hand on the table, press it down and hold.",
+    rep:"Push-ups",
+    ov:"Incline push-ups on a raised surface, lowering the surface over time."},
+  neck:{name:"a neck",
+    crux:"“My neck, turned and tilted back, while it holds my head steady (like looking up in a bridge or a headstand).”",
+    tm:"Seated, turn your head toward the sore side and look up, as far as you control. 5 controlled reps.",
+    pfm:"Lying on your back with your head supported, gently roll your head side to side.",
+    into:"Hand on the side of your head, push your head into your hand toward the sore side and hold, without letting it move.",
+    away:"Same position with your hand on the other side, push the opposite way and hold.",
+    rep:"Headstands",
+    ov:"Wall-supported headstand holds with most of your weight on your hands, shifting more onto your head over time."},
+  elbow:{name:"an elbow",
+    crux:"“My elbow, bent and pulling, with my weight on it (like the top of a pull-up).”",
+    tm:"A controlled biceps curl with a light weight, through the range you control. 5 controlled reps.",
+    pfm:"Forearm resting on a table, slide your hand toward your shoulder and back, letting the table hold the weight.",
+    into:"Elbow bent to 90 degrees, push your palm up into the underside of a table and hold.",
+    away:"Same position, palm on top of the table, push down and hold.",
+    rep:"Pull-ups",
+    ov:"Ring rows or inverted rows, making your body angle steeper over time."},
+  hip:{name:"a hip",
+    crux:"“My hip, bent deep, with my weight on it (like the bottom of a squat or a deep lunge).”",
+    tm:"A controlled squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
+    pfm:"Lying on your back, hug one knee toward your chest and let it back down, with your hands doing the work.",
+    into:"Lying on your back, knee bent toward your chest, push your knee up into your hands and hold.",
+    away:"Glute bridge hold: on your back, lift your hips and hold.",
+    rep:"Back squats",
+    ov:"Box squats to a high box, lowering the box over time."},
+  ankle:{name:"an ankle",
+    crux:"“My ankle, bent with my knee forward over my toes, with my weight on it (like landing a jump or the bottom of a squat).”",
+    tm:"Knee-to-wall: foot facing a wall, bring your knee toward the wall as far as you control. 5 controlled reps.",
+    pfm:"Seated, draw slow circles with your foot.",
+    into:"Split stance, bend your front knee forward until just before it bothers you and hold.",
+    away:"Seated, press the ball of your foot down into the floor and hold.",
+    rep:"Box jumps",
+    ov:"Calf raises with a slow lowering, from flat ground to off the edge of a step, then adding weight."}
+};
+function exFor(p){ return EX[EX_GROUPS[p.region]]||null; }
+function exBox(p,k,label){ const e=exFor(p);
+  if(!p.region) return `<div class="ex"><b>${esc(label||"Example")}</b><span class="small">Pick your body region in Step 1 (Assess) to see an example for your area here.</span></div>`;
+  if(!e) { const s=EX.shoulder; return `<div class="ex"><b>${esc(label||"Example")} (shoulder)</b><span class="small">We don’t have an example for this area yet, so here’s one for a shoulder to show the idea. ${esc(k==="ov"?`Replacing ${s.rep.toLowerCase()}: ${s.ov}`:s[k])}</span></div>`; }
+  const txt = k==="ov" ? `Replacing ${e.rep.toLowerCase()}: ${e.ov}` : e[k];
+  return `<div class="ex"><b>${esc(label||"Example")} for ${esc(e.name)}</b><span class="small">${esc(txt)}</span></div>`; }
+function subPart(n,title,paths,body){ const p=P(); const done = paths.length && paths.every(x=>String(getPath(p,x)??"").trim());
+  return `<div class="card sub" data-req="${paths.join(",")}" data-done="${done?"1":""}"><h2 class="sub-h"><span class="n"><span>${n}</span></span>${esc(title)}</h2>${body}</div>`; }
+const more = (title, html) => `<details class="more"><summary>${esc(title)}</summary><div class="small">${html}</div></details>`;
+const PAIN_GUIDE = `<div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>`;
+const shown = v => { const t=String(v??"").trim(); return t ? esc(t) : `<span class="muted">Not filled in yet</span>`; };
+const regionName = p => [ (SIDES.find(s=>s[0]===p.side)||[])[1], (REGIONS.find(r=>r[0]===p.region)||[])[1] ].filter(Boolean).join(" ").toLowerCase();
+
+const STEP_META = {
+  step1:{n:1, t:p=>`Assess: ${skillLabel(p)}`, short:"Assess", img:"step1", alt:"Assess your Painful Skill: the starting point of the resilience journey.", prev:"screen", next:"step2", nextLabel:"Next: Discover"},
+  step2:{n:2, t:()=>"Discover: Testing Movement", short:"Discover", img:"step2", alt:"Discover your Testing Movement.", prev:"step1", next:"step3", nextLabel:"Next: Approach"},
+  step3:{n:3, t:()=>"Approach: Pain-Free Motion and Contraction Couplet", short:"Approach", img:"step3", alt:"Approach your Pain-Free Motion and Contraction Couplet.", prev:"step2", next:"step4", nextLabel:"Next: Program"},
+  step4:{n:4, t:()=>"Program: Overload Exercise", short:"Program", img:"step4", alt:"Program your Overload Exercise.", prev:"step3", next:"step5", nextLabel:"Next: Track"}
 };
 
-V.step2 = () => {
-  const p=P(); const d=p.determine;
-  return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Step 2</span><h1>Discover: Testing Movement</h1></div>
-  <img class="fig" src="img/step2.jpg" alt="Discover your Testing Movement." width="1600" height="1189">
-  <div class="card"><p>The purpose of the Testing Movement is to find a reasonable way to determine where you are right now, and, in the future, whether you are progressing, plateauing, or regressing. Your ${esc(skillLabel(p).toLowerCase())} is not a good testing movement, for a number of reasons. It may not be safe to perform due to your injury, or due to pain inhibiting confident performance (ever bailed in the middle of a backflip? Not fun and potentially dangerous). It may also create or reinforce doubt about your ability to successfully perform that skill in the future. It may also be something you need to warm up for, which makes wiggle room from test to test for inconsistency and therefore unreliable results. The Testing Movement avoids all those issues.</p>
-  <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p></div>
-  <div class="card"><h2>Crux of the issue</h2>
-  <p class="small">What simpler, smaller, more focused component seems to be preventing free execution of the painful skill task in its entirety? Explore various related movements to determine. For example: from macaco think bridge, from bridge think end-range shoulder flexion; from back flip think squat, from squat think mid-range loaded knee extension when plantarflexed; from cartwheel think left single leg side handstand press, from press think left trunk sidebending. You are trying to boil the painful skill down to its smallest unit, likely the joint position and loading pattern that is painful.</p>
-  ${field("The crux of my issue","determine.crux","",{area:true,ph:"ex.: “The crux of the issue is loading my right shoulder, when I’m upside down. I feel this most in macacos or in handstand weight shifts. If I keep the weight balanced between both hands in a bridge, I don’t feel pain.”"})}</div>
-  <div class="card"><h2>Testing Movement</h2>
-  <p class="small">This should be uncomfortable; otherwise it is not an effective test for the crux of the issue. But you also need to be able to get into it with ease, without risk, and without warm-up. We recommend movements where you are completely in control of the speed and leverage. If you are struggling to keep balance or control the speed the test is likely too challenging to be reliable.</p>
-  <p class="small">As an example, for lower back pain this could be a slow, controlled, Jefferson Curl roll-down with a light weight. For knee pain this could be a partial range of motion single leg squat, holding a pole for stability and assistance. The key is <b>you can control when and how much pain you feel</b> as you go through the movement.</p>
-  <div class="rule"><b>Test 1x per week, cold</b><span class="small">Keep the test as reliable as possible: without a warmup and preferably at the same time of day. These details are your starting point; changes to any of them over time will indicate progress, regress, or plateau.</span></div>
-  ${field("Movement","determine.move","",{ph:"Name or describe the movement"})}
-  ${field("Dose","determine.dose","Repetitions or time under tension.")}
-  ${field("Range of motion","determine.range")}
-  ${field("Load","determine.load")}
-  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP during the test</b>${scale("determine.nrsop",d.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}
-  <div class="msg info"><b>“Happy-Medium” pain for the Testing Movement</b><ul class="tight small"><li>No increased pain the day after</li><li>No increased fear or anxiety</li></ul><p class="small">Ultimately, you want to feel comfortable visiting your pain this way once a week.</p></div>
-  </div>
-  <div class="card"><label class="row small"><input type="checkbox" data-act="no-tm" ${d.none?"checked":""}> I’ve explored, and I can’t find a movement that reliably reproduces it</label>
-  ${d.none?noTmMsg(p):""}</div>
-  ${stepNav("step1","step3","Next: Approach")}</div>`;
+const PARTS = {
+  step1:[
+    {t:"Overview", body:p=>{ const a=p.assess; return `<div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
+      <div class="row" role="group" aria-label="Kind of limitation">
+      <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
+      <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
+      ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}</div>`; }},
+    {t:"Where and when", paths:["region"], body:p=>subPart(1, isPainful(p)?"Pain/Injury Details":"Details", ["region"], `
+      <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
+      <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
+      <label class="f" for="f-region"><span class="sr">Body region</span><select id="f-region" data-bind="region"><option value="">Choose a body region</option>${REGIONS.map(([k,l])=>`<option value="${k}" ${p.region===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label></div>
+      ${field("When did this start?","assess.start")}
+      ${field("How did it start?","assess.how","",{area:true})}
+      ${field("What have you noticed recently?","assess.recent","",{area:true})}
+      ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
+      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["NRSoP",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
+    {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], `
+      ${field("What skill is inhibited?","assess.skill","A skill from your sport or practice, not just a body motion. ex., kipping pull-ups, landing a back handspring, shooting a double-leg takedown (not “lifting my arm”).",{ph:"ex., macaco"})}
+      ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
+      ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 80%"})}`),
+      sum:p=>[["Skill",p.assess.skill],["How it’s inhibited",p.assess.inhibited],["Reps inhibited",p.assess.pct]]},
+    {t:"PSFS score", paths:["assess.psfs"], body:p=>subPart(3, "Your PSFS score", ["assess.psfs"], `
+      <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
+      <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",p.assess.psfs,"psfs")}</div>`),
+      sum:p=>[["PSFS",p.assess.psfs!=null?p.assess.psfs+"/10":""]]},
+    {t:"11/10 goal", paths:["assess.goal"], body:p=>subPart(4, "Your 11/10 goal", ["assess.goal"], `
+      ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}`),
+      sum:p=>[["Goal",p.assess.goal]]}
+  ],
+  step2:[
+    {t:"Overview", body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return `<div class="card"><p>Testing your ${sk} every week just pokes the bear instead of giving useful data. Instead, you’ll find a simpler movement that brings on the same problem in a way you control. That’s your <b>Testing Movement</b>. You’ll repeat it once a week to see if you’re getting better.</p>
+      <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p>
+      ${more("Why not just test the skill?",`<p>It may not be safe to perform right now, or pain may make you bail halfway (ever bailed in the middle of a backflip? Not fun, and potentially dangerous). It can also build doubt about the skill, and it may need a warm-up, which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`)}</div>`; }},
+    {t:"Find the crux", paths:["determine.crux"], body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return subPart(1,"Find the crux",["determine.crux"],`<p class="small">Boil your ${sk} down to the smallest piece that causes the problem. It’s usually one area, in one position, with some load on it. Ask yourself:</p>
+      <ul class="tight small"><li><b>Which area?</b> For example, the front of your shoulder, the inside of your knee, your low back</li><li><b>In what position?</b> For example, arm overhead, knee bent deep, back rounded</li><li><b>Doing what?</b> For example, holding your weight, landing, pulling, pushing</li></ul>
+      ${exBox(p,"crux")}
+      ${field("The crux of my issue","determine.crux","",{area:true,ph:"Which area, in what position, doing what"})}`); },
+      sum:p=>[["Crux",p.determine.crux]]},
+    {t:"Testing Movement", paths:["determine.move"], body:p=>subPart(2,"Pick your Testing Movement",["determine.move"],`<p class="small">Choose a controlled, simple movement that replicates the crux you just identified. It should:</p>
+      <ul class="tight small"><li>Bring on a little of the problem, so it actually tests something</li><li>Be easy and safe to get into, with no warm-up</li><li>Let <b>you</b> control the speed, how far you go, and load relatively easily</li></ul>
+      ${exBox(p,"tm")}
+      ${field("My Testing Movement","determine.move","",{ph:"Name or describe the movement"})}
+      ${more("Struggling to pick one?",`<p>If you’re fighting for balance or can’t control the speed, the test is probably too hard to be reliable; make it simpler or add support (a wall, a pole, a chair). The key is that you control when and how much you feel it.</p>`)}`)
+      + `<div class="card"><label class="row small"><input type="checkbox" data-act="no-tm" ${p.determine.none?"checked":""}> I’ve explored, and I can’t find a movement that reliably brings it on</label>${p.determine.none?noTmMsg(p):""}</div>`,
+      sum:p=>[["Testing Movement",p.determine.move||(p.determine.none?"None found yet (flagged)":"")]]},
+    {t:"Starting numbers", paths:["determine.dose"], body:p=>subPart(3,"Write down your starting numbers",["determine.dose"],`<p class="small">This is your baseline. Each week you’ll repeat the test exactly the same way and compare.</p>
+      ${field("How many reps, or how many seconds","determine.dose","ex., 5 controlled reps, or a 20-second hold. Pick something you can repeat the same way next week.")}
+      ${field("How far you go","determine.range","Use landmarks, not degrees. ex., “fingertips reach the top of the door frame” or “thighs level with the chair seat.”")}
+      ${field("What load or assistance","determine.load","ex., bodyweight, a 5 kg plate, holding a chair.")}
+      ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain during the test (NRSoP, 0-10)</b>${scale("determine.nrsop",p.determine.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}
+      <div class="msg info"><b>The right amount of discomfort</b><ul class="tight small"><li>No extra pain the next day</li><li>No extra fear or nervousness about moving</li></ul><p class="small">You should feel fine visiting your pain this way once a week.</p></div>
+      <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>`),
+      sum:p=>[["Reps or time",p.determine.dose],["How far",p.determine.range],["Load or assistance",p.determine.load],...(isPainful(p)?[["NRSoP",p.determine.nrsop!=null?p.determine.nrsop+"/10":""]]:[])]}
+  ],
+  step3:[
+    {t:"Overview", body:p=>`<div class="card"><p>Now you’ll find two daily exercises that visit the crux safely:</p>
+      <ul class="tight small"><li><b>Pain-Free Motion:</b> move through the crux position with zero pain</li><li><b>Contraction Couplet:</b> two holds in the crux position, pushing in opposite directions</li></ul>
+      ${more("Why these two?",`<p>Gentle, pain-free movement increases blood flow, helps healing, and teaches your brain that the position isn’t dangerous. Holding still while you push (an isometric hold) starts the strengthening, calms the pain response to load over time, and teaches your brain that loading the position is safe too.</p>`)}</div>`},
+    {t:"Pain-Free Motion", paths:["approach.pfm"], body:p=>subPart(1,"Pain-Free Motion",["approach.pfm"],`<p class="small">Move in and out of the crux position with <b>zero pain or discomfort</b>, during and after. Get help to make that happen: a band, a wall, a door frame, your other hand, or a different body position.</p>
+      ${exBox(p,"pfm")}
+      ${field("My Pain-Free Motion","approach.pfm","",{area:true})}
+      <div class="rule"><b>Every day</b><span class="small">2-3 sets of 20-30 reps. Effort and strain don’t help here; easy is the point. Pair it with your Contraction Couplet, on its own or in your warm-up.</span></div>`),
+      sum:p=>[["Pain-Free Motion",p.approach.pfm]]},
+    {t:"Contraction Couplet", paths:["approach.cc","approach.cc2"], body:p=>subPart(2,"Contraction Couplet",["approach.cc","approach.cc2"],`<p class="small">Two holds in the crux position. No movement; just push and hold.</p>
+      <ol class="tight small"><li><b>Into it:</b> push in the direction that hurts</li><li><b>Away from it:</b> push the opposite way</li></ol>
+      <p class="small">Effort is fine, and pain can rise a little (up to 2 points above where you started) as long as it settles back down shortly after you stop. Adjust the angle, the support, or how hard you push until both holds fit.</p>
+      ${exBox(p,"into","Into it, example")}
+      ${field("Hold 1: into it","approach.cc","",{area:true})}
+      ${exBox(p,"away","Away from it, example")}
+      ${field("Hold 2: away from it","approach.cc2","",{area:true})}
+      <div class="rule"><b>Every day</b><span class="small">Find a level you could hold for 25-45 seconds, but not longer. Then do 2-3 sets of 20-30 seconds of each hold, paired with your Pain-Free Motion.</span></div>
+      ${more("Can’t make one of the holds work yet?",`<p>Start with the one that fits and keep adjusting the other: change the angle, push into something softer, or push less hard.</p>`)}`),
+      sum:p=>[["Into it",p.approach.cc],["Away from it",p.approach.cc2]]}
+  ],
+  step4:[
+    {t:"Overview", body:p=>`<div class="card"><p>Your <b>Overload Exercise</b> is a real strength exercise: a modified version of one you’d normally train, working in and out of the problem. Unlike the daily exercises, you push it harder over time, like the rest of your regular workout.</p>
+      ${more("Why it matters",`<p>It drives healing and teaches your brain that this range and intensity are safe. Because it stands in for an exercise you already do, the strength carries straight back into your regular training and the skills it supports. It also feels very normal because it’s modified normal exercise, and feeling normal throughout this is awesome.</p>`)}</div>`},
+    {t:"What it replaces", paths:["program.replaces"], body:p=>subPart(1,"Find the exercise you can’t do right now",["program.replaces"],`<p class="small">Which exercise in your regular workout is limited by this problem? That’s the one you’ll replace for now. For example, if shoulder pain is getting in the way of your front handsprings, it’s probably getting in the way of the handstand push-ups you do to build them, too. The handstand push-up is the one to replace.</p>
+      ${field("The exercise it replaces","program.replaces","ex., handstand push-ups, back squats, pull-ups.")}`),
+      sum:p=>[["Replaces",p.program.replaces]]},
+    {t:"Modify it", paths:["program.ov"], body:p=>subPart(2,"Modify it until it fits",["program.ov"],`<p class="small">Change ${p.program.replaces.trim()?`your ${esc(p.program.replaces.trim().toLowerCase())}`:"that exercise"} until it fits the pain guidelines: pain rises no more than 2 points during, and settles back down shortly after.</p>
+      <ul class="tight small"><li><b>Keep it working in and out of the problem:</b> if pushing overhead hurts, it stays a push overhead</li><li><b>Ways to modify:</b> change the angle, shorten the range, add support, or use less weight</li><li><b>It should feel like part of your regular workout,</b> harder than your couplet and close to the exercise it replaces</li></ul>
+      ${exBox(p,"ov")}
+      <img class="fig" src="img/ex-replace.jpg" alt="Example: a bridge walkover in the usual workout, replaced with a wall chest reach." width="1600" height="900">
+      ${field("My Overload Exercise","program.ov","",{area:true})}
+      <label class="row small"><input type="checkbox" data-act="skip" ${p.program.skip?"checked":""}> Nothing fits yet; skip it for now and keep exploring</label>`),
+      sum:p=>[["Overload Exercise",p.program.skip&&!p.program.ov.trim()?"Skipped for now":p.program.ov]]},
+    {t:"How to program it", paths:[], body:p=>`<div class="card sub"><h2 class="sub-h"><span class="n"><span>3</span></span>How to program it</h2>
+      <ul class="tight small"><li><b>Dose:</b> 6-9 reps per set, 6-9 sets per week, spread over 2-3 sessions. Build from 6, 6, 6 toward 9, 9, 9</li>
+      <li><b>Range:</b> start where it doesn’t aggravate your pain, then go a little deeper over time until you reach your full range</li>
+      <li><b>Load:</b> start lighter, then add weight; for bodyweight exercises, go from two limbs to one, steeper angles, or longer levers</li></ul>
+      <img class="fig" src="img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1600" height="754">
+      ${more("The DRL method (Dose, Range, Load)",`<p>These are the same variables you use for all your conditioning exercises. Make sure to keep following the “Respect But Don’t Fear Your Pain” guidelines:</p>${PAIN_GUIDE}<p>If your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`)}</div>`}
+  ]
 };
+const partTitle = (p,pt) => typeof pt.t==="function" ? pt.t(p) : pt.t;
+function partDone(p,pt){ return !!(pt.paths && pt.paths.length && pt.paths.every(x=>String(getPath(p,x)??"").trim())); }
+function stepHasData(p,k){ const parts=PARTS[k]; if(!parts||!p) return false;
+  if(k==="step2" && p.determine.none) return true; if(k==="step4" && p.program.skip) return true;
+  return parts.some(pt=>(pt.paths||[]).some(x=>String(getPath(p,x)??"").trim())) || (k==="step1" && !!p.side); }
+// Which part holds a given field (used by the "Still blank" links and the tests)
+function partOf(k,path){ const parts=PARTS[k]||[]; let i=parts.findIndex(pt=>(pt.paths||[]).includes(path));
+  if(i<0){ const p=P(); if(p) i=parts.findIndex(pt=>pt.body(p).includes(`data-bind="${path}"`)||pt.body(p).includes(`data-path="${path}"`)); }
+  return i<0?0:i; }
 
-V.step3 = () => `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Step 3</span><h1>Approach: Pain-Free Motion and Comfortable Contraction</h1></div>
-  <img class="fig" src="img/step3.jpg" alt="Approach your Pain-Free Motion and Comfortable Contraction." width="1600" height="1189">
-  <div class="card"><p>How can we safely and comfortably approach the crux in order to gradually improve our abilities? First, we find the Pain-Free Motion, the way we will experience the crux range of motion without pain. This is a crucial part of the healing journey. Gentle movements increase blood flow, stimulate healing, and teach the brain those positions and movements are not inherently unsafe. Second, we find a Comfortable Contraction to experience loading the crux position with minimal pain. Prolonged isometric contractions with low levels of pain are great for safely initiating the strengthening process, decreasing the pain response to loading over time, stimulating healing of soft tissue, and teaching the brain that loading that position is not inherently unsafe.</p></div>
-  <div class="card"><h2>Pain-Free Motion</h2>
-  <ul class="tight small"><li>Explore various related motions to find one as similar as possible in range and positioning to the crux but without any pain or discomfort during/after</li>
-  <li>This step often requires passive or assisted range of motion. For example, if actively lifting your arm over head hurts, try holding on to something and then change your body position to put your arm in an “overhead” position</li>
-  <li><b>Goal:</b> find a way to safely approach the crux range of motion without any pain. Remember, we want to teach your brain that exploring the range is safe; effort and strain is counter-productive at this step</li></ul>
-  ${field("My Pain-Free Motion","approach.pfm","",{area:true})}
-  <div class="rule"><b>Instructions for use</b><span class="small">Perform daily for 2-3 sets of 20-30 reps. Ideally should be performed as a superset with your Comfortable Contraction, as a standalone session or as part of your warmup.</span></div></div>
-  <div class="card"><h2>Comfortable Contraction</h2>
-  <ul class="tight small"><li>Explore various related positions to find one as similar as possible in range and positioning to the crux, but this time you want to find an exercise you can load, with a contraction intensity that causes a +0-2/10 points increase in pain, but that also returns to normal at rest shortly after you stop the isometric hold</li>
-  <li><b>Try contracting opposite the painful direction first.</b> For example, if your crux is more of a support or push, try hanging or pulling. <b>If that doesn’t work, contract in the painful direction</b> (ex., push for a painful support/push) but with a modification like decreased intensity, different orientation, decreased stability (pushing into a foam pad instead of a solid surface), etc</li>
-  <li><b>Goal:</b> find a position you can isometrically hold for 25-45 seconds, but not longer, while staying in the pain boundary mentioned above. This assures the isometric hold will be challenging enough that the tendons experience sufficient tension for remodelling and the brain can benefit from the analgesic effects of the isometric muscle contraction</li></ul>
-  ${field("My Comfortable Contraction","approach.cc","",{area:true})}
-  <div class="rule"><b>Instructions for use</b><span class="small">Perform daily for 2-3 sets of 20-30 seconds. Ideally should be performed as a superset with your Pain-Free Motion, as a standalone session or as part of your warmup.</span></div></div>
-  ${stepNav("step2","step4","Next: Program")}</div>`;
-
-V.step4 = () => { const p=P(); return `<div class="stack">
-  <div class="card flat"><span class="eyebrow">Step 4</span><h1>Program: Overload Exercise</h1></div>
-  <img class="fig" src="img/step4.jpg" alt="Program your Overload Exercise." width="1600" height="1189">
-  <div class="card"><p>Your Overload Exercise is a true conditioning exercise. This should feel less like joint care and more like pushing boundaries. Like the other conditioning exercises in your program, it demands progressive overload and will improve your strength accordingly. It is an important driver for stimulating healing, and for teaching the brain that this range/intensity is still safe to perform. Its specificity also means maximizing carryover to the skill training you are so passionate about.</p></div>
-  <div class="card"><h2>Find your Overload Exercise</h2>
-  <ul class="tight small"><li><b>The intensity</b> of your Overload Exercise sits above your Comfortable Contraction, but below the Painful Skill; ideally it fits right alongside the intensity of your regular conditioning exercises</li>
-  <li><b>Pain threshold:</b> if your pain level rises 1 or 2/10 points above your resting level it is within the normal boundaries of exercise, AS LONG AS it returns to normal at rest relatively quickly. Avoid exercises that leave you in more pain at rest long after performing them</li>
-  <li><b>The goal:</b> find a safe conditioning exercise you can progressively overload to help unlock your Painful Skill</li>
-  <li><b>Orientation:</b> Stay in the direction that hurts; if pushing hurts, your Overload Exercise is a push, not a pull</li>
-  <li><b>Example:</b> if your right shoulder hurts during a macaco, try a scaled back version of a bridge walkover. Too tough? Then try wall chest reaches</li></ul>
-  <img class="fig" src="img/ex-wall-1.jpg" alt="Wall chest reach example: hands on the floor, chest moving toward the wall." width="1600" height="1130">
-  <ul class="tight small"><li>Explore various related exercises to find one as similar as possible in range and positioning to your normal conditioning exercise for this movement</li>
-  <li><i>If nothing fits the pain guidelines yet, skip it for now.</i> However, if you keep exploring and modifying, it is highly likely you <i>will</i> find an Overload Exercise that works</li></ul>
-  ${field("My Overload Exercise","program.ov","",{area:true})}
-  ${field("It replaces this exercise in my conditioning routine","program.replaces","The “puzzle piece”: the exercise most similar to it that is currently limited.")}
-  <label class="row small"><input type="checkbox" data-act="skip" ${p.program.skip?"checked":""}> Nothing fits yet; skip it for now and keep exploring</label></div>
-  <div class="card"><h2>How to program it: DRL (“Drill”)</h2>
-  <p class="small">Use <b>D</b>ose, <b>R</b>ange, <b>L</b>oad. These are the standard variables you use for all your typical conditioning exercises, too.</p>
-  <ul class="tight small"><li><b>Dose:</b> 6-9 repetitions per set; 6-9 weekly sets, ideally spread across 2-3 practice sessions. Progress your variation from 6,6,6 repetitions to 9,9,9. The exact way you progress through that spread is up to you</li>
-  <li><b>Range:</b> begin at a range that doesn’t aggravate your pain. Gradually increase the range of motion until you can move through the full range of motion your joint allows</li>
-  <li><b>Load:</b> for exercises utilizing external resistance, add more. For purely bodyweight exercises, you can add load by progressing from bilateral to unilateral, increasing the angle of inversion, or increasing the lever length. Regardless of which method you use, make sure you stay within the Dose requirements</li></ul>
-  <img class="fig" src="img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1600" height="754">
-  <p class="small">Remember to also stay within the “Respect But Don’t Fear Your Pain” guidelines when doing your Overload Exercise.</p></div>
-  ${stepNav("step3","step5","Next: Track")}</div>`; };
+function pagedStep(k){
+  const p=P(); const m=STEP_META[k]; const parts=PARTS[k]; const has=stepHasData(p,k);
+  let cur=part; if(cur!=="sum" && !(cur>=0 && cur<parts.length)) cur=0; if(cur==="sum" && !has) cur=0;
+  const chips=`<div class="parts" role="navigation" aria-label="Parts of this step">${parts.map((pt,i)=>`<button type="button" class="chip" data-act="part" data-v="${i}" aria-current="${cur===i?"step":"false"}" data-done="${partDone(p,pt)?"1":""}">${i?`<span class="cn">${partDone(p,pt)?"&#10003;":i}</span>`:""}${esc(i?partTitle(p,pt):"Overview")}</button>`).join("")}${has?`<button type="button" class="chip" data-act="part" data-v="sum" aria-current="${cur==="sum"?"step":"false"}">Summary</button>`:""}</div>`;
+  const head=`<div class="card flat"><span class="eyebrow">Step ${m.n}${cur==="sum"?" · Summary":cur>0?` · Part ${cur} of ${parts.length-1}`:""}</span><h1>${esc(m.t(p))}</h1>${chips}</div>`;
+  if(cur==="sum"){
+    return `<div class="stack">${head}
+    <div class="card"><h2>Your ${esc(m.short)} so far</h2>
+    ${parts.map((pt,i)=>i&&pt.sum?`<div class="sumrow"><div class="sumtop"><b>${i}. ${esc(partTitle(p,pt))}</b><button class="btn small plain" data-act="part" data-v="${i}">Edit</button></div>
+      <dl>${pt.sum(p).map(([l,v])=>`<dt>${esc(l)}</dt><dd>${shown(v)}</dd>`).join("")}</dl></div>`:"").join("")}
+    ${k==="step4"?`<p class="small"><button class="linkbtn" data-act="part" data-v="3">How to program it (Dose, Range, Load)</button></p>`:""}
+    <p class="small"><button class="linkbtn" data-act="part" data-v="0">Read the overview again</button></p></div>
+    ${stepNav(m.prev,m.next,m.nextLabel)}</div>`;
+  }
+  const last=parts.length-1;
+  const back = cur>0 ? `<button class="btn plain" data-act="part" data-v="${cur-1}">Back</button>` : `<button class="btn plain" data-act="go" data-v="${m.prev}">Back</button>`;
+  const next = cur<last ? `<button class="btn" data-act="part" data-v="${cur+1}">${cur===0?"Start":"Next"}: ${esc(partTitle(p,parts[cur+1]))}</button>` : `<button class="btn" data-act="go" data-v="${m.next}">${esc(m.nextLabel)}</button>`;
+  return `<div class="stack">${head}
+  ${cur===0?`<img class="fig" src="img/${m.img}.jpg" alt="${esc(m.alt)}" width="1600" height="1189">`:""}
+  ${parts[cur].body(p)}
+  <div class="row spread">${back}${next}</div></div>`;
+}
+V.step1 = () => pagedStep("step1");
+V.step2 = () => pagedStep("step2");
+V.step3 = () => pagedStep("step3");
+V.step4 = () => pagedStep("step4");
 
 V.step5 = () => { const p=P(); return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Step 5</span><h1>Track Progress</h1></div>
   <img class="fig" src="img/step5.jpg" alt="Track progress." width="1600" height="1189">
   <div class="card"><p>How can you guarantee you’ll see progress, make necessary course corrections, and reach your destination? By checking your map to see if you’re moving in the right direction. That means tracking results in your workout and with your weekly retest.</p>
   <ul class="tight small"><li><b>Overload Exercise:</b> track as part of your conditioning routine, with Dose, Range, Load, and NRSoP</li>
-  <li><b>Pain-Free Motion and Comfortable Contraction:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good. ${esc(MSG_DAILY_TARGET)}</li>
+  <li><b>Pain-Free Motion and Contraction Couplet:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good. ${esc(MSG_DAILY_TARGET)}</li>
   <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Discover step</li>
-  <li>Test your Painful Skill when you feel ready (you’ll know when)</li></ul>
-  <p class="small">It is easy to get frustrated when we do not see results. This level of tracking avoids many of the common pitfalls that lead to frustration. If you are not actually improving, you will notice it and know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
-  ${(()=>{ const miss=missingSteps(p); return miss.length&&!p.tracking?`<div class="msg warn"><b>Still blank</b><ul class="tight small">${miss.map(([s,l])=>`<li><button class="linkbtn" data-act="go" data-v="${s}">${l}</button></li>`).join("")}</ul><p class="small">You can start tracking anyway and fill these in later.</p></div>`:""; })()}
+  <li><b>${esc(skillLabel(p))}:</b> test when you feel ready (you’ll know when)</li></ul>
+  <p class="small">It is easy to get frustrated when we do not see results. Tracking like this avoids that. If you are not actually improving, you will notice AND know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
+  ${(()=>{ const miss=missingSteps(p); return miss.length&&!p.tracking?`<div class="msg warn"><b>Still blank</b><ul class="tight small">${miss.map(([s,l,pt])=>`<li><button class="linkbtn" data-act="go" data-v="${s}"${pt!==undefined?` data-p="${pt}"`:""}>${l}</button></li>`).join("")}</ul><p class="small">You can start tracking anyway and fill these in later.</p></div>`:""; })()}
   ${p.origin==="coach" ? sendPlanCard(p) : `<button class="btn" data-act="start-tracking">${p.tracking?"Go to my plan":missingSteps(p).length?"Start tracking anyway":"Start tracking"}</button>`}
   <div class="row"><button class="btn plain" data-act="go" data-v="step4">Back</button></div></div>`; };
 
 function missingSteps(p){ const m=[];
   if(!p.screen.done) m.push(["screen","Pre-ADAPT Screening"]);
-  if(!p.assess.skill.trim()) m.push(["step1",skillLabel(p)]);
-  if(!p.determine.move.trim()&&!p.determine.none) m.push(["step2","Testing Movement"]);
-  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
-  if(!p.approach.cc.trim()) m.push(["step3","Comfortable Contraction"]);
-  if(!p.program.ov.trim()&&!p.program.skip) m.push(["step4","Overload Exercise (or tick “skip it for now”)"]);
+  if(!p.assess.skill.trim()) m.push(["step1",skillLabel(p),partOf("step1","assess.skill")]);
+  if(!p.determine.move.trim()&&!p.determine.none) m.push(["step2","Testing Movement",partOf("step2","determine.move")]);
+  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion",partOf("step3","approach.pfm")]);
+  if(!ccText(p)) m.push(["step3","Contraction Couplet",partOf("step3","approach.cc")]);
+  if(!p.program.ov.trim()&&!p.program.skip) m.push(["step4","Overload Exercise (or tick “skip it for now”)",partOf("step4","program.ov")]);
   return m; }
 
 /* ---------- Dashboard ---------- */
@@ -817,11 +969,11 @@ function dashboard(p){
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
       <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of the last 14 days</span></button>
-      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${p.approach.cc.trim()?"":"disabled"}><b>Comfortable Contraction</b><span>${esc(p.approach.cc||"Not set yet")}</span><span class="state">${!p.approach.cc.trim()?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of the last 14 days</span></button>
+      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${ccText(p)?"":"disabled"}><b>Contraction Couplet</b><span>${esc(ccText(p)||"Not set yet")}</span><span class="state">${!ccText(p)?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of the last 14 days</span></button>
     </div>
     <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
-    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Comfortable Contraction ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
-    <p class="fine">Last 14 days. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Comfortable Contraction.</p>
+    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Contraction Couplet ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
+    <p class="fine">Last 14 days. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Contraction Couplet.</p>
     <p class="fine">${esc(MSG_DAILY_TARGET)}</p>
   </div>
   <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
@@ -929,7 +1081,7 @@ function summaryText(p){
   const lines=[`ADAPT check-in: ${planCode(p)||"(no name)"}, ${fmtDate(t)}`,
   `${skillLabel(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
   `Pain-Free Motion: ${p.approach.pfm||"-"} | done ${c.pfm} of last 14 days`,
-  `Comfortable Contraction: ${p.approach.cc||"-"} | done ${c.cc} of last 14 days`,
+  `Contraction Couplet: ${ccText(p)||"-"} | done ${c.cc} of last 14 days`,
   `Testing Movement: ${p.determine.move||(p.determine.none?"none found yet (flagged)":"-")}`,
   `  Start: ${[p.determine.dose,p.determine.range,p.determine.load].filter(Boolean).join(", ")||"-"}${p.determine.nrsop!=null?` | NRSoP ${p.determine.nrsop}/10`:""}`,
   last?`  Latest (${fmtDate(last.date)}): ${[last.dose,last.range,last.load].filter(Boolean).join(", ")||"-"}${last.nrsop!=null?` | NRSoP ${last.nrsop}/10`:""}${last.notes?` | ${last.notes}`:""}`:"  No weekly tests logged yet",
@@ -992,7 +1144,7 @@ function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},te
 /* ---------- Learn ---------- */
 const learnRaw = () => `<div class="stack">
   <div class="card flat"><span class="eyebrow">Learn</span><h1>The ideas behind ADAPT</h1></div>
-  <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, Overload Exercise." width="1600" height="622">
+  <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Contraction Couplet, Overload Exercise." width="1600" height="622">
   <details><summary>Introduction</summary><div class="body">
   <p>This guide contains all the information you need to use the ADAPT method independently. Pain and injuries are inevitable parts of any training approach and life in general. Having the tools, and the knowledge for how to use them, to address the inevitable is therefore critically important to rescue and protect your Movement Freedom.</p>
   <p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skill-first approach, meaning, the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p></div></details>
@@ -1024,16 +1176,16 @@ const learnRaw = () => `<div class="stack">
   <p>You can determine all 5 resilience movements within an hour. In principle, you can even complete all 5 steps by yourself, but many people will feel relief and support through working with a professional. The purpose of the professional is to monitor your progress and suggest alternative routes in an instant, where you otherwise might have driven in circles before finding a better resilience movement to get you past the finish line.</p>
   <img class="fig" src="img/journey.jpg" alt="The resilience journey in a nutshell, steps 1 through 5." width="1000" height="794"></div></details>
   <details><summary>The 5 Resilience Movements and the pain-intensity continuum</summary><div class="body">
-  <p>The 5 resilience movements each have a universal and a personal dimension. <b>The universal dimension:</b> Painful Skill, Testing Movement, Pain-Free Motion, Comfortable Contraction, and Overload Exercise. <b>The personal dimension:</b> the specific movements that go into each category are 100% customized to fit you and your unique situation. There aren’t “shoulder” exercises, “back” exercises, etc.; there are only “your” exercises.</p>
+  <p>The 5 resilience movements each have a universal and a personal dimension. <b>The universal dimension:</b> Painful Skill, Testing Movement, Pain-Free Motion, Contraction Couplet, and Overload Exercise. <b>The personal dimension:</b> the specific movements that go into each category are 100% customized to fit you and your unique situation. There aren’t “shoulder” exercises, “back” exercises, etc.; there are only “your” exercises.</p>
   <p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>
   <p>In order for our method to reliably work for people with elbow tendonitis, chronic back pain, and a strained knee ligament, we need to cover the entire range of pain-intensity. No matter where you are or how functionally limited you are currently, we can gradually progress you through the low-intensity to high-intensity continuum, along the way utilizing pain as the useful warning light it is supposed to be.</p>
   <img class="fig" src="img/continuum.jpg" alt="The pain-intensity continuum of the five Resilience Movements, from Pain-Free Motion to the Painful Skill." width="1600" height="1098">
   <p>On the left, we have a low intensity, Pain-Free Motion, often assisted by a prop like a band, a wall, or your hand to allow pain-free exploration. On the right is your painful skill. The goal: color the entire band green, which means you have reached high intensity, pain-free movement!</p>
   <img class="fig" src="img/before-after.jpg" alt="Before ADAPT the band runs from no pain to high pain; after ADAPT it is green all the way." width="1600" height="678"></div></details>
   <details><summary>Resilience is a journey</summary><div class="body">
-  <p>Everyone can find their <b>ideal</b> Testing Movement, Pain-Free Motion, Comfortable Contraction, and Overload Exercise. But finding them can take time. Your first guess for your Pain-Free Motion might fail. You may think “There is nothing I can do right now. My back just hurts when I extend it, period,” and feel defeated.</p>
+  <p>Everyone can find their <b>ideal</b> Testing Movement, Pain-Free Motion, Contraction Couplet, and Overload Exercise. But finding them can take time. Your first guess for your Pain-Free Motion might fail. You may think “There is nothing I can do right now. My back just hurts when I extend it, period,” and feel defeated.</p>
   <p>Or you could stay curious, explore lying on your back, hands folded behind your lumbar spine, take a deep breath, and finally feel a big wave of release wash over you as the pain subsides for the first time in days. Resilience is a skill. So is getting to know your body and your injuries. Skills take practice, work, and time to develop, but these skills are likely the most important for your overall movement career.</p>
-  <p>As you explore, you may need to modify your Pain-Free Motion. Your Comfortable Contraction might need repeated positional adjustments. Your Overload exercise may need to be changed. You don’t need to know the exact architecture and anatomy of your body, but you need to stay curious and keep track of your progress. Slow or non-existent? Then try turning your foot 15 degrees outwards. Or pull your arm more in towards your midline. Or bend the arm a little less during the chin-up hold.</p>
+  <p>As you explore, you may need to modify your Pain-Free Motion. Your Contraction Couplet might need repeated positional adjustments. Your Overload exercise may need to be changed. You don’t need to know the exact architecture and anatomy of your body, but you need to stay curious and keep track of your progress. Slow or non-existent? Then try turning your foot 15 degrees outwards. Or pull your arm more in towards your midline. Or bend the arm a little less during the chin-up hold.</p>
   <p>Don’t expect every step will be in the right direction, but expect that you will arrive as long as you continue to Assess, Discover, Approach, Program, Track.</p></div></details>
   ${legal()}
   </div>`;
@@ -1069,7 +1221,7 @@ V.restore = () => `<div class="stack"><div class="card flat"><span class="eyebro
   <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 
 V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from your coach</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
-  <div class="card"><p><b>${esc(skillLabel(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Comfortable Contraction:</b> ${esc(d.approach.cc||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
+  <div class="card"><p><b>${esc(skillLabel(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
   <button class="btn" data-act="import-save">Save to this device and start</button>
   <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
 
@@ -1077,9 +1229,9 @@ V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenRe
   return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(planCode(d)||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p>${(()=>{ const i=d.support==="sam"&&(d.supportStart||d.trackStart)?{s:d.supportStart||d.trackStart}:null; if(!i) return ""; const days=daysBetween(i.s,d._sent||today()), wk=Math.min(12,Math.floor(days/7)+1); return `<p class="small"><b>Direct support:</b> week ${wk} of 12, through ${esc(fmtDate(addDays(i.s,SUPPORT_DAYS-1)))}${days>=70?" · renewal coming up":""}</p>`; })()}</div>
   ${r.any?`<div class="msg ${r.emergency.length?"alert":"warn"}"><b>Screening flags</b><p class="small">${[...r.yesRF.map(n=>"Red flag "+n+": "+RED_FLAGS[n-1]),...r.yesHH.map(n=>"Health "+n+": "+HEALTH[n-1])].map(esc).join("<br>")}</p></div>`:""}
   ${d.note?`<div class="card"><h2>Their note</h2><p>${esc(d.note)}</p></div>`:""}
-  <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Comfortable Contraction: <b>${c.cc}/14</b> days</p>
+  <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Contraction Couplet: <b>${c.cc}/14</b> days</p>
    <div class="week">${[...Array(14)].map((_,i)=>addDays(today(),i-13)).map(dd=>{const x=d.logs.daily[dd]||{};return `<div class="d"><span>${new Date(dd+"T12:00:00").getDate()}</span><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></div>`;}).join("")}</div></div>
-  <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Comfortable Contraction:</b> ${esc(d.approach.cc||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
+  <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
   <div class="card"><h2>Testing Movement: ${esc(d.determine.move||(d.determine.none?"none found yet (flagged)":""))}</h2>${recentTrends(d.logs.tests)}${testTrend(d,true)}</div>
   <div class="card"><h2>Overload sessions</h2>${recentTrends(d.logs.overload)}${ovTable(d,true)}</div>
   <div class="card"><h2>Skill retests</h2>${recentTrends(d.logs.skill)}${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
@@ -1095,15 +1247,18 @@ function render(){
   if(!store.activeId && !["welcome","open","coach","import","restore"].includes(v)) v="welcome";
   tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
   if(v==="restore" && !store.activeId) tabs.hidden=true;
-  supportCheck(P()); funnelCheck(P());
+  supportCheck(P()); funnelCheck(P()); weeklyCheck(P());
   app.innerHTML = (v==="welcome"?"":header()) + V[v]();
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
-function go(v, fromHistory){ if(view==="screen" && v!=="screen") checkScreenFlag(P()); const changed=v!==view; view=v; logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
-  if(!fromHistory && changed){ try{ history.pushState({view:v},"",baseURL()); }catch(e){} } }
+function go(v, fromHistory, pt){ if(view==="screen" && v!=="screen") checkScreenFlag(P()); const changed=v!==view||(pt!==undefined&&pt!==part); view=v;
+  part = pt!==undefined ? pt : (PARTS[v] && stepHasData(P(),v) ? "sum" : 0);
+  logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
+  if(!fromHistory && changed){ try{ history.pushState({view:v,part},"",baseURL()); }catch(e){} } }
+function setPart(pt){ if(pt===part) return; part=pt; render(); window.scrollTo(0,0); try{ history.pushState({view,part},"",baseURL()); }catch(e){} }
 // Back button / back swipe moves between screens instead of leaving the app
-window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true); });
+window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true,e.state.part??0); });
 
 /* ---------- Events ---------- */
 document.addEventListener("input", e=>{
@@ -1111,12 +1266,14 @@ document.addEventListener("input", e=>{
   setPath(p, el.dataset.bind, el.value); save();
   if(["region","person","last"].includes(el.dataset.bind)){ const w=document.querySelector(".top .who"); if(w) w.textContent = p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : planCode(p); }
   if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=checkinText(p); }
+  const sub=el.closest(".sub"); if(sub&&sub.dataset.req){ sub.dataset.done = sub.dataset.req.split(",").every(x=>String(getPath(p,x)??"").trim()) ? "1" : ""; }
 });
 document.addEventListener("click", async e=>{
   const a=e.target.closest("[data-act]"); if(!a) return; const act=a.dataset.act, v=a.dataset.v; const p=P();
   switch(act){
     case "tab": go(v); break;
-    case "go": go(v); break;
+    case "go": go(v, false, a.dataset.p===undefined ? undefined : (a.dataset.p==="sum" ? "sum" : +a.dataset.p)); break;
+    case "part": setPart(v==="sum" ? "sum" : +v); break;
     case "start": {
       const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
       const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
