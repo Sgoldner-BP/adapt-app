@@ -586,7 +586,7 @@ function tourCards(p){ const name=esc((p&&p.person)||"there"); const link=fromLi
   const c2 = `<h1>Here’s the path</h1><img class="fig" src="img/journey.jpg" alt="The resilience journey, steps 1 through 5." width="1000" height="794"><p>First, a short safety screening. Then five steps:</p><ul>
     <li><b>Assess:</b> name the skill that’s limited, and how much</li>
     <li><b>Discover:</b> find a simple test you’ll repeat once a week</li>
-    <li><b>Approach:</b> find two, gentle, daily movements</li>
+    <li><b>Approach:</b> find three gentle daily movements</li>
     <li><b>Program:</b> swap one exercise in your training for one that rebuilds the problem area</li>
     <li><b>Track:</b> see your progress as you tick off your daily movements, log the new exercise, and record your weekly test results</li></ul>`;
   const c3 = link ? `<h1>What it takes</h1><p>Your job now: about 3 minutes a day, your training with one exercise swapped, and one test a week. Send Sam a check-in whenever he asks, or anytime something changes.</p>`
@@ -695,7 +695,7 @@ V.screen = () => {
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
   ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
-  <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
+  <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already, or you can get personalized guidance from our ADAPT team. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
   ${part!==1?`<div class="card"><h2>Red flags</h2><div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>
   <p class="fine"><b>*MEDICAL DISCLAIMER:</b> ${esc(SCREEN_DISCLAIMER)}</p></div>
   <div class="row spread"><button class="btn plain" data-act="go" data-v="home">Back</button><button class="btn" data-act="part" data-v="1">Next: Health status and history</button></div>`
@@ -786,6 +786,7 @@ function exBox(p,k,label){ const e=exFor(p);
 function subPart(n,title,paths,body){ const p=P(); const done = paths.length && paths.every(x=>String(getPath(p,x)??"").trim());
   return `<div class="card sub" data-req="${paths.join(",")}" data-done="${done?"1":""}"><h2 class="sub-h"><span class="n"><span>${n}</span></span>${esc(title)}</h2>${body}</div>`; }
 const more = (title, html) => `<details class="more"><summary>${esc(title)}</summary><div class="small">${html}</div></details>`;
+const PAIN_EX = `<p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`;
 const PAIN_GUIDE = `<div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>`;
 const shown = v => { const t=String(v??"").trim(); return t ? esc(t) : `<span class="muted">Not filled in yet</span>`; };
 const regionName = p => [ (SIDES.find(s=>s[0]===p.side)||[])[1], (REGIONS.find(r=>r[0]===p.region)||[])[1] ].filter(Boolean).join(" ").toLowerCase();
@@ -800,7 +801,8 @@ const STEP_META = {
 const PARTS = {
   step1:[
     {t:"Overview", body:p=>{ const a=p.assess; return `<div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
-      <div class="row" role="group" aria-label="Kind of limitation">
+      <b id="kind-q">Does your skill hurt, or is it limited without pain?</b>
+      <div class="row" role="group" aria-labelledby="kind-q">
       <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
       <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
       ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}</div>`; }},
@@ -837,6 +839,7 @@ const PARTS = {
       sum:p=>[["Crux",p.determine.crux]]},
     {t:"Testing Movement", paths:["determine.move"], body:p=>subPart(2,"Pick your Testing Movement",["determine.move"],`<p class="small">Choose a controlled, simple movement that replicates the crux you just identified. It should:</p>
       <ul class="tight small"><li>Bring on a little of the problem, so it actually tests something</li><li>Be easy and safe to get into, with no warm-up</li><li>Let <b>you</b> control the speed, how far you go, and load relatively easily</li></ul>
+      <div class="msg info"><b>The right amount of discomfort</b><ul class="tight small"><li>No extra pain the next day</li><li>No extra fear or nervousness about moving</li></ul><p class="small">You should feel fine visiting your pain this way once a week.</p></div>
       ${exBox(p,"tm")}
       ${field("My Testing Movement","determine.move","",{ph:"Name or describe the movement"})}
       ${more("Struggling to pick one?",`<p>If you’re fighting for balance or can’t control the speed, the test is probably too hard to be reliable; make it simpler or add support (a wall, a pole, a chair). The key is that you control when and how much you feel it.</p>`)}`)
@@ -847,12 +850,11 @@ const PARTS = {
       ${field("How far you go","determine.range","Use landmarks, not degrees. ex., “fingertips reach the top of the door frame” or “thighs level with the chair seat.”")}
       ${field("What load or assistance","determine.load","ex., bodyweight, a 5 kg plate, holding a chair.")}
       ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain during the test (NRSoP, 0-10)</b>${scale("determine.nrsop",p.determine.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}
-      <div class="msg info"><b>The right amount of discomfort</b><ul class="tight small"><li>No extra pain the next day</li><li>No extra fear or nervousness about moving</li></ul><p class="small">You should feel fine visiting your pain this way once a week.</p></div>
       <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>`),
       sum:p=>[["Reps or time",p.determine.dose],["How far",p.determine.range],["Load or assistance",p.determine.load],...(isPainful(p)?[["NRSoP",p.determine.nrsop!=null?p.determine.nrsop+"/10":""]]:[])]}
   ],
   step3:[
-    {t:"Overview", body:p=>`<div class="card"><p>Now you’ll find two daily exercises that visit the crux safely:</p>
+    {t:"Overview", body:p=>`<div class="card"><p>Now you’ll find three daily exercises that visit the crux safely:</p>
       <ul class="tight small"><li><b>Pain-Free Motion:</b> move through the crux position with zero pain</li><li><b>Contraction Couplet:</b> two holds in the crux position, pushing in opposite directions</li></ul>
       ${more("Why these two?",`<p>Gentle, pain-free movement increases blood flow, helps healing, and teaches your brain that the position isn’t dangerous. Holding still while you push (an isometric hold) starts the strengthening, calms the pain response to load over time, and teaches your brain that loading the position is safe too.</p>`)}</div>`},
     {t:"Pain-Free Motion", paths:["approach.pfm"], body:p=>subPart(1,"Pain-Free Motion",["approach.pfm"],`<p class="small">Move in and out of the crux position with <b>zero pain or discomfort</b>, during and after. Get help to make that happen: a band, a wall, a door frame, your other hand, or a different body position.</p>
@@ -862,7 +864,8 @@ const PARTS = {
       sum:p=>[["Pain-Free Motion",p.approach.pfm]]},
     {t:"Contraction Couplet", paths:["approach.cc","approach.cc2"], body:p=>subPart(2,"Contraction Couplet",["approach.cc","approach.cc2"],`<p class="small">Two holds in the crux position. No movement; just push and hold.</p>
       <ol class="tight small"><li><b>Into it:</b> push in the direction that hurts</li><li><b>Away from it:</b> push the opposite way</li></ol>
-      <p class="small">Effort is fine, and pain can rise a little (up to 2 points above where you started) as long as it settles back down shortly after you stop. Adjust the angle, the support, or how hard you push until both holds fit.</p>
+      <p class="small">Effort is fine, and some pain is okay, as long as both holds stay within the pain guidelines. Adjust the angle, the support, or how hard you push until both holds fit.</p>
+      ${PAIN_GUIDE}${PAIN_EX}
       ${exBox(p,"into","Into it, example")}
       ${field("Hold 1: into it","approach.cc","",{area:true})}
       ${exBox(p,"away","Away from it, example")}
@@ -889,7 +892,7 @@ const PARTS = {
       <li><b>Range:</b> start where it doesn’t aggravate your pain, then go a little deeper over time until you reach your full range</li>
       <li><b>Load:</b> start lighter, then add weight; for bodyweight exercises, go from two limbs to one, steeper angles, or longer levers</li></ul>
       <img class="fig" src="img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1600" height="754">
-      ${more("The DRL method (Dose, Range, Load)",`<p>These are the same variables you use for all your conditioning exercises. Make sure to keep following the “Respect But Don’t Fear Your Pain” guidelines:</p>${PAIN_GUIDE}<p>If your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`)}</div>`}
+      ${more("The DRL method (Dose, Range, Load)",`<p>These are the same variables you use for all your conditioning exercises. Also, though, make sure to keep following the “Respect But Don’t Fear Your Pain” guidelines:</p>${PAIN_GUIDE}${PAIN_EX}`)}</div>`}
   ]
 };
 const partTitle = (p,pt) => typeof pt.t==="function" ? pt.t(p) : pt.t;
@@ -1145,9 +1148,6 @@ function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},te
 const learnRaw = () => `<div class="stack">
   <div class="card flat"><span class="eyebrow">Learn</span><h1>The ideas behind ADAPT</h1></div>
   <img class="fig" src="img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Contraction Couplet, Overload Exercise." width="1600" height="622">
-  <details><summary>Introduction</summary><div class="body">
-  <p>This guide contains all the information you need to use the ADAPT method independently. Pain and injuries are inevitable parts of any training approach and life in general. Having the tools, and the knowledge for how to use them, to address the inevitable is therefore critically important to rescue and protect your Movement Freedom.</p>
-  <p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skill-first approach, meaning, the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p></div></details>
   <details><summary>Prerequisite knowledge</summary><div class="body">
   <p><b>Injury:</b> the tissue damage resulting from tissue overload. Lives in the tissue.</p>
   <p><b>Pain:</b> the negative physical experience frequently associated with injury. Lives in the brain.</p>
@@ -1159,8 +1159,8 @@ const learnRaw = () => `<div class="stack">
   <li><b>Ignoring pain</b> and just powering through is disrespecting your pain, and means alarm bells are constantly blaring during your activity, which feeds danger signals into the brain, which further amplifies the pain response</li>
   <li><b>The balance</b> of “respect but don’t fear your pain” means some pain is okay, maybe even good, depending on the context.</li></ul>
   <div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>
-  <p class="small">If your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your practice it returns to a 3/10 or below.</p></div></details>
-  <details><summary>Skills-first approach</summary><div class="body"><p>We often fall into a binary mindset when it comes to recovery: “I’m injured so I cannot/should not challenge myself. First recover, then I’ll challenge myself again.” This steals the joy of training and even potentially slows down the healing process. Instead, use what you love to make it love you back. Make your recovery approach as similar and as specific as possible to the training you feel passionate about.</p></div></details>
+  <p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your practice it returns to a 3/10 or below.</p></div></details>
+  <details><summary>Skills-first approach</summary><div class="body"><p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skills-first approach, meaning the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p><p>We often fall into a binary mindset when it comes to recovery: “I’m injured so I cannot/should not challenge myself. First recover, then I’ll challenge myself again.” This steals the joy of training and even potentially slows down the healing process. Instead, use what you love to make it love you back. Make your recovery approach as similar and as specific as possible to the training you feel passionate about.</p></div></details>
   <details><summary>Find the victories obscured by the obvious losses</summary><div class="body"><p>It’s easy for us to focus on the negative; what we can’t do, don’t have, used to, should be able to, etc. We have “The One Big Goal” at the end for what success looks like. That’s great, but it means along the way we hate the process, our life, ourselves, because we aren’t THERE yet.</p>
   <p>Instead of just collecting all the negatives and being miserable, use each negative as an opportunity to find countless positives. “I can’t tie my shoes” gets redefined to “I can’t tie my shoes in XYZ-way like I normally do.” Then, explore multiple different ways to solve the problem. All of a sudden, that single, monumental, all-encompassing “I CAN’T,” which defines Movement Restriction, turns into: “Wow, I actually can tie my shoes if I do it in ABC- and DEF- and GHI-way, and I actually like GHI-way better than my usual XYZ-way.” Exploration, optionality, and adaptation are the hallmarks of Movement Freedom.</p></div></details>
   <details><summary>ADAPT beyond your previous limitations</summary><div class="body"><p>Your final destination is not merely to get back to where you were before the pain/injury; aim to get beyond that point. After every valley, we climb ever higher mountains. This is the essence of Movement Freedom. It is an adaptive mindset, through which we become more resilient with every injury. Our abilities expand as we age and collect more experience.</p>
@@ -1168,8 +1168,11 @@ const learnRaw = () => `<div class="stack">
   <details><summary>The 3 vicious cycles of injury management</summary><div class="body">
   <p>There are three common approaches to dealing with training-related injuries and pain: pushing through, avoiding, and fixing. You likely have found yourself on one, if not all, of these paths before.</p>
   <p><b>The first path</b> leads down the vicious cycle of pushing through. This approach has a number of issues. It negatively impacts the tissues because it progresses the injury. It negatively impacts the brain because it reinforces that certain movements are painful and therefore “dangerous.” It also doesn’t take care of the underlying patterns that caused the injury in the first place, so even if the pain goes down, the cycle will continue. It is the most immature approach in that it works better the younger we are, with progressively less effectiveness the older we become. At some point the injuries become too severe or accumulate to the point where ignoring them no longer does the trick. That’s when people usually turn to the second path.</p>
+  <img class="fig" src="img/vc-push.jpg" alt="The vicious cycle of pushing through: exceed capacity, ignore what caused the injury, push through increasing pain." width="1000" height="1000" loading="lazy">
   <p><b>The second path</b>, avoiding pain, seems like a more measured and mature approach on the surface, and logically makes a lot of sense. Unfortunately, it too has a number of issues. It negatively impacts the tissues because our bodies work by the principle of “use it or lose it;” by avoiding the movement our body becomes less capable of performing the movement. It negatively impacts the brain because it still teaches our brain to associate certain movements with pain and therefore those movements must be “dangerous.” This in turn can lead to chronic pain and possibly depression. It, too, doesn’t take care of the underlying pattern that led to the injury in the first place. This finally leads to the third path.</p>
-  <p><b>The third path</b>, finding the fix, is a categorical improvement over the first two. We acknowledge something is wrong AND we try to address it. Yet again, though, it comes along with its own significant issues. It can negatively impact the tissues through unnecessary, unhelpful, and even harmful treatments. It negatively impacts the brain because doggedly pursuing the perfect fix reinforces there must therefore be a problem that requires fixing. Problems are bad, bad is dangerous, therefore we hyperfocus on every sensation related to our painful area, which can make us feel worse and make poor decisions about what we should do to address the sensations. It also frequently puts the fix into the hands of someone/thing external to the person. Until that someone/thing is found, there isn’t anything to do about the problem, which gives the problem the opportunity to gain permanence. On top of all that, like the previous paths, it often doesn’t take care of the underlying pattern that led to the injury in the first place.</p></div></details>
+  <img class="fig" src="img/vc-avoid.jpg" alt="The vicious cycle of avoidance: exceed capacity, become more aware of pain, label pain as negative, try to avoid pain at all costs." width="1000" height="1000" loading="lazy">
+  <p><b>The third path</b>, finding the fix, is a categorical improvement over the first two. We acknowledge something is wrong AND we try to address it. Yet again, though, it comes along with its own significant issues. It can negatively impact the tissues through unnecessary, unhelpful, and even harmful treatments. It negatively impacts the brain because doggedly pursuing the perfect fix reinforces there must therefore be a problem that requires fixing. Problems are bad, bad is dangerous, therefore we hyperfocus on every sensation related to our painful area, which can make us feel worse and make poor decisions about what we should do to address the sensations. It also frequently puts the fix into the hands of someone/thing external to the person. Until that someone/thing is found, there isn’t anything to do about the problem, which gives the problem the opportunity to gain permanence. On top of all that, like the previous paths, it often doesn’t take care of the underlying pattern that led to the injury in the first place.</p>
+  <img class="fig" src="img/vc-fix.jpg" alt="The vicious cycle of the fix: exceed capacity, try to remove pain with a quick fix, experience temporary relief, return to old patterns." width="1000" height="1000" loading="lazy"></div></details>
   <details><summary>The virtuous cycle: introducing ADAPT</summary><div class="body">
   <p>When all the usual paths don’t work or have significant downsides, it’s time to forge a new path that avoids those problems and actually gets you where you want to go. It’s finally time to say hello to the ADAPT Method.</p>
   <p>The ADAPT Method consists of 5 separate steps in which you will discover your <b>5 Resilience Movements</b>. This individualized approach makes the method hyper-specific to your body and your goals, and it is how you will break new ground, instead of getting stuck in recurring injury loops. The first two steps deal with your current discomfort: we don’t ignore, or avoid or try to ‘fix’ the pain; we use it as a guiding light. From step three onwards you will discover what you can already do and use that to move you in the right direction (pun intended).</p>
