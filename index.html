@@ -188,6 +188,7 @@ nav.tabs{border-top:3px solid var(--blue-light)}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;word-break:break-all;background:var(--soft);border-radius:6px;padding:8px;max-height:120px;overflow:auto}
 .hero{display:grid;gap:12px;padding-block:24px 4px}
 .hero-title{color:var(--blue);font-size:1.9rem;padding-bottom:10px;border-bottom:3px solid var(--orange);text-align:center}
+.hero-tag{text-align:center;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--accent-text);margin:4px 0 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 14px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:30;font-size:.9rem}
 .sep{height:1px;background:var(--line)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
@@ -501,7 +502,15 @@ function planCode(p){ const n=fullName(p); const c=(p.side||"")+(p.region||""); 
 // Supported clients only. Sends the plan code and the step that flagged; no answers or details.
 const FLAG_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdzJUo7gAYaWohke7ktNMm9tUiqjZTOQ22_JlyQFyiaiqIxKQ/formResponse";
 const FLAG_ENTRY = { client:"entry.192607587", step:"entry.112180385" };
-const FLAG_LIVE_HOST = "app.adaptbeyondlimits.com"; // only the live site sends; previews and tests just queue
+/* ---------- Domain move (prepared November 4, 2026; runs when Sam says so) ----------
+   adaptbeyondpain.com becomes the primary domain. Plans live in the browser per web address, so moving the app
+   would leave people with an empty app. On move day: FLAG_LIVE_HOST switches to NEW_HOST in the main build, and a
+   copy of the app built with MOVE_SENDER = true stays on the old address. That copy hands each phone's saved data
+   to the new address inside the link (#move=..., packed like a backup); the new address merges it in. */
+const OLD_HOST = "app.adaptbeyondlimits.com", NEW_HOST = "app.adaptbeyondpain.com";
+const MOVE_SENDER = false;               // true only in the copy left on the old address
+const MOVE_TO = "https://"+NEW_HOST+"/";  // where the old copy sends people
+const FLAG_LIVE_HOST = OLD_HOST; // only the live site sends; previews and tests just queue (switch to NEW_HOST on move day)
 const MSG_NOTIFIED = "Sam has been notified to reach out to you. Send him your answers so he has the details.";
 const notifies = p => p.support==="sam" && p.origin!=="coach";
 function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
@@ -609,6 +618,7 @@ V.tour = () => { const p=P(); const cards=tourCards(p); const n=cards.length; co
 V.welcome = () => `
   <div class="hero">
     <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
+    <p class="hero-tag">Adapt beyond pain.</p>
     <p class="muted" style="text-align:center">By Aaron Martin and Dr. Sam Goldner, DPT, CSCS, Pn1</p>
     <img class="fig" src="img/mountain-start.jpg" alt="A hiker at the lake shore looks up at a sunlit orange peak rising above snowy blue ridges." width="1000" height="807">
   </div>
@@ -1247,11 +1257,11 @@ function render(){
   let v=view;
   if(v==="coach"&&!coachData) v="home";
   if(v==="import"&&!importData) v="home";
-  if(!store.activeId && !["welcome","open","coach","import","restore"].includes(v)) v="welcome";
-  tabs.hidden = !store.activeId || ["welcome","coach","import"].includes(v);
+  if(!store.activeId && !["welcome","open","coach","import","restore","moved"].includes(v)) v="welcome";
+  tabs.hidden = !store.activeId || ["welcome","coach","import","moved"].includes(v);
   if(v==="restore" && !store.activeId) tabs.hidden=true;
-  supportCheck(P()); funnelCheck(P()); weeklyCheck(P());
-  app.innerHTML = (v==="welcome"?"":header()) + V[v]();
+  if(v!=="moved"){ supportCheck(P()); funnelCheck(P()); weeklyCheck(P()); }
+  app.innerHTML = (v==="welcome"?"":header()) + (v==="home"&&store.moveNote?moveCard():"") + V[v]();
   const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
   tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
 }
@@ -1277,6 +1287,8 @@ document.addEventListener("click", async e=>{
     case "tab": go(v); break;
     case "go": go(v, false, a.dataset.p===undefined ? undefined : (a.dataset.p==="sum" ? "sum" : +a.dataset.p)); break;
     case "part": setPart(v==="sum" ? "sum" : +v); break;
+    case "move-go": location.href = await moveLink(); break;
+    case "move-ok": store.moveNote=false; save(true); render(); break;
     case "start": {
       const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
       const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
@@ -1395,15 +1407,54 @@ async function openCode(raw){
 }
 
 window.addEventListener("hashchange", ()=>{ if(/^#[cpr]=/.test(location.hash)) openCode(location.hash); });
+
+/* Domain move: receiving side (new address) */
+async function receiveMove(code){
+  try{ history.replaceState(null,"",baseURL()); }catch(e){}
+  try{
+    const s=await unpack(code); if(!s||!s.plans) throw new Error("bad");
+    const n=Object.keys(s.plans).length;
+    if(!Object.keys(store.plans).length){ store=Object.assign({activeId:null,plans:{},clients:{}}, s); }
+    else {
+      Object.entries(s.plans).forEach(([id,pl])=>{ if(!store.plans[id]) store.plans[id]=pl; });
+      Object.entries(s.clients||{}).forEach(([id,c])=>{ if(!store.clients[id]) store.clients[id]=c; });
+      store.anon=Object.assign({}, s.anon||{}, store.anon||{});
+      store.tour=Object.assign({}, s.tour||{}, store.tour||{});
+      ["outbox","dataOut"].forEach(k=>{ if(s[k]&&s[k].length) store[k]=(store[k]||[]).concat(s[k]); });
+      if(!store.activeId) store.activeId=s.activeId;
+    }
+    if(store.activeId && !store.plans[store.activeId]) store.activeId=Object.keys(store.plans)[0]||null;
+    store.moveNote = !installed();
+    save(true); flushFlags(); flushData();
+    toast(n===1?"Your plan moved to the new address":"Your plans moved to the new address");
+  }catch(e){ toast("Your plan couldn’t be moved automatically. Use More > Restore a backup."); }
+}
+function moveCard(){ return `<div class="card"><h2>ADAPT has a new address</h2>
+  <p class="small">Your plan is here now, at ${esc(NEW_HOST)}. If you open ADAPT from your home screen, add this page to your home screen and delete the old ADAPT icon.</p>
+  <p class="small">On iPhone, a newly added home-screen app can start empty. Before you add it, tap <b>Copy backup</b>. If the new icon opens empty, choose <b>Restore a backup</b> and paste.</p>
+  <div class="row"><button class="btn small plain" data-act="export">Copy backup</button><button class="btn small" data-act="move-ok">Got it</button></div></div>`; }
+/* Domain move: sending side (the copy left on the old address) */
+async function moveLink(){ return MOVE_TO + (Object.keys(store.plans).length ? "#move="+await pack(store) : ""); }
+V.moved = () => { const has=Object.keys(store.plans).length;
+  return `<div class="stack"><div class="hero"><h1 class="hero-title">ADAPT has a new address</h1></div>
+  <div class="card"><p>The ADAPT app now lives at <b>${esc(NEW_HOST)}</b>.${has?" Your plan is saved on this phone; tap the button to take it with you.":""}</p>
+  <button class="btn" data-act="move-go">${has?"Move my plan to the new address":"Go to the new address"}</button></div>
+  ${has?`<div class="card"><h2>Using the app from your home screen?</h2><p class="small">After the new address opens, add it to your home screen and delete this old icon. On iPhone, the new icon can start empty: tap <b>Copy my plan</b> below first, then in the new app choose <b>Restore a backup</b> and paste.</p>
+  <button class="btn plain" data-act="export">Copy my plan</button></div>`:""}</div>`; };
 /* ---------- Boot ---------- */
 load();
+if(MOVE_SENDER){ view="moved"; render(); }
+else{
 flushFlags(); flushData();
 (async()=>{
+  const h0=location.hash;
+  if(/^#move=/.test(h0)) await receiveMove(h0.slice(6));
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
   if(/^#[cpr]=/.test(h)){ view=startView; await openCode(h); }
   else { view = startView; render(); }
 })();
+}
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
 

@@ -1,7 +1,7 @@
 {
-  "name": "ADAPT Resilience",
+  "name": "ADAPT Resilience: Adapt Beyond Pain",
   "short_name": "ADAPT",
-  "description": "Your ADAPT plan: screening, the 5 Resilience Movements, and tracking. Works offline.",
+  "description": "Adapt beyond pain. Your ADAPT plan: screening, the 5 Resilience Movements, and tracking. Works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
