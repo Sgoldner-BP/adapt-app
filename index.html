@@ -104,6 +104,9 @@ textarea{min-height:76px;resize:vertical}
 .yn:first-of-type{border-top:0}
 .none-apply{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
 .none-apply .fine{margin-top:6px}
+.none-apply.confirm{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:12px;margin-top:12px}
+.none-apply.confirm p{margin:0 0 10px}
+.none-note{margin:4px 0 8px;color:var(--muted,inherit)}
 .yn .q{min-width:0}
 .yn .btns{display:flex;gap:6px}
 .yn button{font:inherit;font-weight:700;min-width:54px;min-height:40px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
@@ -575,6 +578,7 @@ function stepSub(p,k){
 const nextStep = p => STEPS.find(s=>!s.done(p));
 
 /* ---------- Views ---------- */
+let noneConfirm = null; // screening group ("rf" or "hh") whose "None of these apply" is waiting for its confirming tap
 let part = 0; // which page of a setup step is showing: a number, or "sum" for the step's summary
 let view = "home", coachData = null, importData = null, armed = null, logForm = null, selDay = null;
 
@@ -703,20 +707,24 @@ function stepNav(prev,next,nextLabel){
 V.screen = () => {
   const p=P(); const rf=p.screen.rf, hh=p.screen.hh;
   const yn=(g,i,q,cur)=>`<div class="yn"><span class="q">${esc(q)}</span><span class="btns"><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="yes" aria-pressed="${cur==="yes"}">Yes</button><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="no" aria-pressed="${cur==="no"}">No</button></span></div>${cur==="yes"&&((g==="rf"&&EMERGENCY_FLAGS.includes(+i))||(g==="hh"&&EMERGENCY_HH.includes(+i)))?`<div class="msg alert" role="alert"><p class="small">${esc(MSG_RIGHT_NOW)}</p></div>`:""}`;
-  /* One-tap "None of these apply to me" (Sam, November 5, 2026): answers start blank, and the button below each list
-     fills only the blank ones with No. It never changes a Yes, and it sits under the list so people pass the questions first. */
+  /* "None of these apply to me" (Sam, November 5, 2026): answers start blank. A note at the top of each list says the button
+     exists; the button sits under the list, so people pass the questions first, and takes a second tap to confirm.
+     It fills only the blank answers with No and never changes a Yes. */
+  const noneNote=(list,ans)=>list.some((q,i)=>!ans[i+1])?`<p class="none-note small">Read each one and tap Yes for any that apply. If none do, there's a <b>None of these apply to me</b> button at the end of the list.</p>`:"";
   const noneApply=(g,list,ans)=>{ const blanks=list.filter((q,i)=>!ans[i+1]).length; if(!blanks) return "";
     const anyYes=list.some((q,i)=>ans[i+1]==="yes");
+    if(noneConfirm===g) return `<div class="none-apply confirm" role="alert"><p><b>${anyYes?`Mark the ${blanks} unanswered question${blanks===1?"":"s"} No?`:`Confirm that none of these ${list.length} apply to you?`}</b></p>
+      <div class="row"><button type="button" class="btn" data-act="none-apply" data-g="${g}" data-v="confirm">${anyYes?"Yes, mark the rest No":"Yes, none apply"}</button><button type="button" class="btn plain" data-act="none-apply" data-g="${g}" data-v="cancel">Cancel</button></div></div>`;
     return `<div class="none-apply"><button type="button" class="btn plain" data-act="none-apply" data-g="${g}">${anyYes?"Mark the rest No":"None of these apply to me"}</button><p class="fine">${anyYes?`Sets the ${blanks} unanswered question${blanks===1?"":"s"} to No. Your Yes answers stay.`:"Sets every question above to No. You can still change any of them."}</p></div>`; };
   const r=screenResult(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
   ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
   <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already, or you can get personalized guidance from our ADAPT team. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
-  ${part!==1?`<div class="card"><h2>Red flags</h2><div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>${noneApply("rf",RED_FLAGS,rf)}
+  ${part!==1?`<div class="card"><h2>Red flags</h2>${noneNote(RED_FLAGS,rf)}<div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>${noneApply("rf",RED_FLAGS,rf)}
   <p class="fine"><b>*MEDICAL DISCLAIMER:</b> ${esc(SCREEN_DISCLAIMER)}</p></div>
   <div class="row spread"><button class="btn plain" data-act="go" data-v="home">Back</button><button class="btn" data-act="part" data-v="1">Next: Health status and history</button></div>`
-  :`<div class="card"><h2>Health status and history</h2><div>${HEALTH.map((q,i)=>yn("hh",i+1,q,hh[i+1])).join("")}</div>${noneApply("hh",HEALTH,hh)}</div>
+  :`<div class="card"><h2>Health status and history</h2>${noneNote(HEALTH,hh)}<div>${HEALTH.map((q,i)=>yn("hh",i+1,q,hh[i+1])).join("")}</div>${noneApply("hh",HEALTH,hh)}</div>
   <div id="screen-msg" class="stack">${r.answered?screenMessages(p):`<p class="fine">Answer every question to continue. ${Object.keys(rf).length+Object.keys(hh).length} of ${RED_FLAGS.length+HEALTH.length} answered.${RED_FLAGS.some((q,i)=>!rf[i+1])?` <button class="linkbtn" data-act="part" data-v="0">Some red-flag questions are still blank.</button>`:""}</p>`}</div>
   <div class="row spread"><button class="btn plain" data-act="part" data-v="0">Back</button><button class="btn" data-act="screen-done" ${r.answered?"":"disabled"}>${p.tracking?"Back to my plan":"Continue to Step 1"}</button></div>`}
   </div>`;
@@ -1303,8 +1311,11 @@ document.addEventListener("click", async e=>{
       if(!coach && !store.tour.self){ store.tour.self=true; save(true); tourStep=0; go("tour"); } else { save(true); go("screen"); } break; }
     case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; if(v!=="coach") beginFunnel(np); save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
     case "switch": store.activeId=v; save(true); go("home"); break;
-    case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "none-apply": { const g=a.dataset.g, n=g==="rf"?RED_FLAGS.length:HEALTH.length; for(let i=1;i<=n;i++){ if(!p.screen[g][i]) p.screen[g][i]="no"; } save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; noneConfirm=null; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "none-apply": { const g=a.dataset.g;
+      if(v==="confirm"){ const n=g==="rf"?RED_FLAGS.length:HEALTH.length; for(let i=1;i<=n;i++){ if(!p.screen[g][i]) p.screen[g][i]="no"; } noneConfirm=null; save(); }
+      else noneConfirm = v==="cancel" ? null : g;
+      const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
     case "setnum": { const n=Number(v); if(a.dataset.path.startsWith("_tmp.")) tmp[a.dataset.path.slice(5)]=n; else setPath(p,a.dataset.path,n); save(); const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
