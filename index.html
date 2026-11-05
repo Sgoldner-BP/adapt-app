@@ -510,7 +510,7 @@ const FLAG_ENTRY = { client:"entry.192607587", step:"entry.112180385" };
 const OLD_HOST = "app.adaptbeyondlimits.com", NEW_HOST = "app.adaptbeyondpain.com";
 const MOVE_SENDER = false;               // true only in the copy left on the old address
 const MOVE_TO = "https://"+NEW_HOST+"/";  // where the old copy sends people
-const FLAG_LIVE_HOST = OLD_HOST; // only the live site sends; previews and tests just queue (switch to NEW_HOST on move day)
+const FLAG_LIVE_HOST = NEW_HOST; // only the live site sends; previews and tests just queue (moved to the new host November 4, 2026)
 const MSG_NOTIFIED = "Sam has been notified to reach out to you. Send him your answers so he has the details.";
 const notifies = p => p.support==="sam" && p.origin!=="coach";
 function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
