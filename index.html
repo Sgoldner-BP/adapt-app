@@ -192,6 +192,7 @@ th{font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--m
 .days14 button[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-line)}
 .days14 .dd{display:flex;gap:3px}
 .days14 .dot{width:10px;height:10px}
+.days14 .pre{min-height:52px;display:grid;justify-items:center;align-content:center;font-size:.875rem;color:var(--muted);border:1px dashed var(--line);border-radius:8px}
 details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 16px}
 details[open]{padding-bottom:16px}
 summary{cursor:pointer;font-family:var(--display);font-weight:600;padding-block:14px;list-style:none;display:flex;justify-content:space-between;gap:10px}
@@ -423,7 +424,13 @@ const PSFS_PAIN = "How well can you do this skill right now? 0 = can’t do it a
 const PSFS_RESTR = "How well can you do this skill right now? 0 = can’t do it at all due to the restriction; 10 = the restriction no longer holds you back. This is not asking how skilled you are overall; it’s asking how much that specific limitation (ex., range, strength, control, confidence, etc.) is interfering with the skill.";
 const psfsExplain = p => isPainful(p) ? PSFS_PAIN : PSFS_RESTR;
 // Tests since the latest "new starting point" (a Testing Movement made harder)
-function testsSinceBase(p){ const a=p.tmBase&&p.tmBase.after; return p.logs.tests.filter(t=>!a||t.date>a); }
+// Two tests less than 5 days apart count once, the later one (Sam, November 10, 2026). New tests are sorted out
+// by the prompt at Save; this covers tests logged before it existed.
+const TEST_GAP=5;
+function countedTests(p){ const T=p.logs.tests; return T.filter((t,i)=>!(T[i+1]&&daysBetween(t.date,T[i+1].date)<TEST_GAP)); }
+function saveTest(p,e){ freezeCheck(p); if(p.testLogged!==today()){ p.testLogged=today(); logEvent(p,"Test logged"); }
+  p.logs.tests.push(e); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); }
+function testsSinceBase(p){ const a=p.tmBase&&p.tmBase.after; return countedTests(p).filter(t=>!a||t.date>a); }
 function ceilingCheck(p){ const T=testsSinceBase(p); const last2=T.slice(-2);
   const on = last2.length===2 && last2.every(t=> isPainful(p) ? t.nrsop===0 : t.free===true);
   return on ? {since:last2[0].date, key:last2[1].date} : null; }
@@ -1008,7 +1015,10 @@ function checkinCard(p){ const d=checkinDue(p); if(!d) return ""; const sam=p.su
    : `<div class="msg info"><b>Time for your 2-week review</b><p class="small">Look back at the last 2 weeks: how often you did your movements, and what your tests say.</p><button class="btn small" data-act="go" data-v="checkin">Review my progress</button></div>`; }
 function dashboard(p){
   const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
-  const days=[...Array(14)].map((_,i)=>addDays(t,i-13));
+  // In the first 14 days the grid starts on day 1 and fills forward, instead of showing days before the plan
+  // existed as missed (tester feedback, November 10, 2026); after that, the last 14 days.
+  const st=(p.trackStart||p.created||t)>t?t:(p.trackStart||p.created||t), soFar=Math.min(14,daysBetween(st,t)+1), ofDays=soFar<14?`${soFar} day${soFar===1?"":"s"} so far`:"the last 14 days";
+  const days=soFar<14?[...Array(14)].map((_,i)=>addDays(st,i)):[...Array(14)].map((_,i)=>addDays(t,i-13));
   const tmNone=!!p.determine.none, tmSet=!!p.determine.move.trim();
   const lastOv=p.logs.overload[p.logs.overload.length-1];
   const lastTest = p.logs.tests[p.logs.tests.length-1];
@@ -1023,12 +1033,12 @@ function dashboard(p){
   ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
-      <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of the last 14 days</span></button>
-      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${ccText(p)?"":"disabled"}><b>Contraction Couplet</b><span>${esc(ccText(p)||"Not set yet")}</span><span class="state">${!ccText(p)?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of the last 14 days</span></button>
+      <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of ${ofDays}</span></button>
+      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${ccText(p)?"":"disabled"}><b>Contraction Couplet</b><span>${esc(ccText(p)||"Not set yet")}</span><span class="state">${!ccText(p)?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of ${ofDays}</span></button>
     </div>
     <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
-    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Contraction Couplet ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
-    <p class="fine">Last 14 days. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Contraction Couplet.</p>
+    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");if(d>t) return `<span class="pre" aria-hidden="true"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span></span>`;return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Contraction Couplet ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
+    <p class="fine">${soFar<14?"Your first 14 days":"Last 14 days"}. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Contraction Couplet.</p>
     <p class="fine">${esc(MSG_DAILY_TARGET)}</p>
   </div>
   <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
@@ -1074,14 +1084,20 @@ function reentryCard(p){ const r=(p.reentries||[]).slice(-1)[0]; if(!r) return "
     ${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`; }
 function consistency(p,n){ const t=today(); let a=0,b=0,both=0; for(let i=0;i<n;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if(x.pfm)a++; if(x.cc)b++; } return {pfm:a,cc:b,both:Math.round(100*(a+b)/(2*n))}; }
 
-function testForm(p){ const f=p._draft||{}; return `<div class="card" style="background:var(--soft)">
-  <label class="f" for="t-date">Date<input type="date" id="t-date" value="${today()}"></label>
-  <label class="f" for="t-dose">Dose<input type="text" id="t-dose" placeholder="${esc(p.determine.dose||"reps or time")}"></label>
-  <label class="f" for="t-range">Range of motion<input type="text" id="t-range" placeholder="${esc(p.determine.range||"")}"></label>
-  <label class="f" for="t-load">Load<input type="text" id="t-load" placeholder="${esc(p.determine.load||"")}"></label>
+function testAskBox(p){ const a=testAsk, e=a.entry, pr=p.logs.tests[a.prev]; const box=inner=>`<div class="card none-apply confirm" role="alert">${inner}</div>`;
+  if(a.stage==="done") return box(`<p>${a.msg}</p><div class="row"><button class="btn" data-act="testask" data-v="ok">OK</button></div>`);
+  if(a.stage==="which") return box(`<p><b>Which one should count?</b></p><div class="row"><button class="btn" data-act="testask" data-v="new">The new one (${esc(fmtDate(e.date))})</button><button class="btn plain" data-act="testask" data-v="old">The earlier one (${esc(fmtDate(pr.date))})</button></div>`);
+  const n=daysBetween(pr.date,e.date), ago=n===0?"earlier today":n===1?"1 day ago":`${n} days ago`;
+  return box(`<p>Your last test was ${ago} (${esc(fmtDate(pr.date))}). The Testing Movement is a weekly check, done cold, so your numbers show real change, not how warmed up you were that day. <b>Was this test on purpose?</b></p>
+    <div class="row"><button class="btn plain" data-act="testask" data-v="mistake">No, it was a mistake</button><button class="btn plain" data-act="testask" data-v="yes">Yes, I re-tested</button><button class="btn plain" data-act="testask" data-v="cancel">Cancel</button></div>`); }
+function testForm(p){ if(testAsk&&testAsk.stage!=="form") return testAskBox(p); const f=(testAsk&&testAsk.entry)||{}; return `<div class="card" style="background:var(--soft)">
+  <label class="f" for="t-date">Date<input type="date" id="t-date" value="${esc(f.date||today())}"></label>
+  <label class="f" for="t-dose">Dose<input type="text" id="t-dose" value="${esc(f.dose||"")}" placeholder="${esc(p.determine.dose||"reps or time")}"></label>
+  <label class="f" for="t-range">Range of motion<input type="text" id="t-range" value="${esc(f.range||"")}" placeholder="${esc(p.determine.range||"")}"></label>
+  <label class="f" for="t-load">Load<input type="text" id="t-load" value="${esc(f.load||"")}" placeholder="${esc(p.determine.load||"")}"></label>
   ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:`<div style="display:grid;gap:6px"><b>Did it still feel limited?</b><div class="trend-pick two" role="group" aria-label="Did it still feel limited?"><button type="button" data-act="setfree" data-v="no" aria-pressed="${tmp.free===false}">Still limited</button><button type="button" data-act="setfree" data-v="yes" aria-pressed="${tmp.free===true}">Didn’t feel limited</button></div></div>`}
   ${trendPick()}
-  <label class="f" for="t-notes">Notes<input type="text" id="t-notes"></label>
+  <label class="f" for="t-notes">Notes<input type="text" id="t-notes" value="${esc(f.notes||"")}"></label>
   <div class="row"><button class="btn" data-act="save-test">Save test</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 function ovForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="o-date">Date<input type="date" id="o-date" value="${today()}"></label>
@@ -1100,6 +1116,7 @@ function skillForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="s-notes">Notes<input type="text" id="s-notes"></label>
   <div class="row"><button class="btn" data-act="save-skill">Save</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
 let tmp = {};
+let testAsk = null; // the double-test prompt: {stage:'ask'|'which'|'done', entry, prev (index), msg}
 const TRENDS=[["progressed","Progressed"],["same","Same"],["regressed","Regressed"],["unclear","Unclear"]];
 function trendPick(){ return `<div style="display:grid;gap:6px"><b>Compared with last time</b><div class="trend-pick" role="group" aria-label="Compared with last time">${TRENDS.map(([k,l])=>`<button type="button" data-act="settrend" data-v="${k}" aria-pressed="${tmp.trend===k}">${l}</button>`).join("")}</div></div>`; }
 function trChip(k){ const t=TRENDS.find(x=>x[0]===k); return t?`<span class="tr ${k}">${t[1]}</span>`:""; }
@@ -1350,8 +1367,21 @@ document.addEventListener("click", async e=>{
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "logform": { logForm=v||null; tmp={}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-test": { freezeCheck(p); if(p.testLogged!==today()){ p.testLogged=today(); logEvent(p,"Test logged"); } const g=id=>document.getElementById(id).value.trim(); p.logs.tests.push({date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})}); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); logForm=null; tmp={}; render(); toast("Test saved"); break; }
+    case "logform": { logForm=v||null; tmp={}; testAsk=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "save-test": { const g=id=>document.getElementById(id).value.trim();
+      const e={date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})};
+      let prev=-1; p.logs.tests.forEach((t,i)=>{ const d=daysBetween(t.date,e.date); if(d>=0&&d<TEST_GAP&&(prev<0||t.date>=p.logs.tests[prev].date)) prev=i; });
+      if(prev>=0){ testAsk={stage:"ask",entry:e,prev}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+      saveTest(p,e); logForm=null; tmp={}; testAsk=null; render(); toast("Test saved"); break; }
+    case "testask": { const ta=testAsk; if(!ta) break; const pr=p.logs.tests[ta.prev], nextDue=d=>`Your next test is due ${esc(fmtDate(addDays(d,7)))}.`;
+      const EDU="Testing more often than once a week can keep the area stirred up and makes the trend harder to read.";
+      if(v==="ok"){ testAsk=null; logForm=null; tmp={}; render(); break; }
+      if(v==="cancel") ta.stage="form";
+      else if(v==="mistake"){ ta.stage="done"; ta.msg=`Not saved. ${nextDue(pr.date)}`; }
+      else if(v==="yes") ta.stage="which";
+      else if(v==="new"){ p.logs.tests.splice(ta.prev,1); saveTest(p,ta.entry); ta.stage="done"; ta.msg=`Saved, and it replaces your ${esc(fmtDate(pr.date))} test. ${EDU} Next test: ${esc(fmtDate(addDays(ta.entry.date,7)))}.`; }
+      else if(v==="old"){ ta.stage="done"; ta.msg=`Not saved; your ${esc(fmtDate(pr.date))} test still counts. ${EDU} Next test: ${esc(fmtDate(addDays(pr.date,7)))}.`; }
+      const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
     case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
       { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
