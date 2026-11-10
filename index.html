@@ -5,42 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>ADAPT Resilience</title>
-<meta name="theme-color" content="#d8f0fc">
+<meta name="theme-color" content="#DAF0FE">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 /* Fonts hosted with the app (SIL Open Font License; see fonts/). No requests to Google. */
-@font-face{font-family:'Archivo';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/archivo-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'Archivo';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/archivo-latin-800-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/source-sans-3-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/source-sans-3-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/source-sans-3-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Jost';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Jost';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/jost-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/figtree-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/figtree-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/figtree-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/caveat-latin-600-normal.woff2) format('woff2')}
 
-/* Layout: one phone-width column, step-by-step cards, fixed bottom tab bar. Colors: Aaron's brand blues from his Instagram graphics (pale #d8f0fc, deep #06669c) + orange accents #e8692a (option A, Oct 22; revisit later). Buttons use the deep blue; green = done/pain-free, red only for emergencies. */
+/* Layout: one phone-width column, step-by-step cards, fixed bottom tab bar. Colors, fonts and sizes follow the design standard (05, section 7): Aaron's manual colors, Jost and Figtree, 17px body text, nothing under 14px, 44px tap targets. */
 :root{
-  --bg:#f4f9fc; --surface:#ffffff; --fg:#1b1e21; --muted:#5d656c; --line:#dadfe3; --soft:#eef0f2;
-  --accent:#06669c; --accent-ink:#ffffff; --orange:#e8692a; --accent-text:#b4501d; --accent-soft:#fdeee5;
-  --blue:#06669c; --blue-light:#d8f0fc; --blue-line:#9fd3ec; --blue-soft:#d8f0fc;
-  --good:#1d8f37; --good-soft:#e2f4e6; --warn:#b4501d; --warn-soft:#fdeee5; --alert:#b3161b; --alert-soft:#fde4e3; --mid:#8a6a00; --mid-soft:#fff3c4;
-  --display:"Archivo", "Arial Black", Arial, sans-serif;
-  --body:"Source Sans 3", "Segoe UI", Arial, sans-serif;
+  /* Colors from Aaron's design manual, section 4.1 (05, section 7; Sam, November 5, 2026). --line is for pale dividers;
+     --ctl is the darker border for anything you tap or type in. */
+  --bg:#EDFAFF; --surface:#FFFFFF; --fg:#10324A; --muted:#4D6B80; --line:#AAD2E6; --ctl:#5E86AA; --soft:#DAF0FE;
+  --accent:#03659D; --accent-hover:#024A74; --accent-ink:#FFFFFF; --orange:#EB6D38; --orange-display:#DA5B26; --on-orange:#0F2A43; --accent-text:#B04418; --accent-soft:#FFE6DC;
+  --blue:#03659D; --blue-light:#DAF0FE; --blue-line:#AAD2E6; --blue-soft:#DAF0FE;
+  --good:#1D7555; --good-soft:#E2F3E8; --warn:#B04418; --warn-soft:#FFE6DC; --alert:#B42318; --alert-soft:#FCEBEA; --mid:#8a6a00; --mid-soft:#fff3c4;
+  --display:"Jost", "Futura", "Avenir Next", Arial, sans-serif;
+  --body:"Figtree", "Segoe UI", Arial, sans-serif;
+  --hand:"Caveat", "Bradley Hand", cursive;
   --navh:64px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#111618; --surface:#1b1e21; --fg:#e8eaec; --muted:#9aa3ab; --line:#2e3338; --soft:#23272b;
-  --accent:#8fd0f2; --accent-ink:#111618; --orange:#f08a52; --accent-text:#f5a070; --accent-soft:#3a2418;
-  --blue:#8fd0f2; --blue-light:#24485c; --blue-line:#3b6a82; --blue-soft:#163242;
-  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}}
+  --bg:#0D1A22; --surface:#142530; --fg:#E6F2F8; --muted:#A8C1D0; --line:#2C4A5B; --ctl:#7FA6C6; --soft:#182E3B;
+  --accent:#7CC4EE; --accent-hover:#A6D8F5; --accent-ink:#0B1A22; --orange:#EB6D38; --orange-display:#F28D5F; --on-orange:#0F2A43; --accent-text:#F6A47E; --accent-soft:#3A251B;
+  --blue:#7CC4EE; --blue-light:#182E3B; --blue-line:#2C4A5B; --blue-soft:#163246;
+  --good:#6FD3A3; --good-soft:#173328; --warn:#F6A47E; --warn-soft:#3A251B; --alert:#FF8C84; --alert-soft:#3D1C1C; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#111618; --surface:#1b1e21; --fg:#e8eaec; --muted:#9aa3ab; --line:#2e3338; --soft:#23272b;
-  --accent:#8fd0f2; --accent-ink:#111618; --orange:#f08a52; --accent-text:#f5a070; --accent-soft:#3a2418;
-  --blue:#8fd0f2; --blue-light:#24485c; --blue-line:#3b6a82; --blue-soft:#163242;
-  --good:#5ccf7a; --good-soft:#1c3324; --warn:#f5a070; --warn-soft:#3a2418; --alert:#ff7b78; --alert-soft:#3d1c1c; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}
+  --bg:#0D1A22; --surface:#142530; --fg:#E6F2F8; --muted:#A8C1D0; --line:#2C4A5B; --ctl:#7FA6C6; --soft:#182E3B;
+  --accent:#7CC4EE; --accent-hover:#A6D8F5; --accent-ink:#0B1A22; --orange:#EB6D38; --orange-display:#F28D5F; --on-orange:#0F2A43; --accent-text:#F6A47E; --accent-soft:#3A251B;
+  --blue:#7CC4EE; --blue-light:#182E3B; --blue-line:#2C4A5B; --blue-soft:#163246;
+  --good:#6FD3A3; --good-soft:#173328; --warn:#F6A47E; --warn-soft:#3A251B; --alert:#FF8C84; --alert-soft:#3D1C1C; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{min-height:100%}
 html{scroll-padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 16px);scroll-padding-top:16px}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5;
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.5;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
   padding-block:0 calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 24px)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
@@ -52,19 +56,21 @@ h3{font-size:1.02rem;font-weight:600}
 p{margin:0}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px;border-bottom:3px solid var(--blue-light);margin-bottom:14px}
 .brand{font-family:var(--display);font-weight:800;letter-spacing:.06em;color:var(--blue);font-size:.95rem}
-.who{font-size:.85rem;color:var(--muted);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who{font-size:.875rem;color:var(--muted);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stack{display:grid;gap:14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
 .card.flat{background:transparent;border:0;padding:0}
-.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-weight:700}
+.eyebrow{font-size:.875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-weight:700}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
-.fine{font-size:.8rem;color:var(--muted)}
+.fine{font-size:.875rem;color:var(--muted)}
 .sub{display:grid;gap:10px}
 .parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{font:inherit;font-size:.8rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:32px}
-.chip .cn{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;font-size:.7rem}
-.chip[data-done="1"] .cn{background:var(--orange);border-color:var(--orange);color:#fff}
+.chip{font:inherit;font-size:.875rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:32px}
+button.chip{border:1px solid var(--ctl);position:relative;padding:5px 12px 5px 6px}
+button.chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.chip .cn{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;font-size:.875rem}
+.chip[data-done="1"] .cn{background:var(--orange);border-color:var(--orange);color:var(--on-orange)}
 .chip[aria-current="step"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .sumrow{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
 .sumtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -72,34 +78,39 @@ p{margin:0}
 .sumrow dt{color:var(--muted)}
 .sumrow dd{margin:0;overflow-wrap:anywhere}
 .sub-h{display:flex;align-items:center;gap:10px;margin:0}
-.sub-h .n{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.85rem;font-weight:700;color:var(--muted)}
-.sub[data-done="1"] .sub-h .n{background:var(--orange);border-color:var(--orange);color:#fff}
+.sub-h .n{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.875rem;font-weight:700;color:var(--muted)}
+.sub[data-done="1"] .sub-h .n{background:var(--orange);border-color:var(--orange);color:var(--on-orange)}
 .sub[data-done="1"] .sub-h .n span{display:none}
 .sub[data-done="1"] .sub-h .n::after{content:"\2713"}
 .ex{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
-.ex b{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.ex b{font-size:.875rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 details.more{background:transparent;border:none;padding:0}
-details.more>summary{font-family:inherit;font-weight:600;font-size:.9rem;padding-block:6px;justify-content:flex-start;color:var(--fg)}
+details.more>summary{font-family:inherit;font-weight:600;font-size:.9rem;padding-block:6px;min-height:44px;align-items:center;justify-content:flex-start;color:var(--fg)}
 details.more>div{padding-bottom:8px}
 img.fig{width:100%;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
 .btn{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:11px 16px;cursor:pointer;text-align:center;min-height:44px}
 .btn.ghost{background:transparent;color:var(--accent-text);border:2px solid var(--orange)}
-.btn.plain{background:var(--soft);color:var(--fg);border-color:var(--line)}
-.btn.small{padding:6px 10px;min-height:34px;font-size:.88rem}
+.btn.plain{background:var(--soft);color:var(--fg);border-color:var(--ctl)}
+.btn.small{padding:6px 12px;min-height:44px;font-size:.9rem}
 .btn:disabled{opacity:.5;cursor:default}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .row.spread{justify-content:space-between}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+@media (hover:hover){.btn:not(.plain):not(.ghost):hover{background:var(--accent-hover);border-color:var(--accent-hover)}.btn.plain:hover{background:var(--surface);border-color:var(--accent)}.linkbtn:hover{color:var(--accent-hover)}}
 label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
-label.f .hint{font-weight:400;color:var(--muted);font-size:.86rem}
-input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+label.f .hint{font-weight:400;color:var(--muted);font-size:.9rem}
+input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input[type=text],input[type=date],input[type=number],select{min-height:44px}
+::placeholder{color:var(--muted);opacity:1}
+label.row:has(>input[type=checkbox]){min-height:44px;align-items:center}
+.msg a[href^="mailto:"],.card a[href^="mailto:"]{display:inline-block;padding-block:12px;margin-block:-12px}
 textarea{min-height:76px;resize:vertical}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
-.scale button{font:inherit;font-variant-numeric:tabular-nums;font-weight:700;min-height:40px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:0}
+.scale button{font:inherit;font-variant-numeric:tabular-nums;font-weight:700;min-height:44px;border-radius:6px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer;padding:0}
 .scale button[aria-pressed="true"]{color:#fff;border-color:transparent}
 @media (max-width:520px){.scale{grid-template-columns:repeat(6,1fr);gap:6px}.scale button{min-height:44px}}
-.scale-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
+.scale-ends{display:flex;justify-content:space-between;font-size:.875rem;color:var(--muted)}
 .yn{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding-block:10px;border-top:1px solid var(--line)}
 .yn:first-of-type{border-top:0}
 .none-apply{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
@@ -107,40 +118,42 @@ textarea{min-height:76px;resize:vertical}
 .none-apply.confirm{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:12px;margin-top:12px}
 .none-apply.confirm p{margin:0 0 10px}
 .none-note{margin:4px 0 8px;color:var(--muted,inherit)}
-.yn .q{min-width:0}
+.yn .q{min-width:0;overflow-wrap:anywhere}
 .yn .btns{display:flex;gap:6px}
-.yn button{font:inherit;font-weight:700;min-width:54px;min-height:40px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.yn button{font:inherit;font-weight:700;min-width:54px;min-height:44px;border-radius:6px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer}
 .yn button[aria-pressed="true"][data-v="yes"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
 .yn button[aria-pressed="true"][data-v="no"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .msg{border-radius:8px;padding:14px;display:grid;gap:10px;border:1px solid}
-.msg.alert{background:var(--alert-soft);border:2px solid var(--alert);border-left-width:7px;color:var(--alert);font-weight:700}
+.msg.alert{background:var(--alert-soft);border:2px solid var(--alert);color:var(--alert);font-weight:700}
 .msg.alert a{color:inherit}
 .msg.warn{background:var(--warn-soft);border-color:var(--warn)}
 .msg.good{background:var(--good-soft);border-color:var(--good)}
 .msg.info{background:var(--blue-soft);border-color:var(--blue-line)}
-.rule{background:var(--accent-soft);border-left:4px solid var(--orange);border-radius:6px;padding:12px 14px;display:grid;gap:4px}
+.rule{background:var(--accent-soft);border:0;border-radius:12px;padding:14px 16px;display:grid;gap:4px}
+.rule>:first-child{font-weight:700}
 .steps{display:grid;gap:8px}
-.stepbtn{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;text-align:left;font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;min-width:0}
+.stepbtn{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;text-align:left;font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:10px;padding:12px;cursor:pointer;min-width:0}
 .stepnum{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:var(--soft);color:var(--muted)}
-.stepbtn[data-done="true"] .stepnum{background:var(--good);color:#fff}
+.stepbtn[data-done="true"] .stepnum{background:var(--good);color:var(--accent-ink)}
 .stepnum{border:2px solid var(--blue-line)}
-.lchk{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;border-radius:50%;border:2px solid var(--blue-line);font-size:12px;vertical-align:-3px}
-.lchk[data-done="true"]{background:var(--good);border-color:var(--good);color:#fff}
+.lchk{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;border-radius:50%;border:2px solid var(--blue-line);font-size:14px;vertical-align:-3px}
+.lchk[data-done="true"]{background:var(--good);border-color:var(--good);color:var(--accent-ink)}
 .stepbtn[data-done="true"] .stepnum{border-color:var(--good)}
 .stepbtn .t{min-width:0}
 .stepbtn .t b{display:block}
-.stepbtn .t span{font-size:.86rem;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stepbtn .t span{font-size:.9rem;color:var(--muted);display:block}
 .chev{color:var(--muted);font-weight:700}
 .today{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.done-btn{font:inherit;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;padding:12px;cursor:pointer;display:grid;gap:4px;min-height:84px;min-width:0}
+.done-btn{font:inherit;text-align:left;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);border-radius:10px;padding:12px;cursor:pointer;display:grid;gap:4px;min-height:84px;min-width:0}
 .done-btn b{font-family:var(--display);font-size:.95rem}
-.done-btn span{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.done-btn span{font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
 .done-btn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good)}
 .done-btn:disabled{opacity:.6;cursor:default}
-.linkbtn{font:inherit;background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer;text-align:left}
+.linkbtn{font:inherit;background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer;text-align:left;position:relative}
+.linkbtn::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
 .done-btn[aria-pressed="true"] .state{color:var(--good)}
-.state{font-weight:700;font-size:.85rem}
-.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.75rem;color:var(--muted)}
+.state{font-weight:700;font-size:.875rem}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.875rem;color:var(--muted)}
 .week .d{display:grid;gap:3px;justify-items:center}
 .dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line);background:transparent}
 .tour-dots{display:flex;gap:8px;justify-content:center;margin:4px 0}
@@ -153,24 +166,29 @@ textarea{min-height:76px;resize:vertical}
 table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
 td.wrap{white-space:normal;min-width:120px}
-th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.chip{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+th{font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.chip{display:inline-block;font-size:.875rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .chip.good{background:var(--good-soft);color:var(--good)}
 .chip.due{background:var(--warn-soft);color:var(--warn)}
 .chip.alert{background:var(--alert-soft);color:var(--alert)}
 .chip.mid{background:var(--mid-soft);color:var(--mid)}
-.tr{display:inline-block;font-size:.75rem;font-weight:700;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.tr{display:inline-block;font-size:.875rem;font-weight:700;padding:1px 7px;border-radius:999px;white-space:nowrap}
 .tr.progressed{background:var(--good-soft);color:var(--good)} .tr.same{background:var(--mid-soft);color:var(--mid)} .tr.regressed{background:var(--alert-soft);color:var(--alert)} .tr.unclear{background:var(--soft);color:var(--muted)}
 .trend-pick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.trend-pick button{font:inherit;font-size:.85rem;font-weight:700;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;padding:4px}
+.trend-pick button{font:inherit;font-size:.875rem;font-weight:700;min-height:44px;border-radius:8px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer;padding:4px}
+.trend-pick button[aria-pressed="true"]{box-shadow:inset 0 0 0 1px currentColor}
 .trend-pick button[aria-pressed="true"][data-v="progressed"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .trend-pick button[aria-pressed="true"][data-v="same"]{background:var(--mid-soft);border-color:var(--mid);color:var(--mid)}
 .trend-pick button[aria-pressed="true"][data-v="regressed"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
 .trend-pick button[aria-pressed="true"][data-v="unclear"]{background:var(--soft);border-color:var(--muted)}
+.crux-ref{background:var(--blue-soft);border-radius:12px;padding:12px 14px;margin-bottom:12px}.crux-ref p{margin:4px 0 0}
+.trend-pick.two{grid-template-columns:repeat(2,1fr)}
+.trend-pick button[aria-pressed="true"][data-v="no"]{background:var(--soft);border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.trend-pick button[aria-pressed="true"][data-v="yes"]{background:var(--good-soft);border-color:var(--good);color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
 @media (max-width:380px){.trend-pick{grid-template-columns:repeat(2,1fr)}}
 .trend-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .days14{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.days14 button{font:inherit;font-size:.75rem;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:52px;display:grid;gap:3px;justify-items:center;align-content:center;padding:4px 0;cursor:pointer}
+.days14 button{font:inherit;font-size:.875rem;color:var(--muted);border:1px solid var(--ctl);background:var(--surface);border-radius:8px;min-height:52px;display:grid;gap:3px;justify-items:center;align-content:center;padding:4px 0;cursor:pointer}
 .days14 button[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-line)}
 .days14 .dd{display:flex;gap:3px}
 .days14 .dot{width:10px;height:10px}
@@ -185,12 +203,12 @@ ul.tight{margin:0;padding-left:20px;display:grid;gap:4px}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom, 0px);padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px)}
 nav.tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--navh)}
-nav.tabs button{font:inherit;font-size:.78rem;font-weight:700;background:none;border:0;color:var(--muted);cursor:pointer;display:grid;place-items:center;gap:2px;padding:6px 2px}
+nav.tabs button{font:inherit;font-size:.875rem;font-weight:700;background:none;border:0;color:var(--muted);cursor:pointer;display:grid;place-items:center;gap:2px;padding:6px 2px}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--blue)}
 nav.tabs{border-top:3px solid var(--blue-light)}
 .spark{width:100%;height:auto;display:block}
-.code{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;word-break:break-all;background:var(--soft);border-radius:6px;padding:8px;max-height:120px;overflow:auto}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:.875rem;word-break:break-all;background:var(--soft);border-radius:6px;padding:8px;max-height:120px;overflow:auto}
 .hero{display:grid;gap:12px;padding-block:24px 4px}
 .hero-title{color:var(--blue);font-size:1.9rem;padding-bottom:10px;border-bottom:3px solid var(--orange);text-align:center}
 .hero-tag{text-align:center;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--accent-text);margin:4px 0 0}
@@ -349,7 +367,7 @@ const skillLabel = p => isPainful(p) ? "Painful Skill" : "Restricted Skill";
 
 function scaleColor(n, kind){ // NRSoP: 0 green to 10 red; PSFS: 0 red to 10 green
   const t = kind==="psfs" ? (10-n)/10 : n/10;
-  const h = Math.round(130 - 130*t); return `hsl(${h} 62% 40%)`;
+  const h = Math.round(130 - 130*t); const L=[32,32,32,31,30,29,31,36,40,40,40][Math.round(t*10)]; return `hsl(${h} 62% ${L}%)`; // white text stays at least 4.5:1
 }
 function scale(path, val, kind){
   const btns = Array.from({length:11},(_,n)=>`<button type="button" data-act="setnum" data-path="${path}" data-v="${n}" aria-pressed="${val===n}" style="${val===n?`background:${scaleColor(n,kind)}`:""}" aria-label="${n} out of 10">${n}</button>`).join("");
@@ -855,6 +873,7 @@ const PARTS = {
   ],
   step2:[
     {t:"Overview", body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return `<div class="card"><p>Testing your ${sk} every week just pokes the bear instead of giving useful data. Instead, you’ll find a simpler movement that brings on the same problem in a way you control. That’s your <b>Testing Movement</b>. You’ll repeat it once a week to see if you’re getting better.</p>
+      <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>
       <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p>
       ${more("Why not just test the skill?",`<p>It may not be safe to perform right now, or pain may make you bail halfway (ever bailed in the middle of a backflip? Not fun, and potentially dangerous). It can also build doubt about the skill, and it may need a warm-up, which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`)}</div>`; }},
     {t:"Find the crux", paths:["determine.crux"], body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return subPart(1,"Find the crux",["determine.crux"],`<p class="small">Boil your ${sk} down to the smallest piece that causes the problem. It’s usually one area, in one position, with some load on it. Ask yourself:</p>
@@ -862,7 +881,7 @@ const PARTS = {
       ${exBox(p,"crux")}
       ${field("The crux of my issue","determine.crux","",{area:true,ph:"Which area, in what position, doing what"})}`); },
       sum:p=>[["Crux",p.determine.crux]]},
-    {t:"Testing Movement", paths:["determine.move"], body:p=>subPart(2,"Pick your Testing Movement",["determine.move"],`<p class="small">Choose a controlled, simple movement that replicates the crux you just identified. It should:</p>
+    {t:"Testing Movement", paths:["determine.move"], body:p=>subPart(2,"Pick your Testing Movement",["determine.move"],`${cruxRef(p)}<p class="small">Choose a controlled, simple movement that replicates the crux you just identified. It should:</p>
       <ul class="tight small"><li>Bring on a little of the problem, so it actually tests something</li><li>Be easy and safe to get into, with no warm-up</li><li>Let <b>you</b> control the speed, how far you go, and load relatively easily</li></ul>
       <div class="msg info"><b>The right amount of discomfort</b><ul class="tight small"><li>No extra pain the next day</li><li>No extra fear or nervousness about moving</li></ul><p class="small">You should feel fine visiting your pain this way once a week.</p></div>
       ${exBox(p,"tm")}
@@ -874,20 +893,19 @@ const PARTS = {
       ${field("How many reps, or how many seconds","determine.dose","ex., 5 controlled reps, or a 20-second hold. Pick something you can repeat the same way next week.")}
       ${field("How far you go","determine.range","Use landmarks, not degrees. ex., “fingertips reach the top of the door frame” or “thighs level with the chair seat.”")}
       ${field("What load or assistance","determine.load","ex., bodyweight, a 5 kg plate, holding a chair.")}
-      ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain during the test (NRSoP, 0-10)</b>${scale("determine.nrsop",p.determine.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}
-      <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>`),
+      ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain during the test (NRSoP, 0-10)</b>${scale("determine.nrsop",p.determine.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}`),
       sum:p=>[["Reps or time",p.determine.dose],["How far",p.determine.range],["Load or assistance",p.determine.load],...(isPainful(p)?[["NRSoP",p.determine.nrsop!=null?p.determine.nrsop+"/10":""]]:[])]}
   ],
   step3:[
     {t:"Overview", body:p=>`<div class="card"><p>Now you’ll find three daily exercises that visit the crux safely:</p>
       <ul class="tight small"><li><b>Pain-Free Motion:</b> move through the crux position with zero pain</li><li><b>Contraction Couplet:</b> two holds in the crux position, pushing in opposite directions</li></ul>
       ${more("Why these two?",`<p>Gentle, pain-free movement increases blood flow, helps healing, and teaches your brain that the position isn’t dangerous. Holding still while you push (an isometric hold) starts the strengthening, calms the pain response to load over time, and teaches your brain that loading the position is safe too.</p>`)}</div>`},
-    {t:"Pain-Free Motion", paths:["approach.pfm"], body:p=>subPart(1,"Pain-Free Motion",["approach.pfm"],`<p class="small">Move in and out of the crux position with <b>zero pain or discomfort</b>, during and after. Get help to make that happen: a band, a wall, a door frame, your other hand, or a different body position.</p>
+    {t:"Pain-Free Motion", paths:["approach.pfm"], body:p=>subPart(1,"Pain-Free Motion",["approach.pfm"],`${cruxRef(p)}<p class="small">Move in and out of the crux position with <b>zero pain or discomfort</b>, during and after. Get help to make that happen: a band, a wall, a door frame, your other hand, or a different body position.</p>
       ${exBox(p,"pfm")}
       ${field("My Pain-Free Motion","approach.pfm","",{area:true})}
       <div class="rule"><b>Every day</b><span class="small">2-3 sets of 20-30 reps. Effort and strain don’t help here; easy is the point. Pair it with your Contraction Couplet, on its own or in your warm-up.</span></div>`),
       sum:p=>[["Pain-Free Motion",p.approach.pfm]]},
-    {t:"Contraction Couplet", paths:["approach.cc","approach.cc2"], body:p=>subPart(2,"Contraction Couplet",["approach.cc","approach.cc2"],`<p class="small">Two holds in the crux position. No movement; just push and hold.</p>
+    {t:"Contraction Couplet", paths:["approach.cc","approach.cc2"], body:p=>subPart(2,"Contraction Couplet",["approach.cc","approach.cc2"],`${cruxRef(p)}<p class="small">Two holds in the crux position. No movement; just push and hold.</p>
       <ol class="tight small"><li><b>Into it:</b> push in the direction that hurts</li><li><b>Away from it:</b> push the opposite way</li></ol>
       <p class="small">Effort is fine, and some pain is okay, as long as both holds stay within the pain guidelines. Adjust the angle, the support, or how hard you push until both holds fit.</p>
       ${PAIN_GUIDE}${PAIN_EX}
@@ -980,6 +998,14 @@ function missingSteps(p){ const m=[];
   return m; }
 
 /* ---------- Dashboard ---------- */
+// The crux, repeated where it's used (Sam, call feedback November 8, 2026), so nobody has to page back to it
+const cruxRef = p => `<div class="crux-ref"><b>Your crux</b><p class="small">${p.determine.crux.trim()?esc(p.determine.crux):`<span class="muted">Not filled in yet.</span> <button type="button" class="linkbtn" data-act="go" data-v="step2">Find it in Discover</button>`}</p></div>`;
+function checkinDue(p){ if(!p||!p.tracking||p.origin==="coach"||p.handoff) return 0;
+  const from=p.checkinLogged||p.trackStart||p.created; const d=daysBetween(from,today()); return d>=14?d:0; }
+function checkinCard(p){ const d=checkinDue(p); if(!d) return ""; const sam=p.support==="sam"&&!p.supportEnded;
+  return sam
+   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since you started tracking"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
+   : `<div class="msg info"><b>Time for your 2-week review</b><p class="small">Look back at the last 2 weeks: how often you did your movements, and what your tests say.</p><button class="btn small" data-act="go" data-v="checkin">Review my progress</button></div>`; }
 function dashboard(p){
   const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
   const days=[...Array(14)].map((_,i)=>addDays(t,i-13));
@@ -993,6 +1019,7 @@ function dashboard(p){
   return `<div class="stack">
   ${supportEndedCard(p)}
   ${reentryCard(p)}
+  ${checkinCard(p)}
   ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
@@ -1052,7 +1079,7 @@ function testForm(p){ const f=p._draft||{}; return `<div class="card" style="bac
   <label class="f" for="t-dose">Dose<input type="text" id="t-dose" placeholder="${esc(p.determine.dose||"reps or time")}"></label>
   <label class="f" for="t-range">Range of motion<input type="text" id="t-range" placeholder="${esc(p.determine.range||"")}"></label>
   <label class="f" for="t-load">Load<input type="text" id="t-load" placeholder="${esc(p.determine.load||"")}"></label>
-  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:`<div style="display:grid;gap:6px"><b>Did it still feel limited?</b><div class="trend-pick" role="group" aria-label="Did it still feel limited?"><button type="button" data-act="setfree" data-v="no" aria-pressed="${tmp.free===false}">Still limited</button><button type="button" data-act="setfree" data-v="yes" aria-pressed="${tmp.free===true}">Didn’t feel limited</button></div></div>`}
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:`<div style="display:grid;gap:6px"><b>Did it still feel limited?</b><div class="trend-pick two" role="group" aria-label="Did it still feel limited?"><button type="button" data-act="setfree" data-v="no" aria-pressed="${tmp.free===false}">Still limited</button><button type="button" data-act="setfree" data-v="yes" aria-pressed="${tmp.free===true}">Didn’t feel limited</button></div></div>`}
   ${trendPick()}
   <label class="f" for="t-notes">Notes<input type="text" id="t-notes"></label>
   <div class="row"><button class="btn" data-act="save-test">Save test</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
@@ -1087,11 +1114,11 @@ function testTrend(p, ro){
   const rows=[base,...L];
   const pts=rows.map(r=>r.nrsop).map((v,i)=>[i,v]).filter(x=>x[1]!=null);
   let spark="";
-  if(pts.length>=2){ const W=300,H=96,pad=10,left=34; const n=rows.length-1||1;
+  if(pts.length>=2){ const W=300,H=112,pad=13,left=34; const n=rows.length-1||1;
     const X=i=>left+(W-left-pad)*i/n, Y=v=>pad+(H-2*pad)*v/10;
     const d=pts.map((p,k)=>(k?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
     const last=pts[pts.length-1];
-    spark=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Testing Movement NRSoP over time, lower is better"><line x1="${left}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><line x1="${left}" x2="${W-pad}" y1="${Y(5)}" y2="${Y(5)}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="${left}" x2="${W-pad}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--line)"/><text x="${left-6}" y="${Y(0)+4}" font-size="11" fill="var(--muted)" text-anchor="end">0</text><text x="${left-6}" y="${Y(5)+4}" font-size="11" fill="var(--muted)" text-anchor="end">5</text><text x="${left-6}" y="${Y(10)+4}" font-size="11" fill="var(--muted)" text-anchor="end">10</text><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3" fill="var(--blue)"/>`).join("")}<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="var(--blue)"/></svg><p class="fine">NRSoP during the test (0 at the top: higher on the chart means less pain). Improvement in dose, range, or load counts as progress too.</p>`; }
+    spark=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Testing Movement NRSoP over time, lower is better"><line x1="${left}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><line x1="${left}" x2="${W-pad}" y1="${Y(5)}" y2="${Y(5)}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="${left}" x2="${W-pad}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--line)"/><text x="${left-6}" y="${Y(0)+6}" font-size="17" fill="var(--muted)" text-anchor="end">0</text><text x="${left-6}" y="${Y(5)+6}" font-size="17" fill="var(--muted)" text-anchor="end">5</text><text x="${left-6}" y="${Y(10)+6}" font-size="17" fill="var(--muted)" text-anchor="end">10</text><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3" fill="var(--blue)"/>`).join("")}<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="var(--blue)"/></svg><p class="fine">NRSoP during the test (0 at the top: higher on the chart means less pain). Improvement in dose, range, or load counts as progress too.</p>`; }
   const cols=[["Dose","dose"],["Range","range"],["Load","load"]].filter(([,k])=>rows.some(r=>r[k]));
   const nb = p.tmBase ? L.find(r=>r.date>p.tmBase.after) : null;
   const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${i?trChip(r.trend):""}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${i&&nb&&r===nb?`<b>New starting point.</b> `:""}${!isPainful(p)&&i&&r.free!=null?(r.free?"Didn’t feel limited. ":"Still limited. "):""}${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
