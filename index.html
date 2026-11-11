@@ -103,8 +103,8 @@ label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
 label.f .hint{font-weight:400;color:var(--muted);font-size:.9rem}
 input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
 input[type=text],input[type=date],input[type=time],input[type=number],select{min-height:44px}
-input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%}
-input[type=date]::-webkit-date-and-time-value{text-align:left}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;min-width:0;box-sizing:border-box}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
 ::placeholder{color:var(--muted);opacity:1}
 label.row:has(>input[type=checkbox]){min-height:44px;align-items:center}
 .msg a[href^="mailto:"],.card a[href^="mailto:"]{display:inline-block;padding-block:12px;margin-block:-12px}
@@ -1082,10 +1082,10 @@ function calPanel(p){ const d=calDefaults(p); const days=[...Array(7)].map((_,i)
   const plan=calPlan(p,d);
   return `<div class="stack">
     <label class="f" for="cal-daily">Daily routine reminder<input type="time" id="cal-daily" value="${esc(d.daily)}"></label>
-    <div class="row" style="align-items:flex-end"><label class="f" for="cal-testday" style="flex:1 1 9em">Weekly test day<select id="cal-testday">${days.map((x,i)=>`<option value="${i}" ${Number(d.testDay)===i?"selected":""}>${esc(x.toLocaleDateString(undefined,{weekday:"long"}))}</option>`).join("")}</select></label>
-    <label class="f" for="cal-testtime" style="flex:1 1 9em">Test time<input type="time" id="cal-testtime" value="${esc(d.testTime)}"></label></div>
+    <div class="row" style="align-items:flex-end"><label class="f" for="cal-testday" style="flex:1 1 9em;min-width:0">Weekly test day<select id="cal-testday">${days.map((x,i)=>`<option value="${i}" ${Number(d.testDay)===i?"selected":""}>${esc(x.toLocaleDateString(undefined,{weekday:"long"}))}</option>`).join("")}</select></label>
+    <label class="f" for="cal-testtime" style="flex:1 1 9em;min-width:0">Test time<input type="time" id="cal-testtime" value="${esc(d.testTime)}"></label></div>
     <p class="fine">Test at about the same time each week, before you warm up. The 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} reminder uses your daily time.</p>
-    <div class="row"><button class="btn" data-act="cal-ics">Apple or Outlook calendar</button><button class="btn plain" data-act="cal-google">Google Calendar</button></div>
+    <div class="row"><button class="btn" data-act="cal-google">Google Calendar</button><button class="btn" data-act="cal-ics">Apple or Outlook calendar</button></div>
     ${calGoogle?`<div class="msg info"><p class="small">Tap each one and save it in Google Calendar:</p><div class="stack">${plan.ev.map(e=>`<a class="btn small plain" href="${esc(calGoogleUrl(e,plan.until))}" target="_blank" rel="noopener">${esc(e.title)}</a>`).join("")}</div></div>`:""}
     <p class="fine">The reminders repeat for ${CAL_WEEKS} weeks, until ${esc(fmtDate(plan.until))}. They say “open the app for today’s movements” instead of naming them, so they stay right when your plan changes. Nothing is sent anywhere; they go straight into your own calendar.</p>
   </div>`; }
