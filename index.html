@@ -291,10 +291,10 @@ function newPlan(o={}){
   return Object.assign({
     id:uid(), v:1, created:today(), person:"", last:"", side:"", region:"", support:"self", origin:"self",
     screen:{ rf:{}, hh:{}, done:false, date:null },
-    assess:{ kind:"painful", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
+    assess:{ kind:"painful", ctx:"", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
     determine:{ crux:"", move:"", dose:"", range:"", load:"", nrsop:null },
     approach:{ pfm:"", cc:"", cc2:"" },
-    program:{ ov:"", replaces:"", skip:false },
+    program:{ ov:"", replaces:"", workout:"", skip:false },
     tracking:false,
     logs:{ daily:{}, tests:[], overload:[], skill:[] },
     note:""
@@ -365,6 +365,12 @@ function toast(t){ const el=document.createElement("div"); el.className="toast";
 async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied"); return true; }catch(e){ return false; } }
 const isPainful = p => p.assess.kind !== "restricted";
 const skillLabel = p => isPainful(p) ? "Painful Skill" : "Restricted Skill";
+// Everyday task or sport/training (Sam, Aaron agreed, November 10, 2026); unset reads as sport/training
+const isDaily = p => !!(p&&p.assess&&p.assess.ctx==="daily");
+const skillType = p => isDaily(p) ? " (everyday task)" : "";
+// Regular workout program? (Sam, Aaron agreed, November 10, 2026): "no" means the Overload Exercise is added, not swapped in.
+// Older plans with a replaced exercise filled in count as "yes".
+const hasWorkout = p => p.program.workout || ((p.program.replaces||"").trim() ? "yes" : "");
 
 function scaleColor(n, kind){ // NRSoP: 0 green to 10 red; PSFS: 0 red to 10 green
   const t = kind==="psfs" ? (10-n)/10 : n/10;
@@ -705,7 +711,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
     <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
     <p><b>Take these with you:</b></p><ul class="tight">
     <li><b>Your ${esc(mvn(p,"pfm"))} and ${esc(mvn(p,"cc"))}:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off</li>
-    ${(!p.program.skip&&(p.program.ov||"").trim())?`<li><b>Your ${esc(mvn(p,"ov"))}:</b> you can swap back to ${esc((p.program.replaces||"").trim()||"your original exercise")} now, or keep it in your rotation. Keeping it for a couple of weeks means one less change while you ramp up your skill practice; swapping it now puts your whole program back the way it was originally</li>`:""}
+    ${(!p.program.skip&&(p.program.ov||"").trim())?`${hasWorkout(p)==="no"?`<li><b>Your ${esc(mvn(p,"ov"))}:</b> keep it going 2-3 times a week; it’s the start of your own strength routine</li>`:`<li><b>Your ${esc(mvn(p,"ov"))}:</b> you can swap back to ${esc((p.program.replaces||"").trim()||"your original exercise")} now, or keep it in your rotation. Keeping it for a couple of weeks means one less change while you ramp up your skill practice; swapping it now puts your whole program back the way it was originally</li>`}`:""}
     <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through</li>
     <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign</li>
     <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving</li></ul></div>
@@ -715,7 +721,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
     ${win}</div>
   <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button>${armed==="reentry"?`<div class="row"><button class="btn small" data-act="reentry">Yes, it’s getting limited again</button><button class="btn plain small" data-act="reentry-cancel">Cancel</button></div>`:`<button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button>`}</div></div>
   </div>`; }
-function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}: ${p.assess.skill||"-"}`,
+function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}${skillType(p)}: ${p.assess.skill||"-"}`,
   `Support: ${s.support}`,`Side and region: ${[s.side,s.region].filter(Boolean).join(" ")||"-"}`,`Skill type: ${s.kind}`,`PSFS at start: ${s.psfs===""?"-":s.psfs+"/10"}`,
   `Weeks to 10/10: ${p.handoff?weeksSince(p,p.handoff.at10):"-"}`,`Weeks to 11/10: ${s.weeks}`,`Exercise changes: ${s.changes}`];
   return lines.join("\n"); }
@@ -764,6 +770,7 @@ const EX_GROUPS = {S:"shoulder",Ar:"shoulder",UB:"shoulder",Ch:"shoulder",K:"kne
 const EX = {
   shoulder:{name:"a shoulder",
     crux:"“My shoulder, with my arm overhead, while it holds my weight (like the bottom of a handstand or a kipping swing).”",
+    cruxD:"“My shoulder, with my arm reaching up, while it holds some weight (like putting a box on a high shelf).”",
     tm:"A controlled wall slide: forearms on a wall, slide your hands up as high as you can control. 5 controlled reps.",
     pfm:"Hold a door frame or a band overhead and step under it, so your arm ends up overhead without your shoulder doing the lifting.",
     into:"Arm overhead against a wall, push your hand into the wall and hold.",
@@ -772,6 +779,7 @@ const EX = {
     ov:"Wall chest reaches: hands on the floor, walk your chest toward the wall, deeper over time."},
   knee:{name:"a knee",
     crux:"“My knee, bent deep, with my weight on it (like landing a jump or the bottom of a squat).”",
+    cruxD:"“My knee, bent deep, with my weight on it (like getting up from a low chair or going down stairs).”",
     tm:"A partial single-leg squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
     pfm:"Lying on your back, slide your heel toward your butt and back out (heel slides).",
     into:"A wall sit at the depth just before it bothers you.",
@@ -780,6 +788,7 @@ const EX = {
     ov:"Step-downs from a low box, controlling the way down; raise the box over time."},
   back:{name:"a low back",
     crux:"“My low back, bending forward, with load (like picking something up or rolling down).”",
+    cruxD:"“My low back, bending forward, with load (like picking up a laundry basket or loading the dishwasher).”",
     tm:"A controlled roll-down with a light weight (Jefferson curl), only as far as you control. 5 controlled reps.",
     pfm:"On hands and knees, rock your hips back toward your heels and forward again.",
     into:"Hold a hip hinge (like the start of a deadlift) with a light weight, just before it bothers you.",
@@ -788,6 +797,7 @@ const EX = {
     ov:"Back extensions on a bench or Roman chair, through a range that fits the pain guidelines."},
   wrist:{name:"a wrist",
     crux:"“My wrist, bent back, with my weight on it (like a handstand or a push-up).”",
+    cruxD:"“My wrist, bent back, with my weight on it (like pushing up from a chair or leaning on a counter).”",
     tm:"Hands flat on a table, lean your weight forward over them as far as you control. 5 controlled reps.",
     pfm:"Hands together in front of your chest (prayer position), slide them gently down and up.",
     into:"Hands flat on a table, lean a little weight forward and hold.",
@@ -796,6 +806,7 @@ const EX = {
     ov:"Incline push-ups on a raised surface, lowering the surface over time."},
   neck:{name:"a neck",
     crux:"“My neck, turned and tilted back, while it holds my head steady (like looking up in a bridge or a headstand).”",
+    cruxD:"“My neck, turned and tilted back, while it holds my head steady (like looking over your shoulder or up at a high shelf).”",
     tm:"Seated, turn your head toward the sore side and look up, as far as you control. 5 controlled reps.",
     pfm:"Lying on your back with your head supported, gently roll your head side to side.",
     into:"Hand on the side of your head, push your head into your hand toward the sore side and hold, without letting it move.",
@@ -804,6 +815,7 @@ const EX = {
     ov:"Wall-supported headstand holds with most of your weight on your hands, shifting more onto your head over time."},
   elbow:{name:"an elbow",
     crux:"“My elbow, bent and pulling, with my weight on it (like the top of a pull-up).”",
+    cruxD:"“My elbow, bent and pulling, with weight in my hand (like carrying grocery bags or lifting a full pot).”",
     tm:"A controlled biceps curl with a light weight, through the range you control. 5 controlled reps.",
     pfm:"Forearm resting on a table, slide your hand toward your shoulder and back, letting the table hold the weight.",
     into:"Elbow bent to 90 degrees, push your palm up into the underside of a table and hold.",
@@ -812,6 +824,7 @@ const EX = {
     ov:"Ring rows or inverted rows, making your body angle steeper over time."},
   hip:{name:"a hip",
     crux:"“My hip, bent deep, with my weight on it (like the bottom of a squat or a deep lunge).”",
+    cruxD:"“My hip, bent deep, with my weight on it (like getting out of a low chair or out of the car).”",
     tm:"A controlled squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
     pfm:"Lying on your back, hug one knee toward your chest and let it back down, with your hands doing the work.",
     into:"Lying on your back, knee bent toward your chest, push your knee up into your hands and hold.",
@@ -820,6 +833,7 @@ const EX = {
     ov:"Box squats to a high box, lowering the box over time."},
   ankle:{name:"an ankle",
     crux:"“My ankle, bent with my knee forward over my toes, with my weight on it (like landing a jump or the bottom of a squat).”",
+    cruxD:"“My ankle, bent with my knee forward over my toes, with my weight on it (like going down stairs or crouching to pick something up).”",
     tm:"Knee-to-wall: foot facing a wall, bring your knee toward the wall as far as you control. 5 controlled reps.",
     pfm:"Seated, draw slow circles with your foot.",
     into:"Split stance, bend your front knee forward until just before it bothers you and hold.",
@@ -830,8 +844,9 @@ const EX = {
 function exFor(p){ return EX[EX_GROUPS[p.region]]||null; }
 function exBox(p,k,label){ const e=exFor(p);
   if(!p.region) return `<div class="ex"><b>${esc(label||"Example")}</b><span class="small">Pick your body region in Step 1 (Assess) to see an example for your area here.</span></div>`;
-  if(!e) { const s=EX.shoulder; return `<div class="ex"><b>${esc(label||"Example")} (shoulder)</b><span class="small">We don’t have an example for this area yet, so here’s one for a shoulder to show the idea. ${esc(k==="ov"?`Replacing ${s.rep.toLowerCase()}: ${s.ov}`:s[k])}</span></div>`; }
-  const txt = k==="ov" ? `Replacing ${e.rep.toLowerCase()}: ${e.ov}` : e[k];
+  if(!e) { const s=EX.shoulder; return `<div class="ex"><b>${esc(label||"Example")} (shoulder)</b><span class="small">We don’t have an example for this area yet, so here’s one for a shoulder to show the idea. ${esc(k==="ov"?(hasWorkout(p)==="no"?s.ov:`Replacing ${s.rep.toLowerCase()}: ${s.ov}`):s[k==="crux"&&isDaily(p)?"cruxD":k])}</span></div>`; }
+  const kk = k==="crux"&&isDaily(p)&&e.cruxD ? "cruxD" : k;
+  const txt = k==="ov" ? (hasWorkout(p)==="no" ? e.ov : `Replacing ${e.rep.toLowerCase()}: ${e.ov}`) : e[kk];
   return `<div class="ex"><b>${esc(label||"Example")} for ${esc(e.name)}</b><span class="small">${esc(txt)}</span></div>`; }
 function subPart(n,title,paths,body){ const p=P(); const done = paths.length && paths.every(x=>String(getPath(p,x)??"").trim());
   return `<div class="card sub" data-req="${paths.join(",")}" data-done="${done?"1":""}"><h2 class="sub-h"><span class="n"><span>${n}</span></span>${esc(title)}</h2>${body}</div>`; }
@@ -855,7 +870,12 @@ const PARTS = {
       <div class="row" role="group" aria-labelledby="kind-q">
       <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
       <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
-      ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}</div>`; }},
+      ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}
+      <b id="ctx-q">Is it part of a sport or training, or an everyday task?</b>
+      <div class="row" role="group" aria-labelledby="ctx-q">
+      <button class="btn small ${a.ctx==="sport"?"":"plain"}" data-act="ctx" data-v="sport" aria-pressed="${a.ctx==="sport"}">Sport or training</button>
+      <button class="btn small ${a.ctx==="daily"?"":"plain"}" data-act="ctx" data-v="daily" aria-pressed="${a.ctx==="daily"}">Everyday task</button></div>
+      <p class="fine">Everyday tasks count. Standing for 15 minutes, sitting through a movie, or carrying groceries up the stairs can be your skill just like a handstand or a takedown can.</p></div>`; }},
     {t:"Where and when", paths:["region"], body:p=>subPart(1, isPainful(p)?"Pain/Injury Details":"Details", ["region"], `
       <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
       <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
@@ -865,26 +885,30 @@ const PARTS = {
       ${field("What have you noticed recently?","assess.recent","",{area:true})}
       ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
       sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["NRSoP",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
-    {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], `
+    {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], isDaily(p) ? `
+      <p class="fine">In ADAPT, this everyday task is your ${esc(skillLabel(p))}.</p>
+      ${field("What everyday task is limited?","assess.skill","Something from daily life or work, described as the task, not just a body motion. ex., standing for 15 minutes, sitting through a movie, carrying groceries up the stairs, picking up your kid (not “bending my back”).",{ph:"ex., standing for 15 minutes"})}
+      ${field("How is it limited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
+      ${field("What percentage of the time is it limited?","assess.pct","",{ph:"ex., 80%"})}` : `
       ${field("What skill is inhibited?","assess.skill","A skill from your sport or practice, not just a body motion. ex., kipping pull-ups, landing a back handspring, shooting a double-leg takedown (not “lifting my arm”).",{ph:"ex., macaco"})}
       ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
       ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 80%"})}`),
-      sum:p=>[["Skill",p.assess.skill],["How it’s inhibited",p.assess.inhibited],["Reps inhibited",p.assess.pct]]},
+      sum:p=>isDaily(p)?[["Everyday task",p.assess.skill],["How it’s limited",p.assess.inhibited],["Time limited",p.assess.pct]]:[["Skill",p.assess.skill],["How it’s inhibited",p.assess.inhibited],["Reps inhibited",p.assess.pct]]},
     {t:"PSFS score", paths:["assess.psfs"], body:p=>subPart(3, "Your PSFS score", ["assess.psfs"], `
       <img class="fig" src="img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
       <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",p.assess.psfs,"psfs")}</div>`),
       sum:p=>[["PSFS",p.assess.psfs!=null?p.assess.psfs+"/10":""]]},
     {t:"11/10 goal", paths:["assess.goal"], body:p=>subPart(4, "Your 11/10 goal", ["assess.goal"], `
-      ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal","What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}`),
+      ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal",isDaily(p)?"What would let you know you expanded your limits? Ex.: “I can stand through a whole concert and then walk home, which would mean my back handles more than it did before this started.”":"What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}`),
       sum:p=>[["Goal",p.assess.goal]]}
   ],
   step2:[
     {t:"Overview", body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return `<div class="card"><p>Testing your ${sk} every week just pokes the bear instead of giving useful data. Instead, you’ll find a simpler movement that brings on the same problem in a way you control. That’s your <b>Testing Movement</b>. You’ll repeat it once a week to see if you’re getting better.</p>
       <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>
       <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p>
-      ${more("Why not just test the skill?",`<p>It may not be safe to perform right now, or pain may make you bail halfway (ever bailed in the middle of a backflip? Not fun, and potentially dangerous). It can also build doubt about the skill, and it may need a warm-up, which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`)}</div>`; }},
+      ${isDaily(p)?more("Why not just test the task?",`<p>Doing the full task every week can flare things up, it can build doubt about something you need for daily life, and how it goes depends a lot on the day (how tired you are, how long you’ve been on your feet), which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`):more("Why not just test the skill?",`<p>It may not be safe to perform right now, or pain may make you bail halfway (ever bailed in the middle of a backflip? Not fun, and potentially dangerous). It can also build doubt about the skill, and it may need a warm-up, which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`)}</div>`; }},
     {t:"Find the crux", paths:["determine.crux"], body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return subPart(1,"Find the crux",["determine.crux"],`<p class="small">Boil your ${sk} down to the smallest piece that causes the problem. It’s usually one area, in one position, with some load on it. Ask yourself:</p>
-      <ul class="tight small"><li><b>Which area?</b> For example, the front of your shoulder, the inside of your knee, your low back</li><li><b>In what position?</b> For example, arm overhead, knee bent deep, back rounded</li><li><b>Doing what?</b> For example, holding your weight, landing, pulling, pushing</li></ul>
+      <ul class="tight small"><li><b>Which area?</b> For example, the front of your shoulder, the inside of your knee, your low back</li>${isDaily(p)?`<li><b>In what position?</b> For example, standing tall, sitting slumped, bent forward, arm reaching up</li><li><b>Doing what?</b> For example, holding still for a long time, lifting, carrying, reaching</li>`:`<li><b>In what position?</b> For example, arm overhead, knee bent deep, back rounded</li><li><b>Doing what?</b> For example, holding your weight, landing, pulling, pushing</li>`}</ul>
       ${exBox(p,"crux")}
       ${field("The crux of my issue","determine.crux","",{area:true,ph:"Which area, in what position, doing what"})}`); },
       sum:p=>[["Crux",p.determine.crux]]},
@@ -925,15 +949,19 @@ const PARTS = {
       sum:p=>[["Into it",p.approach.cc],["Away from it",p.approach.cc2]]}
   ],
   step4:[
-    {t:"Overview", body:p=>`<div class="card"><p>Your <b>Overload Exercise</b> is a real strength exercise: a modified version of one you’d normally train, working in and out of the problem. Unlike the daily exercises, you push it harder over time, like the rest of your regular workout.</p>
+    {t:"Overview", body:p=>`<div class="card"><p>${hasWorkout(p)==="no"?`Your <b>Overload Exercise</b> is a real strength exercise, working in and out of the problem. Unlike the daily exercises, you push it harder over time, 2-3 times a week.`:`Your <b>Overload Exercise</b> is a real strength exercise: a modified version of one you’d normally train, working in and out of the problem. Unlike the daily exercises, you push it harder over time, like the rest of your regular workout.`}</p>
       ${more("Why it matters",`<p>It drives healing and teaches your brain that this range and intensity are safe. Because it stands in for an exercise you already do, the strength carries straight back into your regular training and the skills it supports. It also feels very normal because it’s modified normal exercise, and feeling normal throughout this is awesome.</p>`)}</div>`},
-    {t:"What it replaces", paths:["program.replaces"], body:p=>subPart(1,"Find the exercise you can’t do right now",["program.replaces"],`<p class="small">Which exercise in your regular workout is limited by this problem? That’s the one you’ll replace for now. For example, if shoulder pain is getting in the way of your front handsprings, it’s probably getting in the way of the handstand push-ups you do to build them, too. The handstand push-up is the one to replace.</p>
-      ${field("The exercise it replaces","program.replaces","ex., handstand push-ups, back squats, pull-ups.")}`),
-      sum:p=>[["Replaces",p.program.replaces]]},
-    {t:"Modify it", paths:["program.ov"], body:p=>subPart(2,"Modify it until it fits",["program.ov"],`<p class="small">Change ${p.program.replaces.trim()?`your ${esc(p.program.replaces.trim().toLowerCase())}`:"that exercise"} until it fits the pain guidelines: pain rises no more than 2 points during, and settles back down shortly after.</p>
-      <ul class="tight small"><li><b>Keep it working in and out of the problem:</b> if pushing overhead hurts, it stays a push overhead</li><li><b>Ways to modify:</b> change the angle, shorten the range, add support, or use less weight</li><li><b>It should feel like part of your regular workout,</b> harder than your couplet and close to the exercise it replaces</li></ul>
+    {t:"Your regular workout", paths:p=>hasWorkout(p)==="no"?["program.workout"]:["program.replaces"], body:p=>{ const w=hasWorkout(p); return subPart(1,"Your regular workout",w==="no"?["program.workout"]:["program.replaces"],`<b id="wk-q">Do you have a regular workout program?</b>
+      <div class="row" role="group" aria-labelledby="wk-q">
+      <button class="btn small ${w==="yes"?"":"plain"}" data-act="workout" data-v="yes" aria-pressed="${w==="yes"}">Yes</button>
+      <button class="btn small ${w==="no"?"":"plain"}" data-act="workout" data-v="no" aria-pressed="${w==="no"}">No</button></div>
+      ${w==="yes"?`<p class="small">Which exercise in your regular workout is limited by this problem? That’s the one you’ll replace for now. For example, if shoulder pain is getting in the way of your front handsprings, it’s probably getting in the way of the handstand push-ups you do to build them, too. The handstand push-up is the one to replace.</p>
+      ${field("The exercise it replaces","program.replaces","ex., handstand push-ups, back squats, pull-ups.")}`:w==="no"?`<p class="small">Then your Overload Exercise doesn’t replace anything. It’s a strength exercise you add, done 2-3 times a week and built up over time by the guidelines in the next steps.</p>`:""}`); },
+      sum:p=>hasWorkout(p)==="no"?[["Regular workout","No, so it’s added, not swapped in"]]:[["Replaces",p.program.replaces]]},
+    {t:p=>hasWorkout(p)==="no"?"Pick it":"Modify it", paths:["program.ov"], body:p=>subPart(2,hasWorkout(p)==="no"?"Pick it and make it fit":"Modify it until it fits",["program.ov"],`<p class="small">${hasWorkout(p)==="no"?"Pick a strength exercise that works the same area in the same direction as the problem, then adjust it":`Change ${p.program.replaces.trim()?`your ${esc(p.program.replaces.trim().toLowerCase())}`:"that exercise"}`} until it fits the pain guidelines: pain rises no more than 2 points during, and settles back down shortly after.</p>
+      <ul class="tight small"><li><b>Keep it working in and out of the problem:</b> if pushing overhead hurts, it stays a push overhead</li><li><b>Ways to modify:</b> change the angle, shorten the range, add support, or use less weight</li>${hasWorkout(p)==="no"?`<li><b>It should feel like real strength work,</b> harder than your couplet</li>`:`<li><b>It should feel like part of your regular workout,</b> harder than your couplet and close to the exercise it replaces</li>`}</ul>
       ${exBox(p,"ov")}
-      <img class="fig" src="img/ex-replace.jpg" alt="Example: a bridge walkover in the usual workout, replaced with a wall chest reach." width="1600" height="900">
+      ${hasWorkout(p)==="no"?"":`<img class="fig" src="img/ex-replace.jpg" alt="Example: a bridge walkover in the usual workout, replaced with a wall chest reach." width="1600" height="900">`}
       ${field("My Overload Exercise","program.ov","",{area:true})}
       <label class="row small"><input type="checkbox" data-act="skip" ${p.program.skip?"checked":""}> Nothing fits yet; skip it for now and keep exploring</label>`),
       sum:p=>[["Overload Exercise",p.program.skip&&!p.program.ov.trim()?"Skipped for now":p.program.ov]]},
@@ -946,12 +974,13 @@ const PARTS = {
   ]
 };
 const partTitle = (p,pt) => typeof pt.t==="function" ? pt.t(p) : pt.t;
-function partDone(p,pt){ return !!(pt.paths && pt.paths.length && pt.paths.every(x=>String(getPath(p,x)??"").trim())); }
+const ptPaths = (p,pt) => typeof pt.paths==="function" ? (p?pt.paths(p):[]) : (pt.paths||[]);
+function partDone(p,pt){ const ps=ptPaths(p,pt); return !!(ps.length && ps.every(x=>String(getPath(p,x)??"").trim())); }
 function stepHasData(p,k){ const parts=PARTS[k]; if(!parts||!p) return false;
   if(k==="step2" && p.determine.none) return true; if(k==="step4" && p.program.skip) return true;
-  return parts.some(pt=>(pt.paths||[]).some(x=>String(getPath(p,x)??"").trim())) || (k==="step1" && !!p.side); }
+  return parts.some(pt=>ptPaths(p,pt).some(x=>String(getPath(p,x)??"").trim())) || (k==="step1" && !!p.side) || (k==="step4" && !!p.program.workout); }
 // Which part holds a given field (used by the "Still blank" links and the tests)
-function partOf(k,path){ const parts=PARTS[k]||[]; let i=parts.findIndex(pt=>(pt.paths||[]).includes(path));
+function partOf(k,path){ const parts=PARTS[k]||[]; let i=parts.findIndex(pt=>ptPaths(P(),pt).includes(path));
   if(i<0){ const p=P(); if(p) i=parts.findIndex(pt=>pt.body(p).includes(`data-bind="${path}"`)||pt.body(p).includes(`data-path="${path}"`)); }
   return i<0?0:i; }
 
@@ -1151,7 +1180,7 @@ function skillTable(p,ro){ const L=p.logs.skill; if(!L.length) return "";
 function summaryText(p){
   const t=today(); const c=consistency(p,14); const L=p.logs.tests; const first=L[0], last=L[L.length-1];
   const lines=[`ADAPT check-in: ${planCode(p)||"(no name)"}, ${fmtDate(t)}`,
-  `${skillLabel(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
+  `${skillLabel(p)}${skillType(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
   `Pain-Free Motion: ${p.approach.pfm||"-"} | done ${c.pfm} of last 14 days`,
   `Contraction Couplet: ${ccText(p)||"-"} | done ${c.cc} of last 14 days`,
   `Testing Movement: ${p.determine.move||(p.determine.none?"none found yet (flagged)":"-")}`,
@@ -1293,7 +1322,7 @@ V.restore = () => `<div class="stack"><div class="card flat"><span class="eyebro
   <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
 
 V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from your coach</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
-  <div class="card"><p><b>${esc(skillLabel(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
+  <div class="card"><p><b>${esc(skillLabel(d)+skillType(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
   <button class="btn" data-act="import-save">Save to this device and start</button>
   <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
 
@@ -1303,7 +1332,7 @@ V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenRe
   ${d.note?`<div class="card"><h2>Their note</h2><p>${esc(d.note)}</p></div>`:""}
   <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Contraction Couplet: <b>${c.cc}/14</b> days</p>
    <div class="week">${[...Array(14)].map((_,i)=>addDays(today(),i-13)).map(dd=>{const x=d.logs.daily[dd]||{};return `<div class="d"><span>${new Date(dd+"T12:00:00").getDate()}</span><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></div>`;}).join("")}</div></div>
-  <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
+  <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.workout==="no"?" (added; no regular workout)":d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
   <div class="card"><h2>Testing Movement: ${esc(d.determine.move||(d.determine.none?"none found yet (flagged)":""))}</h2>${recentTrends(d.logs.tests)}${testTrend(d,true)}</div>
   <div class="card"><h2>Overload sessions</h2>${recentTrends(d.logs.overload)}${ovTable(d,true)}</div>
   <div class="card"><h2>Skill retests</h2>${recentTrends(d.logs.skill)}${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
@@ -1364,6 +1393,8 @@ document.addEventListener("click", async e=>{
     case "setnum": { const n=Number(v); if(a.dataset.path.startsWith("_tmp.")) tmp[a.dataset.path.slice(5)]=n; else setPath(p,a.dataset.path,n); save(); const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "ctx": p.assess.ctx=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "workout": p.program.workout=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
