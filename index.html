@@ -101,8 +101,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media (hover:hover){.btn:not(.plain):not(.ghost):hover{background:var(--accent-hover);border-color:var(--accent-hover)}.btn.plain:hover{background:var(--surface);border-color:var(--accent)}.linkbtn:hover{color:var(--accent-hover)}}
 label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
 label.f .hint{font-weight:400;color:var(--muted);font-size:.9rem}
-input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
-input[type=text],input[type=date],input[type=number],select{min-height:44px}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input[type=text],input[type=date],input[type=time],input[type=number],select{min-height:44px}
 input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%}
 input[type=date]::-webkit-date-and-time-value{text-align:left}
 ::placeholder{color:var(--muted);opacity:1}
@@ -719,6 +719,7 @@ function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal|
     <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through</li>
     <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign</li>
     <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving</li></ul></div>
+  ${p.cal&&today()<=p.cal.until?`<div class="msg info"><p class="small"><b>Calendar reminders:</b> you’re done with the daily routine, so delete the ADAPT events from your calendar. Otherwise they keep repeating until ${esc(fmtDate(p.cal.until))}.</p></div>`:""}
   ${next}
   <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1" data-p="4">Add it in Step 1</button>`}</p>
     <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
@@ -1037,6 +1038,63 @@ function missingSteps(p){ const m=[];
   if(!p.program.ov.trim()&&!p.program.skip) m.push(["step4","Overload Exercise (or tick “skip it for now”)",partOf("step4","program.ov")]);
   return m; }
 
+
+/* ---------- Calendar reminders (Sam, November 11, 2026) ----------
+   One tap adds repeating events to the person's own calendar: the daily routine (with the Overload Exercise as a note),
+   the weekly Testing Movement, and the 2-week check-in. Generic notes (never name the movements, so they can't go stale
+   and nothing personal sits on a shared calendar). The repeats stop after 12 weeks; the app offers to add them again.
+   Apple and Outlook get a calendar file; Google gets one link per event. Nothing is sent anywhere. */
+const CAL_WEEKS=12;
+let calForm=false, calGoogle=false;
+const calOn = p => !!(p&&p.tracking&&p.origin!=="coach"&&!p.handoff);
+function calDefaults(p){ const c=p.cal||{}; const st=p.trackStart||today();
+  return {daily:c.daily||"08:00", testDay:c.testDay??new Date(st+"T12:00:00").getDay(), testTime:c.testTime||"08:00"}; }
+function calNotes(p){ const url="https://"+NEW_HOST+"/"; const sam=p.support==="sam"&&!p.supportEnded;
+  const ov=(!p.program.skip&&(p.program.ov||"").trim()) ? (hasWorkout(p)==="no"
+      ? "Your Overload Exercise: 2-3 times a week, by the guidelines in the app."
+      : "On your workout days (2-3 a week), your Overload Exercise goes in your workout.") : "";
+  return {
+    daily:{title:"ADAPT daily routine", notes:["Your Pain-Free Motion and Contraction Couplet. Open the ADAPT app for today's movements.","2-3 sets of 20-30 reps or seconds, ideally as a superset.","Pain-Free Motion: no pain. Contraction Couplet: pain rises no more than 2 points during, and settles back down shortly after.",ov,"Open the app: "+url].filter(Boolean).join("\n\n")},
+    test:{title:"ADAPT weekly Testing Movement", notes:["Do it cold, before you warm up, at about the same time each week.","Log it in the ADAPT app: "+url].join("\n\n")},
+    check:{title:sam?"ADAPT 2-week check-in":"ADAPT 2-week review", notes:[sam?"Open the ADAPT app and send Sam your check-in.":"Open the ADAPT app and look back at your last 2 weeks: how often you did your movements, and what your tests say.","Open the app: "+url].join("\n\n")} }; }
+function calPlan(p,o){ const t=today(); const until=addDays(t,CAL_WEEKS*7-1);
+  let td=t; while(new Date(td+"T12:00:00").getDay()!==Number(o.testDay)) td=addDays(td,1);
+  let ck=addDays(p.checkinLogged||p.trackStart||t,14); while(ck<t) ck=addDays(ck,14);
+  const n=calNotes(p);
+  return {until, ev:[{k:"daily",...n.daily,date:t,time:o.daily,mins:10,rule:"FREQ=DAILY"},{k:"test",...n.test,date:td,time:o.testTime,mins:15,rule:"FREQ=WEEKLY"},{k:"check",...n.check,date:ck,time:o.daily,mins:10,rule:"FREQ=WEEKLY;INTERVAL=2"}].filter(e=>e.date<=until)}; }
+const calStamp=(d,tm)=>d.replace(/-/g,"")+"T"+tm.replace(":","")+"00";
+function calEnd(d,tm,mins){ const [h,m]=tm.split(":").map(Number); const x=new Date(d+"T00:00:00"); x.setHours(h,m+mins,0,0);
+  const pad=n=>String(n).padStart(2,"0"); return `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`; }
+const icsEsc=t=>String(t).replace(/\\/g,"\\\\").replace(/;/g,"\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+function icsFold(line){ const out=[]; let cur="", len=0; for(const ch of line){ const b=new TextEncoder().encode(ch).length; if(len+b>74){ out.push(cur); cur=" "; len=1; } cur+=ch; len+=b; } out.push(cur); return out.join("\r\n"); }
+function calIcs(p,plan){ const now=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+Z$/,"Z"); const u=plan.until.replace(/-/g,"")+"T235959";
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//ADAPT Beyond Pain//ADAPT app//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  plan.ev.forEach(e=>{ L.push("BEGIN:VEVENT",`UID:${p.id}-${e.k}-${today()}@${NEW_HOST}`,"DTSTAMP:"+now,"DTSTART:"+calStamp(e.date,e.time),"DTEND:"+calEnd(e.date,e.time,e.mins),
+    `RRULE:${e.rule};UNTIL=${u}`,"SUMMARY:"+icsEsc(e.title),"DESCRIPTION:"+icsEsc(e.notes),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(e.title),"TRIGGER:PT0M","END:VALARM","END:VEVENT"); });
+  L.push("END:VCALENDAR"); return L.map(icsFold).join("\r\n")+"\r\n"; }
+function calGoogleUrl(e,until){ let tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(x){}
+  const q=new URLSearchParams({action:"TEMPLATE",text:e.title,details:e.notes,dates:calStamp(e.date,e.time)+"/"+calEnd(e.date,e.time,e.mins),recur:`RRULE:${e.rule};UNTIL=${until.replace(/-/g,"")}`});
+  if(tz) q.set("ctz",tz); return "https://calendar.google.com/calendar/render?"+q.toString(); }
+function calRead(p){ const g=id=>{const el=document.getElementById(id); return el?el.value:"";}; const d=calDefaults(p);
+  return {daily:g("cal-daily")||d.daily, testDay:Number(g("cal-testday")||d.testDay), testTime:g("cal-testtime")||d.testTime}; }
+function calSaved(p,o,plan){ p.cal={added:today(),until:plan.until,daily:o.daily,testDay:o.testDay,testTime:o.testTime}; save(true); }
+function calPanel(p){ const d=calDefaults(p); const days=[...Array(7)].map((_,i)=>new Date(2026,10,1+i)); // Nov 1 2026 is a Sunday
+  const plan=calPlan(p,d);
+  return `<div class="stack">
+    <label class="f" for="cal-daily">Daily routine reminder<input type="time" id="cal-daily" value="${esc(d.daily)}"></label>
+    <div class="row" style="align-items:flex-end"><label class="f" for="cal-testday" style="flex:1 1 9em">Weekly test day<select id="cal-testday">${days.map((x,i)=>`<option value="${i}" ${Number(d.testDay)===i?"selected":""}>${esc(x.toLocaleDateString(undefined,{weekday:"long"}))}</option>`).join("")}</select></label>
+    <label class="f" for="cal-testtime" style="flex:1 1 9em">Test time<input type="time" id="cal-testtime" value="${esc(d.testTime)}"></label></div>
+    <p class="fine">Test at about the same time each week, before you warm up. The 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} reminder uses your daily time.</p>
+    <div class="row"><button class="btn" data-act="cal-ics">Apple or Outlook calendar</button><button class="btn plain" data-act="cal-google">Google Calendar</button></div>
+    ${calGoogle?`<div class="msg info"><p class="small">Tap each one and save it in Google Calendar:</p><div class="stack">${plan.ev.map(e=>`<a class="btn small plain" href="${esc(calGoogleUrl(e,plan.until))}" target="_blank" rel="noopener">${esc(e.title)}</a>`).join("")}</div></div>`:""}
+    <p class="fine">The reminders repeat for ${CAL_WEEKS} weeks, until ${esc(fmtDate(plan.until))}. They say “open the app for today’s movements” instead of naming them, so they stay right when your plan changes. Nothing is sent anywhere; they go straight into your own calendar.</p>
+  </div>`; }
+function calCard(p){ if(!calOn(p)) return ""; const t=today(), c=p.cal;
+  if(calForm) return `<div class="card"><h2>Calendar reminders</h2>${calPanel(p)}<button class="btn small ghost" data-act="cal-close">Close</button></div>`;
+  if(!c){ if(p.calNo) return "";
+    return `<div class="msg info"><b>Get reminders in your calendar</b><p class="small">Add your daily routine, your weekly Testing Movement, and your 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} to your phone’s calendar, so it reminds you.</p><div class="row"><button class="btn small" data-act="cal-open">Set up reminders</button><button class="btn small plain" data-act="cal-no">Not now</button></div></div>`; }
+  if(t>=addDays(c.until,-7)) return `<div class="msg info"><b>Your calendar reminders ${t>c.until?"have ended":"end "+esc(fmtDate(c.until))}</b><p class="small">Still going? Add them for another ${CAL_WEEKS} weeks.</p><button class="btn small" data-act="cal-open">Add ${CAL_WEEKS} more weeks</button></div>`;
+  return ""; }
 /* ---------- Dashboard ---------- */
 // The crux, repeated where it's used (Sam, call feedback November 8, 2026), so nobody has to page back to it
 const cruxRef = p => `<div class="crux-ref"><b>Your crux</b><p class="small">${p.determine.crux.trim()?esc(p.determine.crux):`<span class="muted">Not filled in yet.</span> <button type="button" class="linkbtn" data-act="go" data-v="step2">Find it in Discover</button>`}</p></div>`;
@@ -1063,6 +1121,7 @@ function dashboard(p){
   ${supportEndedCard(p)}
   ${reentryCard(p)}
   ${checkinCard(p)}
+  ${calCard(p)}
   ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
   <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
     <div class="today">
@@ -1305,6 +1364,7 @@ V.more = () => { const p=P(); const plans=Object.values(store.plans); const clie
   ${planCode(p)?`<p class="fine">Plan code: <b>${esc(planCode(p))}</b></p>`:""}
   <p class="small"><b>Support:</b> ${p.support==="sam"?"Working with Sam. Set by the plan Sam sent you; new plans you start keep it.":"Self-guided."}</p>
   ${p.origin==="coach"?sendPlanCard(p):""}</div>
+  ${calOn(p)?`<div class="card"><h2>Calendar reminders</h2>${p.cal?`<p class="small">Added ${esc(fmtDate(p.cal.added))}; they repeat until ${esc(fmtDate(p.cal.until))}. Adding them again creates a new set, so delete the old ones in your calendar first.</p>`:`<p class="small">Add your daily routine, weekly Testing Movement, and 2-week reminders to your calendar.</p>`}${calPanel(p)}</div>`:""}
   <div class="card"><h2>New here?</h2><p class="small">A two-minute walkthrough of how ADAPT works and how to get around the app.</p><button class="btn plain" data-act="tour">Take the tour again</button></div>
   <div class="card"><h2>Plans on this device</h2>
   ${plans.map(x=>`<div class="row spread"><span class="small"><b>${esc(x.assess.skill||"New plan")}</b> <span class="muted">${esc(x.origin==="coach"?"for "+(x.person||"client"):x.person||"")} · ${esc(fmtDate(x.created))}</span></span>${x.id===store.activeId?`<span class="chip good">Open</span>`:`<button class="btn small plain" data-act="switch" data-v="${x.id}">Open</button>`}</div>`).join("")}
@@ -1399,6 +1459,15 @@ document.addEventListener("click", async e=>{
     case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "ctx": p.assess.ctx=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "workout": p.program.workout=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-open": calForm=true; calGoogle=false; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-close": calForm=false; calGoogle=false; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-no": p.calNo=true; save(); toast("You can add them anytime from More"); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-ics": { const o=calRead(p); const plan=calPlan(p,o); const ics=calIcs(p,plan);
+      const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+      if(ios){ location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics); }
+      else { const url=URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"})); const l=document.createElement("a"); l.href=url; l.download="ADAPT reminders.ics"; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
+      calSaved(p,o,plan); calForm=false; calGoogle=false; render(); toast("Opening your calendar"); break; }
+    case "cal-google": { const o=calRead(p); const plan=calPlan(p,o); calSaved(p,o,plan); calGoogle=true; { const y=window.scrollY; render(); window.scrollTo(0,y); } break; }
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
