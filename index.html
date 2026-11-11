@@ -43,6 +43,8 @@
   --good:#6FD3A3; --good-soft:#173328; --warn:#F6A47E; --warn-soft:#3A251B; --alert:#FF8C84; --alert-soft:#3D1C1C; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{min-height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow-x:clip;max-width:100%}
 html{scroll-padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 16px);scroll-padding-top:16px}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.5;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
@@ -99,8 +101,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media (hover:hover){.btn:not(.plain):not(.ghost):hover{background:var(--accent-hover);border-color:var(--accent-hover)}.btn.plain:hover{background:var(--surface);border-color:var(--accent)}.linkbtn:hover{color:var(--accent-hover)}}
 label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
 label.f .hint{font-weight:400;color:var(--muted);font-size:.9rem}
-input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
 input[type=text],input[type=date],input[type=number],select{min-height:44px}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
 ::placeholder{color:var(--muted);opacity:1}
 label.row:has(>input[type=checkbox]){min-height:44px;align-items:center}
 .msg a[href^="mailto:"],.card a[href^="mailto:"]{display:inline-block;padding-block:12px;margin-block:-12px}
@@ -400,7 +404,7 @@ function screenResult(p){
 }
 // PLACEHOLDER (Sam, October 26, 2026): until the upgrade link and its landing page exist, point people to Sam by email.
 // When UPGRADE_LINK is set, the original wording with the link comes back automatically.
-const SAM_EMAIL = "sam@bulldogperformance.us";
+const SAM_EMAIL = "sam@adaptbeyondpain.com";
 const emailLink = () => `<a href="mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}">${SAM_EMAIL}</a>`;
 function upgradeMsg(basis){ // basis "tracking": the ladder's referral, where "your selection" doesn't fit
   const a = basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A;
