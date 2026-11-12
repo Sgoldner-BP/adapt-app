@@ -1,0 +1,1650 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ADAPT Resilience</title>
+<meta name="theme-color" content="#DAF0FE">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+/* Fonts hosted with the app (SIL Open Font License; see fonts/). No requests to Google. */
+@font-face{font-family:'Jost';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Jost';font-style:normal;font-weight:800;font-display:swap;src:url(../fonts/jost-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/figtree-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/figtree-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/figtree-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/caveat-latin-600-normal.woff2) format('woff2')}
+
+/* Layout: one phone-width column, step-by-step cards, fixed bottom tab bar. Colors, fonts and sizes follow the design standard (05, section 7): Aaron's manual colors, Jost and Figtree, 17px body text, nothing under 14px, 44px tap targets. */
+:root{
+  /* Colors from Aaron's design manual, section 4.1 (05, section 7; Sam, November 5, 2026). --line is for pale dividers;
+     --ctl is the darker border for anything you tap or type in. */
+  --bg:#EDFAFF; --surface:#FFFFFF; --fg:#10324A; --muted:#4D6B80; --line:#AAD2E6; --ctl:#5E86AA; --soft:#DAF0FE;
+  --accent:#03659D; --accent-hover:#024A74; --accent-ink:#FFFFFF; --orange:#EB6D38; --orange-display:#DA5B26; --on-orange:#0F2A43; --accent-text:#B04418; --accent-soft:#FFE6DC;
+  --blue:#03659D; --blue-light:#DAF0FE; --blue-line:#AAD2E6; --blue-soft:#DAF0FE;
+  --good:#1D7555; --good-soft:#E2F3E8; --warn:#B04418; --warn-soft:#FFE6DC; --alert:#B42318; --alert-soft:#FCEBEA; --mid:#8a6a00; --mid-soft:#fff3c4;
+  --display:"Jost", "Futura", "Avenir Next", Arial, sans-serif;
+  --body:"Figtree", "Segoe UI", Arial, sans-serif;
+  --hand:"Caveat", "Bradley Hand", cursive;
+  --navh:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1A22; --surface:#142530; --fg:#E6F2F8; --muted:#A8C1D0; --line:#2C4A5B; --ctl:#7FA6C6; --soft:#182E3B;
+  --accent:#7CC4EE; --accent-hover:#A6D8F5; --accent-ink:#0B1A22; --orange:#EB6D38; --orange-display:#F28D5F; --on-orange:#0F2A43; --accent-text:#F6A47E; --accent-soft:#3A251B;
+  --blue:#7CC4EE; --blue-light:#182E3B; --blue-line:#2C4A5B; --blue-soft:#163246;
+  --good:#6FD3A3; --good-soft:#173328; --warn:#F6A47E; --warn-soft:#3A251B; --alert:#FF8C84; --alert-soft:#3D1C1C; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1A22; --surface:#142530; --fg:#E6F2F8; --muted:#A8C1D0; --line:#2C4A5B; --ctl:#7FA6C6; --soft:#182E3B;
+  --accent:#7CC4EE; --accent-hover:#A6D8F5; --accent-ink:#0B1A22; --orange:#EB6D38; --orange-display:#F28D5F; --on-orange:#0F2A43; --accent-text:#F6A47E; --accent-soft:#3A251B;
+  --blue:#7CC4EE; --blue-light:#182E3B; --blue-line:#2C4A5B; --blue-soft:#163246;
+  --good:#6FD3A3; --good-soft:#173328; --warn:#F6A47E; --warn-soft:#3A251B; --alert:#FF8C84; --alert-soft:#3D1C1C; --mid:#f2c94c; --mid-soft:#3a3115; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow-x:clip;max-width:100%}
+html{scroll-padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 16px);scroll-padding-top:16px}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:0 calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 24px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
+main{max-width:640px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:1.7rem;font-weight:800}
+h2{font-size:1.25rem;font-weight:800}
+h3{font-size:1.02rem;font-weight:600}
+p{margin:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px;border-bottom:3px solid var(--blue-light);margin-bottom:14px}
+.brand{font-family:var(--display);font-weight:800;letter-spacing:.06em;color:var(--blue);font-size:.95rem}
+.who{font-size:.875rem;color:var(--muted);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stack{display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
+.card.flat{background:transparent;border:0;padding:0}
+.eyebrow{font-size:.875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.fine{font-size:.875rem;color:var(--muted)}
+.sub{display:grid;gap:10px}
+.parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font:inherit;font-size:.875rem;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:32px}
+button.chip{border:1px solid var(--ctl);position:relative;padding:5px 12px 5px 6px}
+button.chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+.chip .cn{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;font-size:.875rem}
+.chip[data-done="1"] .cn{background:var(--orange);border-color:var(--orange);color:var(--on-orange)}
+.chip[aria-current="step"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.sumrow{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.sumtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sumrow dl{margin:0;display:grid;grid-template-columns:minmax(90px,auto) 1fr;gap:4px 12px;font-size:.9rem}
+.sumrow dt{color:var(--muted)}
+.sumrow dd{margin:0;overflow-wrap:anywhere}
+.sub-h{display:flex;align-items:center;gap:10px;margin:0}
+.sub-h .n{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.875rem;font-weight:700;color:var(--muted)}
+.sub[data-done="1"] .sub-h .n{background:var(--orange);border-color:var(--orange);color:var(--on-orange)}
+.sub[data-done="1"] .sub-h .n span{display:none}
+.sub[data-done="1"] .sub-h .n::after{content:"\2713"}
+.ex{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
+.ex b{font-size:.875rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+details.more{background:transparent;border:none;padding:0}
+details.more>summary{font-family:inherit;font-weight:600;font-size:.9rem;padding-block:6px;min-height:44px;align-items:center;justify-content:flex-start;color:var(--fg)}
+details.more>div{padding-bottom:8px}
+img.fig{width:100%;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+.btn{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:11px 16px;cursor:pointer;text-align:center;min-height:44px}
+.btn.ghost{background:transparent;color:var(--accent-text);border:2px solid var(--orange)}
+.btn.plain{background:var(--soft);color:var(--fg);border-color:var(--ctl)}
+.btn.small{padding:6px 12px;min-height:44px;font-size:.9rem}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.spread{justify-content:space-between}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+@media (hover:hover){.btn:not(.plain):not(.ghost):hover{background:var(--accent-hover);border-color:var(--accent-hover)}.btn.plain:hover{background:var(--surface);border-color:var(--accent)}.linkbtn:hover{color:var(--accent-hover)}}
+label.f{display:grid;gap:6px;font-weight:600;font-size:.95rem}
+label.f .hint{font-weight:400;color:var(--muted);font-size:.9rem}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{font:inherit;font-size:17px;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input[type=text],input[type=date],input[type=time],input[type=number],select{min-height:44px}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;min-width:0;box-sizing:border-box}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
+::placeholder{color:var(--muted);opacity:1}
+label.row:has(>input[type=checkbox]){min-height:44px;align-items:center}
+.msg a[href^="mailto:"],.card a[href^="mailto:"]{display:inline-block;padding-block:12px;margin-block:-12px}
+textarea{min-height:76px;resize:vertical}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.scale{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+.scale button{font:inherit;font-variant-numeric:tabular-nums;font-weight:700;min-height:44px;border-radius:6px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer;padding:0}
+.scale button[aria-pressed="true"]{color:#fff;border-color:transparent}
+@media (max-width:520px){.scale{grid-template-columns:repeat(6,1fr);gap:6px}.scale button{min-height:44px}}
+.scale-ends{display:flex;justify-content:space-between;font-size:.875rem;color:var(--muted)}
+.yn{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding-block:10px;border-top:1px solid var(--line)}
+.yn:first-of-type{border-top:0}
+.none-apply{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.none-apply .fine{margin-top:6px}
+.none-apply.confirm{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:12px;margin-top:12px}
+.none-apply.confirm p{margin:0 0 10px}
+.none-note{margin:4px 0 8px;color:var(--muted,inherit)}
+.yn .q{min-width:0;overflow-wrap:anywhere}
+.yn .btns{display:flex;gap:6px}
+.yn button{font:inherit;font-weight:700;min-width:54px;min-height:44px;border-radius:6px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer}
+.yn button[aria-pressed="true"][data-v="yes"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.yn button[aria-pressed="true"][data-v="no"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.msg{border-radius:8px;padding:14px;display:grid;gap:10px;border:1px solid}
+.msg.alert{background:var(--alert-soft);border:2px solid var(--alert);color:var(--alert);font-weight:700}
+.msg.alert a{color:inherit}
+.msg.warn{background:var(--warn-soft);border-color:var(--warn)}
+.msg.good{background:var(--good-soft);border-color:var(--good)}
+.msg.info{background:var(--blue-soft);border-color:var(--blue-line)}
+.rule{background:var(--accent-soft);border:0;border-radius:12px;padding:14px 16px;display:grid;gap:4px}
+.rule>:first-child{font-weight:700}
+.steps{display:grid;gap:8px}
+.stepbtn{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;text-align:left;font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--ctl);border-radius:10px;padding:12px;cursor:pointer;min-width:0}
+.stepnum{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:var(--soft);color:var(--muted)}
+.stepbtn[data-done="true"] .stepnum{background:var(--good);color:var(--accent-ink)}
+.stepnum{border:2px solid var(--blue-line)}
+.lchk{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;border-radius:50%;border:2px solid var(--blue-line);font-size:14px;vertical-align:-3px}
+.lchk[data-done="true"]{background:var(--good);border-color:var(--good);color:var(--accent-ink)}
+.stepbtn[data-done="true"] .stepnum{border-color:var(--good)}
+.stepbtn .t{min-width:0}
+.stepbtn .t b{display:block}
+.stepbtn .t span{font-size:.9rem;color:var(--muted);display:block}
+.chev{color:var(--muted);font-weight:700}
+.today{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.done-btn{font:inherit;text-align:left;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);border-radius:10px;padding:12px;cursor:pointer;display:grid;gap:4px;min-height:84px;min-width:0}
+.done-btn b{font-family:var(--display);font-size:.95rem}
+.done-btn span{font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.done-btn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good)}
+.done-btn:disabled{opacity:.6;cursor:default}
+.linkbtn{font:inherit;background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;cursor:pointer;text-align:left;position:relative}
+.linkbtn::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
+.done-btn[aria-pressed="true"] .state{color:var(--good)}
+.state{font-weight:700;font-size:.875rem}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:.875rem;color:var(--muted)}
+.week .d{display:grid;gap:3px;justify-items:center}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line);background:transparent}
+.tour-dots{display:flex;gap:8px;justify-content:center;margin:4px 0}
+.tour-dots span{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.tour-dots span.on{background:var(--blue)}
+.tour ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.tour p{margin:0}
+.dot.on{background:var(--good);border-color:var(--good)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+td.wrap{white-space:normal;min-width:120px}
+th{font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.chip{display:inline-block;font-size:.875rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.due{background:var(--warn-soft);color:var(--warn)}
+.chip.alert{background:var(--alert-soft);color:var(--alert)}
+.chip.mid{background:var(--mid-soft);color:var(--mid)}
+.tr{display:inline-block;font-size:.875rem;font-weight:700;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.tr.progressed{background:var(--good-soft);color:var(--good)} .tr.same{background:var(--mid-soft);color:var(--mid)} .tr.regressed{background:var(--alert-soft);color:var(--alert)} .tr.unclear{background:var(--soft);color:var(--muted)}
+.trend-pick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.trend-pick button{font:inherit;font-size:.875rem;font-weight:700;min-height:44px;border-radius:8px;border:1px solid var(--ctl);background:var(--surface);color:var(--fg);cursor:pointer;padding:4px}
+.trend-pick button[aria-pressed="true"]{box-shadow:inset 0 0 0 1px currentColor}
+.trend-pick button[aria-pressed="true"][data-v="progressed"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.trend-pick button[aria-pressed="true"][data-v="same"]{background:var(--mid-soft);border-color:var(--mid);color:var(--mid)}
+.trend-pick button[aria-pressed="true"][data-v="regressed"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.trend-pick button[aria-pressed="true"][data-v="unclear"]{background:var(--soft);border-color:var(--muted)}
+.crux-ref{background:var(--blue-soft);border-radius:12px;padding:12px 14px;margin-bottom:12px}.crux-ref p{margin:4px 0 0}
+.trend-pick.two{grid-template-columns:repeat(2,1fr)}
+.trend-pick button[aria-pressed="true"][data-v="no"]{background:var(--soft);border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.trend-pick button[aria-pressed="true"][data-v="yes"]{background:var(--good-soft);border-color:var(--good);color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+@media (max-width:380px){.trend-pick{grid-template-columns:repeat(2,1fr)}}
+.trend-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.days14{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.days14 button{font:inherit;font-size:.875rem;color:var(--muted);border:1px solid var(--ctl);background:var(--surface);border-radius:8px;min-height:52px;display:grid;gap:3px;justify-items:center;align-content:center;padding:4px 0;cursor:pointer}
+.days14 button[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-line)}
+.days14 .dd{display:flex;gap:3px}
+.days14 .dot{width:10px;height:10px}
+.days14 .pre{min-height:52px;display:grid;justify-items:center;align-content:center;font-size:.875rem;color:var(--muted);border:1px dashed var(--line);border-radius:8px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 16px}
+details[open]{padding-bottom:16px}
+summary{cursor:pointer;font-family:var(--display);font-weight:600;padding-block:14px;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--accent-text);font-weight:800}
+details[open] summary::after{content:"\2212"}
+details .body{display:grid;gap:10px}
+ul.tight{margin:0;padding-left:20px;display:grid;gap:4px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom, 0px);padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px)}
+nav.tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--navh)}
+nav.tabs button{font:inherit;font-size:.875rem;font-weight:700;background:none;border:0;color:var(--muted);cursor:pointer;display:grid;place-items:center;gap:2px;padding:6px 2px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--blue)}
+nav.tabs{border-top:3px solid var(--blue-light)}
+.spark{width:100%;height:auto;display:block}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:.875rem;word-break:break-all;background:var(--soft);border-radius:6px;padding:8px;max-height:120px;overflow:auto}
+.hero{display:grid;gap:12px;padding-block:24px 4px}
+.hero-title{color:var(--blue);font-size:1.9rem;padding-bottom:10px;border-bottom:3px solid var(--orange);text-align:center}
+.hero-tag{text-align:center;font-family:var(--display);font-weight:800;font-size:1.15rem;color:var(--accent-text);margin:4px 0 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--navh) + env(safe-area-inset-bottom, 0px) + 14px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:30;font-size:.9rem}
+.sep{height:1px;background:var(--line)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<nav class="tabs" id="tabs" aria-label="Main" hidden><div class="in">
+  <button data-act="tab" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>Plan</button>
+  <button data-act="tab" data-v="steps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Steps</button>
+  <button data-act="tab" data-v="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h7a3 3 0 013 3v12a2 2 0 00-2-2H4zM20 5h-6"/><path d="M14 8a3 3 0 013-3h3v13h-6"/></svg>Learn</button>
+  <button data-act="tab" data-v="checkin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-6z"/></svg>Check-in</button>
+  <button data-act="tab" data-v="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>More</button>
+</div></nav>
+
+<script>
+"use strict";
+/* ---------- Fixed wording (01_ADAPT_Method_Source_of_Truth, sections 3 and 6) ---------- */
+const DISCLAIMER = "All information gathered and recommendations given do not constitute medical advice. While we think it is spectacular and supremely helpful, anyone utilizing the pearls of wisdom contained within is doing so volitionally and is personally assuming all risk.";
+const CONFIDENTIAL = "We will treat all your information as confidential and not reveal it unnecessarily.";
+const SCREEN_DISCLAIMER = "This table cannot be used to definitively determine what you do/do not have or the severity of it. That can only be done under the direct care of a medical provider. Seek care if you feel you should. You are assuming your own risk with whatever actions you take.";
+const UPGRADE_LINK = ""; // add the upgrade URL here when it exists
+const MSG_INPERSON_A = "Based on your selection, we officially advise that you follow up with a medical professional for additional support and screening. That could be in-person, or you can get personalized guidance from our ADAPT team ";
+const MSG_INPERSON_B = ". There is plenty you can learn from reading through the remainder of the ADAPT protocol, though, and you can use your judgement as to what questions you can still answer.";
+const MSG_TAG_SAM = "Your answers are flagged for Sam. Send them to him so he can follow up with you."; // Sam approved Oct 22, 2026
+const RED_FLAGS = [
+"Significant pain at rest",
+"Pain that spikes during activities to overwhelming levels and then stays flared at rest",
+"Significant decrease to range of motion, strength, and/or stability in affected area and surrounding/related areas",
+"Significant bruising unrelated to hard contact",
+"Significant/persistent/recurrent swelling",
+"A gap/dent/divot in affected tissue",
+"Numbness and/or tingling",
+"Changes in vision, hearing, speech, balance/dizziness, control of limb(s), bowel/bladder control, sexual function",
+"Inability to bear weight on affected limb",
+"Unexplained nausea, vomiting, and/or diarrhea",
+"Unexplained changes in appetite",
+"Unexplained significant weight loss",
+"Unexplained recurrent night sweats",
+"Fever",
+"Unexplained fatigue",
+"Atypical shortness of breath",
+"Pain that migrates to seemingly unrelated locations",
+"Worsening of current symptoms/onset of new symptoms despite appropriate self-care",
+"Recent surgical procedure in any body region",
+"Prior surgical procedure in painful body region"];
+const EMERGENCY_FLAGS = [8,10,16]; // plus health question 3 (overlaps red flag 8). Sam, October 23, 2026: no separate emergency outcome; these add MSG_RIGHT_NOW
+const EMERGENCY_HH = [3];
+const MSG_RIGHT_NOW = "If you are experiencing these symptoms right now, we officially advise that you IMMEDIATELY follow up in-person with a medical professional, as this may be an EMERGENCY.";
+const HEALTH_SHORT = ["heart condition or high blood pressure","chest pain","dizziness or loss of consciousness","other chronic medical condition","prescribed medication for a chronic condition","regular over-the-counter medication","doctor advised medically supervised activity only"];
+const HEALTH = [
+"Has your doctor ever said that you have a heart condition OR high blood pressure?",
+"Do you feel pain in your chest at rest, during your daily activities of living, OR when you do physical activity?",
+"Do you lose balance because of dizziness OR have you lost consciousness in the last 12 months?",
+"Have you ever been diagnosed with another chronic medical condition (other than heart disease or high blood pressure)?",
+"Are you currently taking prescribed medications for a chronic medical condition?",
+"Are you currently taking any over-the-counter medications regularly for pain or any medical conditions?",
+"Has your doctor ever said that you should only do medically supervised physical activity?"];
+
+/* ---------- Preview mode (Sam, November 11, 2026) ----------
+   The same page served from /preview/ on the live site is a test copy Sam opens on his iPhone before a release goes live.
+   It keeps its own saved data (never touches real plans), sends no flags or counts, and installs no offline worker. */
+const PREVIEW = /^\/preview\//.test(location.pathname);
+/* ---------- Storage ---------- */
+const KEY = PREVIEW ? "adapt-app-preview" : "adapt-app-v1";
+let store = { activeId:null, plans:{}, clients:{} };
+let saveOk = true;
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)||"null"); if(s && s.plans) store = Object.assign({activeId:null,plans:{},clients:{}}, s); Object.values(store.plans).forEach(x=>{ if(x.region in OLD_REGION) x.region=OLD_REGION[x.region]; }); }catch(e){ saveOk=false; } }
+let saveTimer = null;
+function save(now){ clearTimeout(saveTimer); const run=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(store)); saveOk=true; }catch(e){ saveOk=false; } }; if(now) run(); else saveTimer=setTimeout(run,300); }
+
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+function today(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+function addDays(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function daysBetween(a,b){ return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000); }
+function fmtDate(iso){ if(!iso) return ""; const d=new Date(iso+"T12:00:00"); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+
+function newPlan(o={}){
+  return Object.assign({
+    id:uid(), v:1, created:today(), person:"", last:"", side:"", region:"", support:"self", origin:"self",
+    screen:{ rf:{}, hh:{}, done:false, date:null },
+    assess:{ kind:"painful", ctx:"", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
+    determine:{ crux:"", move:"", dose:"", range:"", load:"", nrsop:null },
+    approach:{ pfm:"", cc:"", cc2:"" },
+    program:{ ov:"", replaces:"", workout:"", skip:false },
+    tracking:false,
+    logs:{ daily:{}, tests:[], overload:[], skill:[] },
+    note:""
+  }, o);
+}
+const P = () => store.plans[store.activeId];
+
+/* ---------- Packing for links (plan travels in the link; never sent to a server) ---------- */
+function b64url(bytes){ let s=""; bytes.forEach(b=>s+=String.fromCharCode(b)); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function unb64url(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; const bin=atob(str); return Uint8Array.from(bin,c=>c.charCodeAt(0)); }
+/* Check-in links carry the whole plan, so they're packed tighter (nothing is dropped; unpack restores the full plan):
+   blank fields that match a new plan's defaults are left out, screening answers become one letter each,
+   and the daily check-offs become one digit per day (2 = Pain-Free Motion, 1 = Contraction Couplet, 3 = both). */
+function slimPlan(p){
+  if(!p||typeof p!=="object"||!p.logs||!p.screen||!p.logs.daily) return p;
+  const s=JSON.parse(JSON.stringify(p)), t=newPlan();
+  for(const k of Object.keys(t)){ const tv=t[k];
+    if(tv===""||tv===null){ if(s[k]===tv) delete s[k]; }
+    else if(tv&&typeof tv==="object"&&!Array.isArray(tv)&&k!=="logs"&&k!=="screen"&&s[k]&&typeof s[k]==="object"){
+      for(const kk of Object.keys(tv)) if((tv[kk]===""||tv[kk]===null)&&s[k][kk]===tv[kk]) delete s[k][kk]; } }
+  const okYN=(o,n)=>o&&typeof o==="object"&&Object.keys(o).every(k=>/^\d+$/.test(k)&&+k>=1&&+k<=n&&(o[k]==="yes"||o[k]==="no"));
+  const enc=(o,n)=>{ let str=""; for(let i=1;i<=n;i++) str+=o[i]==="yes"?"y":o[i]==="no"?"n":"-"; return str.replace(/-+$/,""); };
+  if(okYN(s.screen.rf||{},RED_FLAGS.length)&&okYN(s.screen.hh||{},HEALTH.length)){ s.screen.rf=enc(s.screen.rf||{},RED_FLAGS.length); s.screen.hh=enc(s.screen.hh||{},HEALTH.length); }
+  const D=s.logs.daily, keys=Object.keys(D);
+  if(keys.every(d=>/^\d{4}-\d\d-\d\d$/.test(d)&&D[d]&&typeof D[d]==="object"&&Object.keys(D[d]).every(k=>k==="pfm"||k==="cc"))){
+    const days=keys.filter(d=>D[d].pfm||D[d].cc).sort(); let b="";
+    if(days.length) for(let d=days[0]; d<=days[days.length-1]; d=addDays(d,1)){ const x=D[d]||{}; b+=String((x.pfm?2:0)+(x.cc?1:0)); }
+    s.logs.daily={from:days[0]||"", b}; }
+  s._slim=1; return s;
+}
+function fattenPlan(s){
+  if(!s||typeof s!=="object"||!s._slim) return s;
+  delete s._slim; const t=newPlan();
+  for(const k of Object.keys(t)){ const tv=t[k];
+    if(tv===""||tv===null){ if(!(k in s)) s[k]=tv; }
+    else if(tv&&typeof tv==="object"&&!Array.isArray(tv)&&k!=="logs"&&k!=="screen"&&s[k]&&typeof s[k]==="object"){
+      for(const kk of Object.keys(tv)) if(!(kk in s[k])) s[k][kk]=tv[kk]; } }
+  const dec=str=>{ const o={}; [...str].forEach((c,i)=>{ if(c==="y") o[i+1]="yes"; else if(c==="n") o[i+1]="no"; }); return o; };
+  if(s.screen){ if(typeof s.screen.rf==="string") s.screen.rf=dec(s.screen.rf); if(typeof s.screen.hh==="string") s.screen.hh=dec(s.screen.hh); }
+  const D=s.logs&&s.logs.daily;
+  if(D&&typeof D.b==="string"&&"from" in D){ const out={}; let d=D.from; for(const c of D.b){ const n=+c; if(n) out[d]=Object.assign(n&2?{pfm:true}:{}, n&1?{cc:true}:{}); d=addDays(d,1); } s.logs.daily=out; }
+  return s;
+}
+async function pack(obj, slim){
+  if(slim) obj=slimPlan(obj);
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if("CompressionStream" in window){ try{
+    const out = await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer();
+    return "z"+b64url(new Uint8Array(out)); }catch(e){} }
+  return "j"+b64url(bytes);
+}
+async function unpack(code){
+  code = code.trim();
+  const m = code.match(/#([cpr])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
+  const kind = code[0], body = code.slice(1);
+  let bytes = unb64url(body);
+  if(kind==="z"){ bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
+  else if(kind!=="j") throw new Error("not a code");
+  return fattenPlan(JSON.parse(new TextDecoder().decode(bytes)));
+}
+const baseURL = () => location.href.split("#")[0];
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function getPath(o,p){ return p.split(".").reduce((a,k)=>a==null?a:a[k],o); }
+function setPath(o,p,v){ const ks=p.split("."); let a=o; ks.slice(0,-1).forEach(k=>{ if(a[k]==null) a[k]={}; a=a[k]; }); a[ks[ks.length-1]]=v; }
+function toast(t){ const el=document.createElement("div"); el.className="toast"; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),1800); }
+async function copy(text){ try{ await navigator.clipboard.writeText(text); toast("Copied"); return true; }catch(e){ return false; } }
+const isPainful = p => p.assess.kind !== "restricted";
+const skillLabel = p => isPainful(p) ? "Painful Skill" : "Restricted Skill";
+// Everyday task or sport/training (Sam, Aaron agreed, November 10, 2026); unset reads as sport/training
+const isDaily = p => !!(p&&p.assess&&p.assess.ctx==="daily");
+const skillType = p => isDaily(p) ? " (everyday task)" : "";
+// Regular workout program? (Sam, Aaron agreed, November 10, 2026): "no" means the Overload Exercise is added, not swapped in.
+// Older plans with a replaced exercise filled in count as "yes".
+const hasWorkout = p => p.program.workout || ((p.program.replaces||"").trim() ? "yes" : "");
+
+function scaleColor(n, kind){ // NRSoP: 0 green to 10 red; PSFS: 0 red to 10 green
+  const t = kind==="psfs" ? (10-n)/10 : n/10;
+  const h = Math.round(130 - 130*t); const L=[32,32,32,31,30,29,31,36,40,40,40][Math.round(t*10)]; return `hsl(${h} 62% ${L}%)`; // white text stays at least 4.5:1
+}
+function scale(path, val, kind){
+  const btns = Array.from({length:11},(_,n)=>`<button type="button" data-act="setnum" data-path="${path}" data-v="${n}" aria-pressed="${val===n}" style="${val===n?`background:${scaleColor(n,kind)}`:""}" aria-label="${n} out of 10">${n}</button>`).join("");
+  const ends = kind==="psfs" ? ["Completely limited","Completely unlimited"] : ["No pain","Worst pain"];
+  return `<div class="scale" role="group">${btns}</div><div class="scale-ends"><span>0: ${ends[0]}</span><span>10: ${ends[1]}</span></div>`;
+}
+function field(label, path, hint, opts={}){
+  const p=P(); const v=getPath(p,path)||"";
+  const input = opts.area ? `<textarea id="f-${path}" data-bind="${path}" placeholder="${esc(opts.ph||"")}">${esc(v)}</textarea>`
+    : `<input type="text" id="f-${path}" data-bind="${path}" value="${esc(v)}" placeholder="${esc(opts.ph||"")}">`;
+  return `<label class="f" for="f-${path}">${esc(label)}${hint?`<span class="hint">${esc(hint)}</span>`:""}${input}</label>`;
+}
+
+/* ---------- Screening logic (01, section 6) ---------- */
+function screenResult(p){
+  const rf=p.screen.rf, hh=p.screen.hh;
+  const yesRF = Object.keys(rf).filter(k=>rf[k]==="yes").map(Number);
+  const yesHH = Object.keys(hh).filter(k=>hh[k]==="yes").map(Number);
+  const emergency = [...yesRF.filter(n=>EMERGENCY_FLAGS.includes(n)).map(n=>"rf"+n), ...yesHH.filter(n=>EMERGENCY_HH.includes(n)).map(n=>"hh"+n)];
+  const other = yesRF.filter(n=>!EMERGENCY_FLAGS.includes(n));
+  const answered = Object.keys(rf).length===RED_FLAGS.length && Object.keys(hh).length===HEALTH.length;
+  return { yesRF, yesHH, emergency, other, any: yesRF.length+yesHH.length>0, answered };
+}
+// PLACEHOLDER (Sam, October 26, 2026): until the upgrade link and its landing page exist, point people to Sam by email.
+// When UPGRADE_LINK is set, the original wording with the link comes back automatically.
+const SAM_EMAIL = "sam@adaptbeyondpain.com";
+const emailLink = () => `<a href="mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}">${SAM_EMAIL}</a>`;
+function upgradeMsg(basis){ // basis "tracking": the ladder's referral, where "your selection" doesn't fit
+  const a = basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A;
+  if(UPGRADE_LINK) return esc(a)+`<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`+esc(MSG_INPERSON_B);
+  return esc(a.replace("you can get personalized guidance from our ADAPT team ","you can get personalized guidance through ADAPT\u2019s direct-support coaching option; email Sam at "))+emailLink()+esc(" to ask about details and pricing")+esc(MSG_INPERSON_B);
+}
+function screenMessages(p){
+  const r=screenResult(p); if(!r.any) return `<div class="msg good"><b>No red flags or health flags selected.</b><p class="small">You can continue to Step 1.</p></div>`;
+  let h="";
+  const sam = p.support==="sam";
+  if(r.emergency.length) h+=`<div class="msg alert" role="alert"><p>${esc(MSG_RIGHT_NOW)}</p></div>`;
+  if(sam) h+=`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
+  else h+=`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p><p>${esc(MSG_SECOND_STEP)}</p></div>`;
+  if(sam) h+=`<button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`;
+  return h;
+}
+
+const MSG_SECOND_STEP = "In the meantime, use your judgement as to what training you can still continue that does not provoke your symptoms."; // Sam, October 23, 2026
+// Progress checks on the weekly Testing Movement (Sam, October 23, 2026). "Unclear" counts as "Same".
+const MSG_TWO_WEEK = "Your last two weekly tests didn’t show progress. Time to change one thing: your Pain-Free Motion, Contraction Couplet, or Overload Exercise. Keep the Testing Movement the same so you can see whether the change helps.";  // Sam approved, October 23, 2026
+const MSG_TWO_REGRESSED = "Your last two tests went backward. Re-check the screening to make sure nothing new needs attention.";  // Sam approved, October 23, 2026
+// Item 18 decisions (Sam, October 25, 2026)
+const MSG_PAUSE = "Pause your ADAPT movements until you’ve been checked.";
+const MSG_HARDER = "Make your Testing Movement one notch harder (ex., more reps, range, load, etc.) and use that as your new starting point.";
+const MSG_DAILY_TARGET = "Daily is the target. If life gets in the way, fewer days still counts; 2-3 days a week beats zero. The “good enough” you do is better than the “perfect” you don’t. Just keep in mind, if your progress plateaus, this is probably the first place to make an adjustment.";
+const PSFS_PAIN = "How well can you do this skill right now? 0 = can’t do it at all due to pain/injury; 10 = as well as before the pain/injury. This is not asking how skilled you are (for example, if you are pain-free but just aren’t good at doing a backflip, that would still score 10/10); it’s asking how much is the pain/injury interfering with your current skill level.";
+const PSFS_RESTR = "How well can you do this skill right now? 0 = can’t do it at all due to the restriction; 10 = the restriction no longer holds you back. This is not asking how skilled you are overall; it’s asking how much that specific limitation (ex., range, strength, control, confidence, etc.) is interfering with the skill.";
+const psfsExplain = p => isPainful(p) ? PSFS_PAIN : PSFS_RESTR;
+// Tests since the latest "new starting point" (a Testing Movement made harder)
+// Two tests less than 5 days apart count once, the later one (Sam, November 10, 2026). New tests are sorted out
+// by the prompt at Save; this covers tests logged before it existed.
+const TEST_GAP=5;
+function countedTests(p){ const T=p.logs.tests; return T.filter((t,i)=>!(T[i+1]&&daysBetween(t.date,T[i+1].date)<TEST_GAP)); }
+function saveTest(p,e){ freezeCheck(p); if(p.testLogged!==today()){ p.testLogged=today(); logEvent(p,"Test logged"); }
+  p.logs.tests.push(e); p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); }
+function testsSinceBase(p){ const a=p.tmBase&&p.tmBase.after; return countedTests(p).filter(t=>!a||t.date>a); }
+function ceilingCheck(p){ const T=testsSinceBase(p); const last2=T.slice(-2);
+  const on = last2.length===2 && last2.every(t=> isPainful(p) ? t.nrsop===0 : t.free===true);
+  return on ? {since:last2[0].date, key:last2[1].date} : null; }
+// Stall ladder (Sam, October 26, 2026; awaiting Aaron): each stalled check (2 rated tests without Progressed)
+// looks at the 2 weeks before it. Missing movement: find it (no step). Under the consistency target: target prompt,
+// up to 2 in a row; the 3rd in a row moves on to exercise changes. On target: next rung. Rungs: change #1, #2, #3, then referral.
+const MOVES=[["pfm","Pain-Free Motion"],["cc","Contraction Couplet"],["ov","Overload Exercise"]];
+function countsAt(p,end){ const hasP=!!p.approach.pfm.trim(), hasC=!!ccText(p); let d=0;
+  for(let i=0;i<14;i++){ const x=p.logs.daily[addDays(end,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
+  const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,end); return k>=0&&k<14; }).length;
+  return {d,o}; }
+function progressCheck(p){ const ceil=ceilingCheck(p);
+  if(ceil) return {stalled:false, refer:false, regressed:false, checks:0, key:null, ceiling:ceil};
+  const L=testsSinceBase(p).filter(t=>t.trend); let run=0; for(let i=L.length-1;i>=0&&L[i].trend!=="progressed";i--) run++;
+  const checks=Math.floor(run/2); const last2=L.slice(-2);
+  const regressed=last2.length===2&&last2.every(t=>t.trend==="regressed");
+  if(!checks) return {stalled:false, refer:false, regressed, checks:0, key:null};
+  const ep=L.slice(L.length-run), epStart=ep[0].date, lad=p.ladder||{}, miss=missingMoves(p).length>0;
+  let rung=0, under=0, refer=false, step=null, outcome=null;
+  for(let k=1;k<=checks;k++){
+    const t=ep[2*k-1], key=epStart+":"+k, last=k===checks;
+    let o=lad[key]; if(!o){ if(last&&miss) o="M"; else { const c=countsAt(p,t.date); o=(c.d>=10&&c.o>=6)?"C":"I"; } }
+    if(last) outcome=o;
+    if(refer) step={type:"refer"};
+    else if(o==="M") step={type:"missing"};
+    else if(o==="I"&&under<2){ under++; const c=countsAt(p,t.date), pv=countsAt(p,addDays(t.date,-14)); step={type:"target", second:under===2, T:(under===2&&(c.d<8||c.o<4))?[8,2]:[10,3], c, pv, date:t.date}; }
+    else { under = o==="I" ? under+1 : 0; rung++; if(rung>3){ refer=true; step={type:"refer"}; } else step={type:"change", rung, date:t.date}; }
+  }
+  return {stalled:true, refer, regressed, checks, rung, step, outcome, epStart, key: epStart+":"+checks}; }
+function freezeCheck(p){ const c=progressCheck(p); if(c.stalled&&c.key&&c.outcome){ p.ladder=p.ladder||{}; p.ladder[c.key]=c.outcome; } }
+function changedSince(p,since){ return (p.changed||[]).filter(x=>x.date>=since); }
+// Movements still to find: the first exercise adjustment (Sam)
+function missingMoves(p){ const m=[];
+  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion"]);
+  if(!ccText(p)) m.push(["step3","Contraction Couplet"]);
+  if(!p.program.ov.trim()||p.program.skip) m.push(["step4","Overload Exercise"]);
+  return m; }
+function missingPhrase(m){ const and=a=>a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+  const g={}; m.forEach(([s,l])=>{(g[s]=g[s]||[]).push(l);});
+  return and(Object.keys(g).map(s=>and(g[s])+" (Step "+s.slice(-1)+")")); }
+// Consistency over a 14-day window ending `back` days ago: a day counts when every daily movement that is set was done
+function windowCounts(p, back){ const t=today(); const hasP=!!p.approach.pfm.trim(), hasC=!!ccText(p); let d=0;
+  for(let i=back;i<back+14;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if((hasP||hasC)&&(!hasP||x.pfm)&&(!hasC||x.cc)) d++; }
+  const o=p.logs.overload.filter(r=>{ const k=daysBetween(r.date,t); return k>=back&&k<back+14; }).length;
+  return {d,o}; }
+const times = n => n===1?"1 time":n+" times";
+// The person's own movement next to its label, once they've filled it in (Sam, October 27, 2026)
+function ccText(p){ const a=p.approach||{}; return [a.cc,a.cc2].map(x=>(x||"").trim()).filter(Boolean).join(" / "); }
+function mvn(p,k){ const l=MOVES.find(m=>m[0]===k)[1]; const n=(k==="pfm"?p.approach.pfm:k==="cc"?ccText(p):(p.program.skip?"":p.program.ov)||"").trim(); return n?`${l} (${n})`:l; }
+const allThree = p => `your ${mvn(p,"pfm")}, ${mvn(p,"cc")}, or ${mvn(p,"ov")}`;
+function stallMsg(p,c){
+  const st=c.step||{};
+  if(st.type==="missing"){ const miss=missingMoves(p); if(miss.length) return `Your last two weekly tests didn’t show progress. First, find your ${missingPhrase(miss)}; that’s the first adjustment to make. Keep the Testing Movement the same so you can see whether the change helps.`; }
+  if(st.type==="target"){ const cur=st.c;
+    if(!st.second) return `Your last two weekly tests didn’t show progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}. For the next 2 weeks, aim for your daily movements on at least 10 days and your Overload Exercise 3 times a week, and keep everything else the same.`;
+    const prev=st.pv, ud=cur.d>prev.d, uo=cur.o>prev.o;
+    const up = ud&&uo ? `, up from ${prev.d} days and ${times(prev.o)} before, so the extra effort is showing` : ud ? `, up from ${prev.d} days before, so the extra effort is showing` : uo ? `, up from ${times(prev.o)} before, so the extra effort is showing` : "";
+    return `Your tests still haven’t shown progress. Over the last 2 weeks you did your daily movements on ${cur.d} of 14 days and your Overload Exercise ${times(cur.o)}${up}. For the next 2 weeks, aim for your daily movements on at least ${st.T[0]} days and your Overload Exercise ${st.T[1]} times a week. If hitting that doesn’t help, the next adjustment we’ll make is changing the exercises themselves.`; }
+  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k)).map(x=>mvn(p,x[0]));
+  const tail=" Keep the Testing Movement the same so you can see whether the change helps.";
+  if(rem.length===2) return `Your last two weekly tests didn’t show progress. Time to change one of the two you haven’t changed yet: your ${rem[0]} or ${rem[1]}.`+tail;
+  if(rem.length===1) return `Your last two weekly tests didn’t show progress. Time to change the last one: your ${rem[0]}.`+tail;
+  if(rem.length===0) return `Your last two weekly tests didn’t show progress. Time to change one thing again: ${allThree(p)}.`+tail;
+  return MSG_TWO_WEEK.replace("your Pain-Free Motion, Contraction Couplet, or Overload Exercise", allThree(p)); }
+function changePick(p,c){ const st=c.step||{}; if(st.type!=="change") return "";
+  const mine=changedSince(p,st.date); if(mine.length) return `<p class="small"><b>Changed:</b> your ${esc(MOVES.find(m=>m[0]===mine[mine.length-1].k)[1])} (${esc(fmtDate(mine[mine.length-1].date))}).</p>`;
+  const done=changedSince(p,c.epStart||"").map(x=>x.k), rem=MOVES.filter(([k])=>!done.includes(k));
+  return `<p class="small">Which did you change?</p><div class="row">${(rem.length?rem:MOVES).map(([k,l])=>`<button class="btn small plain" data-act="changed" data-v="${k}">${l}</button>`).join("")}</div>`; }
+function ceilingMsg(p,ceil){
+  const line = isPainful(p) ? "Your Testing Movement has been at 0/10 for two weeks, so it isn’t measuring much anymore." : "Your Testing Movement hasn’t felt limited for two weeks, so it isn’t measuring much anymore.";
+  const rt=p.logs.skill.filter(r=>r.date>=ceil.since&&r.psfs!=null).pop();
+  if(rt&&rt.psfs===10) return "";
+  const harder = `<p class="small">${esc(MSG_HARDER)}</p><div class="row"><button class="btn small" data-act="new-base">I made it harder: new starting point</button></div>`;
+  if((rt&&rt.psfs<10) || (p.ceilAns===ceil.key)) return `<div class="msg warn"><p class="small">${esc(line)}</p>${harder}</div>`;
+  return `<div class="msg warn"><p class="small">${esc(line)} Do you feel ready to test your ${esc(skillLabel(p))}?</p><div class="row"><button class="btn small" data-act="ceil-yes">Yes, test it now</button><button class="btn small plain" data-act="ceil-no">Not yet</button></div></div>`; }
+function psfs10Msg(p){ if(p.handoff) return ""; const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); if(!ls||ls.psfs!==10) return "";
+  const what = isPainful(p) ? "the pain/injury isn’t" : "the restriction isn’t";
+  if(p.handoffNo===ls.date) return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore. No rush: keep your plan going and retest your ${esc(p.assess.skill||skillLabel(p))} in about two weeks.</p></div>`;
+  return `<div class="msg good"><p class="small">10/10: ${what} holding this skill back anymore.</p><p class="small"><b>Ready to wrap up ADAPT and take it back into your regular training?</b></p><div class="row"><button class="btn small" data-act="handoff-yes">Yes, wrap it up</button><button class="btn small plain" data-act="handoff-no">Not yet</button></div></div>`; }
+function checkTrackFlag(p){ const c=progressCheck(p); if(!c.stalled) return; p.notified=p.notified||{}; if(p.notified.track!==c.key){ p.notified.track=c.key; queueFlag(p,"Track"); save(true); } }
+function progressMsgs(p){ const c=progressCheck(p); let h="";
+  if(c.regressed) h+=`<div class="msg alert"><p class="small">${esc(MSG_TWO_REGRESSED)}</p><button class="btn small plain" data-act="go" data-v="screen">Re-check the screening</button></div>`;
+  if(c.refer) h+= p.support==="sam" ? `<div class="msg warn"><b>Flagged for Sam</b><p class="small">${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div><button class="btn small" data-act="go" data-v="checkin">Send my answers to Sam</button>`
+    : `<div class="msg warn"><b>Follow up</b><p class="small">${upgradeMsg("tracking")}</p><p class="small">${esc(MSG_SECOND_STEP)}</p></div>`;
+  else if(c.stalled) h+=`<div class="msg warn"><p class="small">${esc(stallMsg(p,c))}</p>${changePick(p,c)}${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`;
+  if(c.ceiling) h+=ceilingMsg(p,c.ceiling);
+  return h; }
+function noTmMsg(p){ const sam=p.support==="sam";
+  return (sam?`<div class="msg warn"><b>Flagged for Sam</b><p>${esc(notifies(p)?MSG_NOTIFIED:MSG_TAG_SAM)}</p></div><button class="btn" data-act="go" data-v="checkin">Send my answers to Sam</button>`:`<div class="msg warn"><b>Follow up</b><p>${upgradeMsg()}</p></div>`)+`<p class="small">${esc(MSG_PAUSE+" "+MSG_SECOND_STEP)}</p>`; }
+
+// Body regions and codes (approved by Sam, October 23, 2026)
+const REGIONS=[["Hd","Head"],["J","Jaw"],["N","Neck"],["S","Shoulder"],["Ar","Upper arm"],["E","Elbow"],["Fa","Forearm"],["W","Wrist"],["Hn","Hand"],["Fi","Finger"],["Ch","Chest"],["Ab","Abdomen"],["Rb","Ribs or side of trunk"],["UB","Upper back"],["LB","Low back"],["Hp","Hip"],["Gr","Groin"],["Gt","Glute"],["Th","Thigh"],["K","Knee"],["Lg","Lower leg (shin or calf)"],["An","Ankle"],["Ft","Foot"],["T","Toe"]];
+const OLD_REGION={Ua:"Ar",G:"Gr",Gl:"Gt",A:"An",B:""};
+const SIDES=[["R","Right"],["L","Left"],["B","Both"]];
+function fullName(p){ return [p.person,p.last].map(x=>(x||"").trim()).filter(Boolean).join(" "); }
+function planCode(p){ const n=fullName(p); const c=(p.side||"")+(p.region||""); return [n,c].filter(Boolean).join(" "); }
+
+/* ---------- Flag notice to Sam (06, item 22) ---------- */
+// Supported clients only. Sends the plan code and the step that flagged; no answers or details.
+const FLAG_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdzJUo7gAYaWohke7ktNMm9tUiqjZTOQ22_JlyQFyiaiqIxKQ/formResponse";
+const FLAG_ENTRY = { client:"entry.192607587", step:"entry.112180385" };
+/* ---------- Domain move (prepared November 4, 2026; runs when Sam says so) ----------
+   adaptbeyondpain.com becomes the primary domain. Plans live in the browser per web address, so moving the app
+   would leave people with an empty app. On move day: FLAG_LIVE_HOST switches to NEW_HOST in the main build, and a
+   copy of the app built with MOVE_SENDER = true stays on the old address. That copy hands each phone's saved data
+   to the new address inside the link (#move=..., packed like a backup); the new address merges it in. */
+const OLD_HOST = "app.adaptbeyondlimits.com", NEW_HOST = "app.adaptbeyondpain.com";
+const MOVE_SENDER = false;               // true only in the copy left on the old address
+const MOVE_TO = "https://"+NEW_HOST+"/";  // where the old copy sends people
+const FLAG_LIVE_HOST = NEW_HOST; // only the live site sends; previews and tests just queue (moved to the new host November 4, 2026)
+const MSG_NOTIFIED = "Sam has been notified to reach out to you. Send him your answers so he has the details.";
+const notifies = p => p.support==="sam" && p.origin!=="coach";
+function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
+let flushing=false;
+async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||location.hostname!==FLAG_LIVE_HOST||PREVIEW||!navigator.onLine) return; flushing=true;
+  try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step==="Determine"?"Discover":f.step);
+      await fetch(FLAG_FORM,{method:"POST",mode:"no-cors",body}); store.outbox.shift(); save(true); } }catch(e){} finally{ flushing=false; } }
+window.addEventListener("online", flushFlags);
+// Anonymous counts (Sam, October 27, 2026): plan started, 10/10 hand-off, 11/10 win. No names; a random id per plan
+// that lives outside the plan (so check-in links never carry it). Rows land in the flag sheet's Data tab.
+const DATA_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfONIYwOEZgeUU9I4zcAt1wGpZMi95isI1YRXTdzRlbuAByqQ/formResponse";
+const DATA_ENTRY = { event:"entry.1610803726", data:"entry.1226649088" };
+function anonId(p){ store.anon=store.anon||{}; return store.anon[p.id]=store.anon[p.id]||uid(); }
+const weeksSince = (p,end) => Math.max(0, Math.round(daysBetween(p.trackStart||p.created, end||today())/7));
+function statRow(p,end){ return { support:p.support==="sam"?"Supported":"Solo", side:(SIDES.find(s=>s[0]===p.side)||[0,""])[1], region:(REGIONS.find(r=>r[0]===p.region)||[0,""])[1],
+  kind:isPainful(p)?"Painful":"Restricted", psfs:p.assess.psfs??"", weeks:weeksSince(p,end), changes:(p.changed||[]).length, test:/^test$/i.test((p.last||"").trim())?"yes":"no" }; }
+function logEvent(p, event, end){ if(!p||p.origin==="coach") return; const s=statRow(p,end);
+  const w=last7(p); const data=[anonId(p),s.support,s.side,s.region,s.kind,s.psfs,s.weeks,s.changes,s.test,w.pfm,w.cc].map(v=>String(v).replace(/\|/g,"/")).join("|");
+  (store.dataOut=store.dataOut||[]).push({event,data}); save(true); flushData(); }
+function last7(p){ let a=0,b=0; const D=(p.logs&&p.logs.daily)||{}; for(let i=0;i<7;i++){ const x=D[addDays(today(),-i)]||{}; if(x.pfm)a++; if(x.cc)b++; } return {pfm:a,cc:b}; }
+function weeklyCheck(p){ if(!p||!p.tracking||p.handoff||p.origin==="coach") return;
+  if(!p.weekSent){ p.weekSent=today(); save(true); return; }
+  if(daysBetween(p.weekSent,today())>=7){ p.weekSent=today(); save(true); logEvent(p,"Weekly summary"); } }
+function logCheckin(p){ if(!p||p.checkinLogged===today()) return; p.checkinLogged=today(); logEvent(p,"Check-in sent"); }
+let flushingData=false;
+async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||PREVIEW||!navigator.onLine) return; flushingData=true;
+  try{ while(store.dataOut.length){ const d=store.dataOut[0]; const body=new URLSearchParams(); body.append(DATA_ENTRY.event,d.event); body.append(DATA_ENTRY.data,d.data);
+      await fetch(DATA_FORM,{method:"POST",mode:"no-cors",body}); store.dataOut.shift(); save(true); } }catch(e){} finally{ flushingData=false; } }
+window.addEventListener("online", flushData);
+// An 11/10 win shared by the person goes to Sam's inbox for every plan type (the person chose to send it)
+// Setup funnel (Sam, October 29, 2026, option B): one anonymous row when setup begins and the first time each
+// setup step is filled in, so drop-off before tracking shows. Only plans begun after this change carry p.funnel.
+function beginFunnel(np){ np.funnel={}; logEvent(np,"Setup began"); }
+const FUNNEL=[["screen","Screening done"],["step1","Assess done"],["step2","Discover done"],["step3","Approach done"],["step4","Program done"]];
+function funnelCheck(p){ if(!p||!p.funnel||p.origin==="coach") return;
+  FUNNEL.forEach(([k,label])=>{ const s=STEPS.find(x=>x.k===k); if(!p.funnel[k] && s && s.done(p)){ p.funnel[k]=today(); logEvent(p,label); } }); }
+function queueWin(p){ (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step:"11/10 win", at:new Date().toISOString()}); save(true); flushFlags(); }
+function checkScreenFlag(p){ if(!p||!screenResult(p).answered) return; const sig=screenSig(p); p.notified=p.notified||{}; if(sig && sig!==p.notified.screen) queueFlag(p,"Pre-ADAPT Screening"); p.notified.screen=sig; save(true); }
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && view==="screen") checkScreenFlag(P()); });
+function screenSig(p){ const r=screenResult(p); return r.any ? [...r.yesRF.map(n=>"rf"+n),...r.yesHH.map(n=>"hh"+n)].sort().join(",") : ""; }
+
+/* ---------- Step completion ---------- */
+const STEPS = [
+  {k:"screen", n:"0", t:"Pre-ADAPT Screening", done:p=>p.screen.done},
+  {k:"step1", n:"1", t:"Assess", done:p=>!!p.assess.skill.trim()},
+  {k:"step2", n:"2", t:"Discover", done:p=>!!p.determine.move.trim()||!!p.determine.none},
+  {k:"step3", n:"3", t:"Approach", done:p=>!!(p.approach.pfm.trim()||ccText(p))},
+  {k:"step4", n:"4", t:"Program", done:p=>!!(p.program.ov.trim()||p.program.skip)},
+  {k:"step5", n:"5", t:"Track", done:p=>p.tracking}];
+function stepSub(p,k){
+  switch(k){
+    case "screen": return p.screen.done ? (screenResult(p).any?"Done, with flags":"Done, no flags") : "Red flags and health questions";
+    case "step1": return p.assess.skill || `Your ${skillLabel(p)}`;
+    case "step2": return p.determine.move || (p.determine.none?"None found yet (flagged)":"Your Testing Movement");
+    case "step3": return [p.approach.pfm,ccText(p)].filter(Boolean).join(" + ") || "Pain-Free Motion and Contraction Couplet";
+    case "step4": return p.program.skip ? "Skipped for now" : (p.program.ov || "Your Overload Exercise");
+    case "step5": return p.tracking ? "Tracking" : "How to track";
+  }
+}
+const nextStep = p => STEPS.find(s=>!s.done(p));
+
+/* ---------- Views ---------- */
+let noneConfirm = null; // screening group ("rf" or "hh") whose "None of these apply" is waiting for its confirming tap
+let part = 0; // which page of a setup step is showing: a number, or "sum" for the step's summary
+let view = "home", coachData = null, importData = null, armed = null, logForm = null, selDay = null;
+
+function header(){
+  const p=P(); const who = p ? (p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : (planCode(p)||"")) : "";
+  return `<div class="top"><span class="brand">ADAPT</span><span class="who">${esc(who)}</span></div>`;
+}
+
+const V = {};
+/* ---------- Welcome tour (Sam's wording, October 27, 2026) ---------- */
+let tourStep=0;
+const fromLink = p => p && p.support==="sam" && p.origin!=="coach";
+function installed(){ try{ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }catch(e){ return false; } }
+function installTip(){ if(installed()) return "";
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  return `<div class="msg info"><p class="small"><b>Tip:</b> add the app to your home screen so it opens like an app and works offline. ${ios?"In Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>.":"In Chrome, tap the <b>&#8942;</b> menu, then <b>Install app</b> or <b>Add to Home screen</b>."}</p></div>`; }
+function tourCards(p){ const name=esc((p&&p.person)||"there"); const link=fromLink(p);
+  const c1 = link ? `<h1>Welcome, ${name}.</h1><p>Sam set up this plan with you, so the hard part is done.</p>`
+    : `<h1>Welcome to ADAPT, ${name}.</h1><p>Pain or injury is interfering with doing what you love. This app helps you use what you love to make it love you back. The goal is to be better than before, not just cycle back to where you were.</p><p><b>Respect but don’t fear pain. Find victories obscured by losses. ADAPT beyond limits.</b></p>`;
+  const c2 = `<h1>Here’s the path</h1><img class="fig" src="../img/journey.jpg" alt="The resilience journey, steps 1 through 5." width="1000" height="794"><p>First, a short safety screening. Then five steps:</p><ul>
+    <li><b>Assess:</b> name the skill that’s limited, and how much</li>
+    <li><b>Discover:</b> find a simple test you’ll repeat once a week</li>
+    <li><b>Approach:</b> find three gentle daily movements</li>
+    <li><b>Program:</b> swap one exercise in your training for one that rebuilds the problem area</li>
+    <li><b>Track:</b> see your progress as you tick off your daily movements, log the new exercise, and record your weekly test results</li></ul>`;
+  const c3 = link ? `<h1>What it takes</h1><p>Your job now: about 3 minutes a day, your training with one exercise swapped, and one test a week. Send Sam a check-in whenever he asks, or anytime something changes.</p>`
+    : `<h1>What it takes</h1><p>Setup takes about 30-60 minutes, and everything saves as you go, so you can do it in pieces. You’ll need to move around and explore what hurts and what feels good, so be prepared with clothing/equipment/space.</p><p>After that, it’s about 3 minutes a day, your usual training with one exercise swapped, and one test a week. If progress stalls, the app tells you what to adjust next.</p>`;
+  const c4 = `<h1>Getting around</h1><ul>
+    <li><b>Plan:</b> today’s to-dos and your progress</li>
+    <li><b>Steps:</b> set up or change your plan</li>
+    <li><b>Learn:</b> the why behind it all</li>
+    <li><b>Check-in:</b> send a summary to a coach</li>
+    <li><b>More:</b> your plans and backups</li></ul>${installTip()}`;
+  const c5 = `<h1>Before you start</h1><p>Nothing that identifies you leaves your phone unless you choose to send it. ADAPT is education and coaching, not medical care; if something feels serious, get it checked.</p>`;
+  return link ? [c1,c2,c3,c4] : [c1,c2,c3,c4,c5]; }
+V.tour = () => { const p=P(); const cards=tourCards(p); const n=cards.length; const i=Math.min(tourStep,n-1); const last=i===n-1;
+  const toPlan = fromLink(p) || p.screen.done; const dest = toPlan ? "home" : "screen";
+  const finish = `<button class="btn" data-act="tour-done" data-v="${dest}">${toPlan?"Go to my plan":"Start the screening"}</button>`;
+  return `<div class="stack tour"><div class="card">${cards[i]}</div>
+  <div class="tour-dots" aria-label="Card ${i+1} of ${n}">${cards.map((_,k)=>`<span class="${k===i?"on":""}"></span>`).join("")}</div>
+  <div class="row">${i>0?`<button class="btn plain" data-act="tour-step" data-v="${i-1}">Back</button>`:""}${last?finish:`<button class="btn" data-act="tour-step" data-v="${i+1}">Next</button>`}</div>
+  ${last?"":`<button class="btn plain small" data-act="tour-done" data-v="${dest}">Skip the tour</button>`}</div>`; };
+V.welcome = () => `
+  <div class="hero">
+    <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
+    <p class="hero-tag">Adapt beyond pain.</p>
+    <p class="muted" style="text-align:center">By Aaron Martin and Dr. Sam Goldner, DPT, CSCS, Pn1</p>
+    <img class="fig" src="../img/mountain-start.jpg" alt="A hiker in an orange jacket stands on a rocky outcrop above a river valley, looking toward a sunlit peak at sunrise." width="1000" height="807">
+  </div>
+  <div class="stack">
+    <div class="card">
+      <label class="f" for="f-name">Your first name<span class="hint">Shown on your plan and check-ins.</span><input type="text" id="f-name" placeholder="First name" autocomplete="given-name"></label>
+      <label class="f" for="f-last">Your last name<input type="text" id="f-last" placeholder="Last name" autocomplete="family-name"></label>
+      <button class="btn" data-act="start" data-v="self">Start my plan</button>
+      <button class="btn plain small" data-act="go" data-v="open">I have a plan link from my coach</button>
+      <button class="btn plain small" data-act="go" data-v="restore">Restore a backup from another device</button>
+    </div>
+    <details><summary>Coach: build a plan for a client</summary><div class="body">
+      <p class="small">For live sessions. Fill in the plan during the call, then send the client a link. Their plan opens and saves on their phone.</p>
+      <label class="f" for="f-client">Client's first name<input type="text" id="f-client" placeholder="Client's first name"></label>
+      <label class="f" for="f-client-last">Client's last name<input type="text" id="f-client-last" placeholder="Client's last name"></label>
+      <button class="btn plain" data-act="start" data-v="coach">Start a client plan</button>
+    </div></details>
+    ${legal()}
+  </div>`;
+
+function legal(){ return `<div class="card flat"><p class="fine"><b>Disclaimer:</b> ${esc(DISCLAIMER)}</p><p class="fine">${esc(CONFIDENTIAL)} Your answers and tracking are saved on this device only. They leave it only when you send a check-in or export a backup.</p></div>`; }
+
+V.home = () => {
+  const p=P(); const ns=nextStep(p);
+  if(!p.tracking){
+    const doneN = STEPS.filter(s=>s.done(p)).length;
+    return `<div class="stack">
+      <div class="card"><span class="eyebrow">Your plan</span><h1>${doneN ? "Keep going" : "Let's build your plan"}</h1>
+      <p class="muted">Five steps, about an hour in total. Your answers save as you go, so you can stop and come back.</p>
+      <button class="btn" data-act="go" data-v="${ns?ns.k:"step5"}">${doneN? "Continue: ":"Start: "}${ns?esc(ns.t):"Track"}</button></div>
+      ${stepsList(p)}
+      ${p.origin==="coach" ? sendPlanCard(p) : ""}
+    </div>`;
+  }
+  return p.handoff ? handoffView(p) : dashboard(p);
+};
+V.track = () => { const p=P(); return `<div class="stack"><button class="btn plain small" data-act="go" data-v="home">Back to your send-off</button>${dashboard(p)}</div>`; };
+// The hand-off after PSFS 10/10 (Sam, October 27, 2026; awaiting Aaron). Wind-down and re-entry are still being designed (06, item 24).
+function handoffView(p){ const sam=p.support==="sam"; const goal=(p.assess.goal||"").trim(); const sk=esc(p.assess.skill||skillLabel(p));
+  const who = isPainful(p) ? "Pain isn’t" : "The restriction isn’t"; const h=p.handoff, w=p.win;
+  const next = sam ? `<div class="msg info"><p class="small">Sam will reach out to talk through your next steps.</p></div>`
+    : `<div class="card"><h2>Do you have a training program to go back to?</h2>
+      ${h.program==="yes"?`<p class="small">Perfect. Take all of this back into it.</p>`
+        :h.program==="no"?`<p class="small">You’ve got options: run ADAPT again with your 11/10 goal as the new target, or get a training program built around what you love. Email Sam at ${emailLink()} to ask about programs.</p><button class="btn plain" data-act="rerun">Run ADAPT again</button>`
+        :`<div class="row"><button class="btn" data-act="handoff-prog" data-v="yes">Yes</button><button class="btn plain" data-act="handoff-prog" data-v="no">No</button></div>`}</div>`;
+  const win = !w ? `<button class="btn" data-act="win">I hit my 11/10</button>`
+    : `<img class="fig" src="../img/mountain-11.jpg" alt="The hiker stands on the summit of the higher peak beside a planted flag." width="1000" height="807"><div class="msg good"><p class="small"><b>11/10.</b> You’re past your old limits. That’s what ADAPT is for.</p></div>`
+      + (w.shared ? `<p class="small">Shared ${esc(fmtDate(w.shared))}. Thank you for letting us celebrate with you.</p>`
+        : `<button class="btn" data-act="win-share">Share it with the ADAPT team</button><p class="fine">This opens an email to Sam with your summary, and lets the ADAPT team know about your win.</p>`);
+  return `<div class="stack">
+  ${supportEndedCard(p)}
+  <div class="card"><img class="fig" src="../img/mountain-10.jpg" alt="The hiker stands on top of the first ridge, looking up at the higher sunlit peak." width="1000" height="807"><span class="eyebrow">ADAPT complete</span><h1>10/10</h1>
+    <p>${who} holding your ${sk} back anymore. That’s the ADAPT part done; the next part happens in your regular training.</p>
+    <p><b>Take these with you:</b></p><ul class="tight">
+    <li><b>Your ${esc(mvn(p,"pfm"))} and ${esc(mvn(p,"cc"))}:</b> they’re not daily anymore, but they’re your go-to warm-up or reset whenever your ${sk} feels off</li>
+    ${(!p.program.skip&&(p.program.ov||"").trim())?`${hasWorkout(p)==="no"?`<li><b>Your ${esc(mvn(p,"ov"))}:</b> keep it going 2-3 times a week; it’s the start of your own strength routine</li>`:`<li><b>Your ${esc(mvn(p,"ov"))}:</b> you can swap back to ${esc((p.program.replaces||"").trim()||"your original exercise")} now, or keep it in your rotation. Keeping it for a couple of weeks means one less change while you ramp up your skill practice; swapping it now puts your whole program back the way it was originally</li>`}`:""}
+    <li><b>Adjustment variables:</b> assistance, range, speed, and load let you adjust a movement instead of stopping completely or just powering through</li>
+    <li><b>Respect but don’t fear your pain:</b> a little discomfort is information, not a stop sign</li>
+    <li><b>Find the wins obscured by the losses:</b> keep the ADAPT mindset to always find some alternative way to continue improving</li></ul></div>
+  ${p.cal&&today()<=p.cal.until?`<div class="msg info"><p class="small"><b>Calendar reminders:</b> you’re done with the daily routine, so delete the ADAPT events from your calendar. Otherwise they keep repeating until ${esc(fmtDate(p.cal.until))}.</p></div>`:""}
+  ${next}
+  <div class="card"><h2>Your 11/10 goal</h2><p>${goal?esc(goal):`Not set yet. <button class="linkbtn" data-act="go" data-v="step1" data-p="4">Add it in Step 1</button>`}</p>
+    <p class="small">You’ll chase it in your usual training, now without the brakes on. When you get there, come back and log it, and share it with us so we can celebrate with you.${sam?"":" Even if you ran this solo or with a different support crew, the ADAPT team wants to celebrate your victory with you."}</p>
+    ${win}</div>
+  <div class="card"><h2>Your plan and tracking</h2><div class="row"><button class="btn plain small" data-act="go" data-v="track">View my plan and tracking</button>${armed==="reentry"?`<div class="row"><button class="btn small" data-act="reentry">Yes, it’s getting limited again</button><button class="btn plain small" data-act="reentry-cancel">Cancel</button></div>`:`<button class="btn plain small" data-act="reentry">My ${sk} is getting limited again</button>`}</div></div>
+  </div>`; }
+function winEmail(p){ const s=statRow(p,p.win.date); const lines=["Hi Sam, I hit my 11/10.","",`11/10 goal: ${p.assess.goal||"-"}`,`${skillLabel(p)}${skillType(p)}: ${p.assess.skill||"-"}`,
+  `Support: ${s.support}`,`Side and region: ${[s.side,s.region].filter(Boolean).join(" ")||"-"}`,`Skill type: ${s.kind}`,`PSFS at start: ${s.psfs===""?"-":s.psfs+"/10"}`,
+  `Weeks to 10/10: ${p.handoff?weeksSince(p,p.handoff.at10):"-"}`,`Weeks to 11/10: ${s.weeks}`,`Exercise changes: ${s.changes}`];
+  return lines.join("\n"); }
+
+function stepsList(p){
+  return `<div class="steps">${STEPS.map(s=>`<button class="stepbtn" data-act="go" data-v="${s.k}" data-done="${s.done(p)}"><span class="stepnum">${s.done(p)?"&#10003;":s.n}</span><span class="t"><b>${esc(s.t)}</b><span>${esc(stepSub(p,s.k))}</span></span><span class="chev">&rsaquo;</span></button>`).join("")}</div>`;
+}
+V.steps = () => { const p=P(); return `<div class="stack"><div class="card flat"><span class="eyebrow">The 5 steps</span><h1>Assess, Discover, Approach, Program, Track</h1></div>${stepsList(p)}${p.origin==="coach"?sendPlanCard(p):""}</div>`; };
+
+function stepNav(prev,next,nextLabel){
+  return `<div class="row spread">${prev?`<button class="btn plain" data-act="go" data-v="${prev}">Back</button>`:"<span></span>"}<button class="btn" data-act="go" data-v="${next}">${esc(nextLabel||"Next")}</button></div>`;
+}
+
+V.screen = () => {
+  const p=P(); const rf=p.screen.rf, hh=p.screen.hh;
+  const yn=(g,i,q,cur)=>`<div class="yn"><span class="q">${esc(q)}</span><span class="btns"><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="yes" aria-pressed="${cur==="yes"}">Yes</button><button type="button" data-act="yn" data-g="${g}" data-i="${i}" data-v="no" aria-pressed="${cur==="no"}">No</button></span></div>${cur==="yes"&&((g==="rf"&&EMERGENCY_FLAGS.includes(+i))||(g==="hh"&&EMERGENCY_HH.includes(+i)))?`<div class="msg alert" role="alert"><p class="small">${esc(MSG_RIGHT_NOW)}</p></div>`:""}`;
+  /* "None of these apply to me" (Sam, November 5, 2026): answers start blank. A note at the top of each list says the button
+     exists; the button sits under the list, so people pass the questions first, and takes a second tap to confirm.
+     It fills only the blank answers with No and never changes a Yes. */
+  const noneNote=(list,ans)=>list.some((q,i)=>!ans[i+1])?`<p class="none-note small">Read each one and tap Yes for any that apply. If none do, there's a <b>None of these apply to me</b> button at the end of the list.</p>`:"";
+  const noneApply=(g,list,ans)=>{ const blanks=list.filter((q,i)=>!ans[i+1]).length; if(!blanks) return "";
+    const anyYes=list.some((q,i)=>ans[i+1]==="yes");
+    if(noneConfirm===g) return `<div class="none-apply confirm" role="alert"><p><b>${anyYes?`Mark the ${blanks} unanswered question${blanks===1?"":"s"} No?`:`Confirm that none of these ${list.length} apply to you?`}</b></p>
+      <div class="row"><button type="button" class="btn" data-act="none-apply" data-g="${g}" data-v="confirm">${anyYes?"Yes, mark the rest No":"Yes, none apply"}</button><button type="button" class="btn plain" data-act="none-apply" data-g="${g}" data-v="cancel">Cancel</button></div></div>`;
+    return `<div class="none-apply"><button type="button" class="btn plain" data-act="none-apply" data-g="${g}">${anyYes?"Mark the rest No":"None of these apply to me"}</button><p class="fine">${anyYes?`Sets the ${blanks} unanswered question${blanks===1?"":"s"} to No. Your Yes answers stay.`:"Sets every question above to No. You can still change any of them."}</p></div>`; };
+  const r=screenResult(p);
+  return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
+  ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
+  <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already, or you can get personalized guidance from our ADAPT team. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
+  ${part!==1?`<div class="card"><h2>Red flags</h2>${noneNote(RED_FLAGS,rf)}<div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>${noneApply("rf",RED_FLAGS,rf)}
+  <p class="fine"><b>*MEDICAL DISCLAIMER:</b> ${esc(SCREEN_DISCLAIMER)}</p></div>
+  <div class="row spread"><button class="btn plain" data-act="go" data-v="home">Back</button><button class="btn" data-act="part" data-v="1">Next: Health status and history</button></div>`
+  :`<div class="card"><h2>Health status and history</h2>${noneNote(HEALTH,hh)}<div>${HEALTH.map((q,i)=>yn("hh",i+1,q,hh[i+1])).join("")}</div>${noneApply("hh",HEALTH,hh)}</div>
+  <div id="screen-msg" class="stack">${r.answered?screenMessages(p):`<p class="fine">Answer every question to continue. ${Object.keys(rf).length+Object.keys(hh).length} of ${RED_FLAGS.length+HEALTH.length} answered.${RED_FLAGS.some((q,i)=>!rf[i+1])?` <button class="linkbtn" data-act="part" data-v="0">Some red-flag questions are still blank.</button>`:""}</p>`}</div>
+  <div class="row spread"><button class="btn plain" data-act="part" data-v="0">Back</button><button class="btn" data-act="screen-done" ${r.answered?"":"disabled"}>${p.tracking?"Back to my plan":"Continue to Step 1"}</button></div>`}
+  </div>`;
+};
+
+/* ---------- Setup steps, one part per page (November 4, 2026) ----------
+   Each step opens on an Overview, then one numbered part per page with Back/Next.
+   Once a step has anything filled in, opening it lands on its Summary, with an Edit button per part.
+   Examples change with the body region chosen in Assess (draft examples, for Sam's review). */
+const EX_GROUPS = {S:"shoulder",Ar:"shoulder",UB:"shoulder",Ch:"shoulder",K:"knee",Th:"knee",LB:"back",Ab:"back",Rb:"back",Gt:"back",W:"wrist",Hn:"wrist",Fi:"wrist",Fa:"wrist",
+  N:"neck",E:"elbow",Hp:"hip",Gr:"hip",Lg:"ankle",An:"ankle",Ft:"ankle",T:"ankle"};
+const EX = {
+  shoulder:{name:"a shoulder",
+    crux:"“My shoulder, with my arm overhead, while it holds my weight (like the bottom of a handstand or a kipping swing).”",
+    cruxD:"“My shoulder, with my arm reaching up, while it holds some weight (like putting a box on a high shelf).”",
+    tm:"A controlled wall slide: forearms on a wall, slide your hands up as high as you can control. 5 controlled reps.",
+    pfm:"Hold a door frame or a band overhead and step under it, so your arm ends up overhead without your shoulder doing the lifting.",
+    into:"Arm overhead against a wall, push your hand into the wall and hold.",
+    away:"Same arm position, hook your hand over the door frame and gently pull down instead.",
+    rep:"Bridge walkovers",
+    ov:"Wall chest reaches: hands on the floor, walk your chest toward the wall, deeper over time."},
+  knee:{name:"a knee",
+    crux:"“My knee, bent deep, with my weight on it (like landing a jump or the bottom of a squat).”",
+    cruxD:"“My knee, bent deep, with my weight on it (like getting up from a low chair or going down stairs).”",
+    tm:"A partial single-leg squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
+    pfm:"Lying on your back, slide your heel toward your butt and back out (heel slides).",
+    into:"A wall sit at the depth just before it bothers you.",
+    away:"Lying on your back with your heel on a chair, press your heel down into the chair and hold.",
+    rep:"Pistol squats",
+    ov:"Step-downs from a low box, controlling the way down; raise the box over time."},
+  back:{name:"a low back",
+    crux:"“My low back, bending forward, with load (like picking something up or rolling down).”",
+    cruxD:"“My low back, bending forward, with load (like picking up a laundry basket or loading the dishwasher).”",
+    tm:"A controlled roll-down with a light weight (Jefferson curl), only as far as you control. 5 controlled reps.",
+    pfm:"On hands and knees, rock your hips back toward your heels and forward again.",
+    into:"Hold a hip hinge (like the start of a deadlift) with a light weight, just before it bothers you.",
+    away:"Glute bridge hold: on your back, lift your hips and hold.",
+    rep:"Deadlifts",
+    ov:"Back extensions on a bench or Roman chair, through a range that fits the pain guidelines."},
+  wrist:{name:"a wrist",
+    crux:"“My wrist, bent back, with my weight on it (like a handstand or a push-up).”",
+    cruxD:"“My wrist, bent back, with my weight on it (like pushing up from a chair or leaning on a counter).”",
+    tm:"Hands flat on a table, lean your weight forward over them as far as you control. 5 controlled reps.",
+    pfm:"Hands together in front of your chest (prayer position), slide them gently down and up.",
+    into:"Hands flat on a table, lean a little weight forward and hold.",
+    away:"Back of your hand on the table, press it down and hold.",
+    rep:"Push-ups",
+    ov:"Incline push-ups on a raised surface, lowering the surface over time."},
+  neck:{name:"a neck",
+    crux:"“My neck, turned and tilted back, while it holds my head steady (like looking up in a bridge or a headstand).”",
+    cruxD:"“My neck, turned and tilted back, while it holds my head steady (like looking over your shoulder or up at a high shelf).”",
+    tm:"Seated, turn your head toward the sore side and look up, as far as you control. 5 controlled reps.",
+    pfm:"Lying on your back with your head supported, gently roll your head side to side.",
+    into:"Hand on the side of your head, push your head into your hand toward the sore side and hold, without letting it move.",
+    away:"Same position with your hand on the other side, push the opposite way and hold.",
+    rep:"Headstands",
+    ov:"Wall-supported headstand holds with most of your weight on your hands, shifting more onto your head over time."},
+  elbow:{name:"an elbow",
+    crux:"“My elbow, bent and pulling, with my weight on it (like the top of a pull-up).”",
+    cruxD:"“My elbow, bent and pulling, with weight in my hand (like carrying grocery bags or lifting a full pot).”",
+    tm:"A controlled biceps curl with a light weight, through the range you control. 5 controlled reps.",
+    pfm:"Forearm resting on a table, slide your hand toward your shoulder and back, letting the table hold the weight.",
+    into:"Elbow bent to 90 degrees, push your palm up into the underside of a table and hold.",
+    away:"Same position, palm on top of the table, push down and hold.",
+    rep:"Pull-ups",
+    ov:"Ring rows or inverted rows, making your body angle steeper over time."},
+  hip:{name:"a hip",
+    crux:"“My hip, bent deep, with my weight on it (like the bottom of a squat or a deep lunge).”",
+    cruxD:"“My hip, bent deep, with my weight on it (like getting out of a low chair or out of the car).”",
+    tm:"A controlled squat holding a pole for balance, only as deep as you control. 5 controlled reps.",
+    pfm:"Lying on your back, hug one knee toward your chest and let it back down, with your hands doing the work.",
+    into:"Lying on your back, knee bent toward your chest, push your knee up into your hands and hold.",
+    away:"Glute bridge hold: on your back, lift your hips and hold.",
+    rep:"Back squats",
+    ov:"Box squats to a high box, lowering the box over time."},
+  ankle:{name:"an ankle",
+    crux:"“My ankle, bent with my knee forward over my toes, with my weight on it (like landing a jump or the bottom of a squat).”",
+    cruxD:"“My ankle, bent with my knee forward over my toes, with my weight on it (like going down stairs or crouching to pick something up).”",
+    tm:"Knee-to-wall: foot facing a wall, bring your knee toward the wall as far as you control. 5 controlled reps.",
+    pfm:"Seated, draw slow circles with your foot.",
+    into:"Split stance, bend your front knee forward until just before it bothers you and hold.",
+    away:"Seated, press the ball of your foot down into the floor and hold.",
+    rep:"Box jumps",
+    ov:"Calf raises with a slow lowering, from flat ground to off the edge of a step, then adding weight."}
+};
+function exFor(p){ return EX[EX_GROUPS[p.region]]||null; }
+function exBox(p,k,label){ const e=exFor(p);
+  if(!p.region) return `<div class="ex"><b>${esc(label||"Example")}</b><span class="small">Pick your body region in Step 1 (Assess) to see an example for your area here.</span></div>`;
+  if(!e) { const s=EX.shoulder; return `<div class="ex"><b>${esc(label||"Example")} (shoulder)</b><span class="small">We don’t have an example for this area yet, so here’s one for a shoulder to show the idea. ${esc(k==="ov"?(hasWorkout(p)==="no"?s.ov:`Replacing ${s.rep.toLowerCase()}: ${s.ov}`):s[k==="crux"&&isDaily(p)?"cruxD":k])}</span></div>`; }
+  const kk = k==="crux"&&isDaily(p)&&e.cruxD ? "cruxD" : k;
+  const txt = k==="ov" ? (hasWorkout(p)==="no" ? e.ov : `Replacing ${e.rep.toLowerCase()}: ${e.ov}`) : e[kk];
+  return `<div class="ex"><b>${esc(label||"Example")} for ${esc(e.name)}</b><span class="small">${esc(txt)}</span></div>`; }
+function subPart(n,title,paths,body){ const p=P(); const done = paths.length && paths.every(x=>String(getPath(p,x)??"").trim());
+  return `<div class="card sub" data-req="${paths.join(",")}" data-done="${done?"1":""}"><h2 class="sub-h"><span class="n"><span>${n}</span></span>${esc(title)}</h2>${body}</div>`; }
+const more = (title, html) => `<details class="more"><summary>${esc(title)}</summary><div class="small">${html}</div></details>`;
+const PAIN_EX = `<p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`;
+const PAIN_GUIDE = `<div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>`;
+const shown = v => { const t=String(v??"").trim(); return t ? esc(t) : `<span class="muted">Not filled in yet</span>`; };
+const regionName = p => [ (SIDES.find(s=>s[0]===p.side)||[])[1], (REGIONS.find(r=>r[0]===p.region)||[])[1] ].filter(Boolean).join(" ").toLowerCase();
+
+const STEP_META = {
+  step1:{n:1, t:p=>`Assess: ${skillLabel(p)}`, short:"Assess", img:"step1", alt:"Assess your Painful Skill: the starting point of the resilience journey.", prev:"screen", next:"step2", nextLabel:"Next: Discover"},
+  step2:{n:2, t:()=>"Discover: Testing Movement", short:"Discover", img:"step2", alt:"Discover your Testing Movement.", prev:"step1", next:"step3", nextLabel:"Next: Approach"},
+  step3:{n:3, t:()=>"Approach: Pain-Free Motion and Contraction Couplet", short:"Approach", img:"step3", alt:"Approach your Pain-Free Motion and Contraction Couplet.", prev:"step2", next:"step4", nextLabel:"Next: Program"},
+  step4:{n:4, t:()=>"Program: Overload Exercise", short:"Program", img:"step4", alt:"Program your Overload Exercise.", prev:"step3", next:"step5", nextLabel:"Next: Track"}
+};
+
+const PARTS = {
+  step1:[
+    {t:"Overview", body:p=>{ const a=p.assess; return `<div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
+      <b id="kind-q">Does your skill hurt, or is it limited without pain?</b>
+      <div class="row" role="group" aria-labelledby="kind-q">
+      <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
+      <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
+      ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}
+      <b id="ctx-q">Is it part of a sport or training, or an everyday task?</b>
+      <div class="row" role="group" aria-labelledby="ctx-q">
+      <button class="btn small ${a.ctx==="sport"?"":"plain"}" data-act="ctx" data-v="sport" aria-pressed="${a.ctx==="sport"}">Sport or training</button>
+      <button class="btn small ${a.ctx==="daily"?"":"plain"}" data-act="ctx" data-v="daily" aria-pressed="${a.ctx==="daily"}">Everyday task</button></div>
+      <p class="fine">Everyday tasks count. Standing for 15 minutes, sitting through a movie, or carrying groceries up the stairs can be your skill just like a handstand or a takedown can.</p></div>`; }},
+    {t:"Where and when", paths:["region"], body:p=>subPart(1, isPainful(p)?"Pain/Injury Details":"Details", ["region"], `
+      <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
+      <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
+      <label class="f" for="f-region"><span class="sr">Body region</span><select id="f-region" data-bind="region"><option value="">Choose a body region</option>${REGIONS.map(([k,l])=>`<option value="${k}" ${p.region===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label></div>
+      ${field("When did this start?","assess.start")}
+      ${field("How did it start?","assess.how","",{area:true})}
+      ${field("What have you noticed recently?","assess.recent","",{area:true})}
+      ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
+      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["NRSoP",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
+    {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], isDaily(p) ? `
+      <p class="fine">In ADAPT, this everyday task is your ${esc(skillLabel(p))}.</p>
+      ${field("What everyday task is limited?","assess.skill","Something from daily life or work, described as the task, not just a body motion. ex., standing for 15 minutes, sitting through a movie, carrying groceries up the stairs, picking up your kid (not “bending my back”).",{ph:"ex., standing for 15 minutes"})}
+      ${field("How is it limited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
+      ${field("What percentage of the time is it limited?","assess.pct","",{ph:"ex., 80%"})}` : `
+      ${field("What skill is inhibited?","assess.skill","A skill from your sport or practice, not just a body motion. ex., kipping pull-ups, landing a back handspring, shooting a double-leg takedown (not “lifting my arm”).",{ph:"ex., macaco"})}
+      ${field("How is the skill inhibited?","assess.inhibited","ex., pain, apprehension, weakness, loss of control.",{area:true})}
+      ${field("What percentage of reps are inhibited?","assess.pct","",{ph:"ex., 80%"})}`),
+      sum:p=>isDaily(p)?[["Everyday task",p.assess.skill],["How it’s limited",p.assess.inhibited],["Time limited",p.assess.pct]]:[["Skill",p.assess.skill],["How it’s inhibited",p.assess.inhibited],["Reps inhibited",p.assess.pct]]},
+    {t:"PSFS score", paths:["assess.psfs"], body:p=>subPart(3, "Your PSFS score", ["assess.psfs"], `
+      <img class="fig" src="../img/psfs-scale.jpg" alt="PSFS scale: 0 means unable to perform the activity due to pain or injury, 10 means able to perform it at the same level as before." width="1600" height="647">
+      <div style="display:grid;gap:6px"><b>My PSFS score for this skill</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("assess.psfs",p.assess.psfs,"psfs")}</div>`),
+      sum:p=>[["PSFS",p.assess.psfs!=null?p.assess.psfs+"/10":""]]},
+    {t:"11/10 goal", paths:["assess.goal"], body:p=>subPart(4, "Your 11/10 goal", ["assess.goal"], `
+      ${field("Your 11/10 “Beyond-Old-Limits” goal","assess.goal",isDaily(p)?"What would let you know you expanded your limits? Ex.: “I can stand through a whole concert and then walk home, which would mean my back handles more than it did before this started.”":"What would let you know you expanded your movement horizons? Ex.: “I can land an aerial pain-free on the knee that currently hurts, which would mean my knee is comfortable with more load than it ever has.”",{area:true})}`),
+      sum:p=>[["Goal",p.assess.goal]]}
+  ],
+  step2:[
+    {t:"Overview", body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return `<div class="card"><p>Testing your ${sk} every week just pokes the bear instead of giving useful data. Instead, you’ll find a simpler movement that brings on the same problem in a way you control. That’s your <b>Testing Movement</b>. You’ll repeat it once a week to see if you’re getting better.</p>
+      <div class="rule"><b>Test once a week, cold</b><span class="small">No warm-up, and around the same time of day if you can. Changes in these numbers over time tell you whether you’re improving, holding steady, or slipping.</span></div>
+      <p class="small muted">${esc(skillLabel(p))}: <b>${esc(p.assess.skill||"not filled in yet")}</b></p>
+      ${isDaily(p)?more("Why not just test the task?",`<p>Doing the full task every week can flare things up, it can build doubt about something you need for daily life, and how it goes depends a lot on the day (how tired you are, how long you’ve been on your feet), which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`):more("Why not just test the skill?",`<p>It may not be safe to perform right now, or pain may make you bail halfway (ever bailed in the middle of a backflip? Not fun, and potentially dangerous). It can also build doubt about the skill, and it may need a warm-up, which makes week-to-week results less reliable. The Testing Movement avoids all of that.</p>`)}</div>`; }},
+    {t:"Find the crux", paths:["determine.crux"], body:p=>{ const sk=esc(skillLabel(p).toLowerCase()); return subPart(1,"Find the crux",["determine.crux"],`<p class="small">Boil your ${sk} down to the smallest piece that causes the problem. It’s usually one area, in one position, with some load on it. Ask yourself:</p>
+      <ul class="tight small"><li><b>Which area?</b> For example, the front of your shoulder, the inside of your knee, your low back</li>${isDaily(p)?`<li><b>In what position?</b> For example, standing tall, sitting slumped, bent forward, arm reaching up</li><li><b>Doing what?</b> For example, holding still for a long time, lifting, carrying, reaching</li>`:`<li><b>In what position?</b> For example, arm overhead, knee bent deep, back rounded</li><li><b>Doing what?</b> For example, holding your weight, landing, pulling, pushing</li>`}</ul>
+      ${exBox(p,"crux")}
+      ${field("The crux of my issue","determine.crux","",{area:true,ph:"Which area, in what position, doing what"})}`); },
+      sum:p=>[["Crux",p.determine.crux]]},
+    {t:"Testing Movement", paths:["determine.move"], body:p=>subPart(2,"Pick your Testing Movement",["determine.move"],`${cruxRef(p)}<p class="small">Choose a controlled, simple movement that replicates the crux you just identified. It should:</p>
+      <ul class="tight small"><li>Bring on a little of the problem, so it actually tests something</li><li>Be easy and safe to get into, with no warm-up</li><li>Let <b>you</b> control the speed, how far you go, and load relatively easily</li></ul>
+      <div class="msg info"><b>The right amount of discomfort</b><ul class="tight small"><li>No extra pain the next day</li><li>No extra fear or nervousness about moving</li></ul><p class="small">You should feel fine visiting your pain this way once a week.</p></div>
+      ${exBox(p,"tm")}
+      ${field("My Testing Movement","determine.move","",{ph:"Name or describe the movement"})}
+      ${more("Struggling to pick one?",`<p>If you’re fighting for balance or can’t control the speed, the test is probably too hard to be reliable; make it simpler or add support (a wall, a pole, a chair). The key is that you control when and how much you feel it.</p>`)}`)
+      + `<div class="card"><label class="row small"><input type="checkbox" data-act="no-tm" ${p.determine.none?"checked":""}> I’ve explored, and I can’t find a movement that reliably brings it on</label>${p.determine.none?noTmMsg(p):""}</div>`,
+      sum:p=>[["Testing Movement",p.determine.move||(p.determine.none?"None found yet (flagged)":"")]]},
+    {t:"Starting numbers", paths:["determine.dose"], body:p=>subPart(3,"Write down your starting numbers",["determine.dose"],`<p class="small">This is your baseline. Each week you’ll repeat the test exactly the same way and compare.</p>
+      ${field("How many reps, or how many seconds","determine.dose","ex., 5 controlled reps, or a 20-second hold. Pick something you can repeat the same way next week.")}
+      ${field("How far you go","determine.range","Use landmarks, not degrees. ex., “fingertips reach the top of the door frame” or “thighs level with the chair seat.”")}
+      ${field("What load or assistance","determine.load","ex., bodyweight, a 5 kg plate, holding a chair.")}
+      ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain during the test (NRSoP, 0-10)</b>${scale("determine.nrsop",p.determine.nrsop,"nrsop")}</div>`:`<p class="fine">For a Restricted Skill, measure the test by range, reps, load, or time instead of pain.</p>`}`),
+      sum:p=>[["Reps or time",p.determine.dose],["How far",p.determine.range],["Load or assistance",p.determine.load],...(isPainful(p)?[["NRSoP",p.determine.nrsop!=null?p.determine.nrsop+"/10":""]]:[])]}
+  ],
+  step3:[
+    {t:"Overview", body:p=>`<div class="card"><p>Now you’ll find three daily exercises that visit the crux safely:</p>
+      <ul class="tight small"><li><b>Pain-Free Motion:</b> move through the crux position with zero pain</li><li><b>Contraction Couplet:</b> two holds in the crux position, pushing in opposite directions</li></ul>
+      ${more("Why these two?",`<p>Gentle, pain-free movement increases blood flow, helps healing, and teaches your brain that the position isn’t dangerous. Holding still while you push (an isometric hold) starts the strengthening, calms the pain response to load over time, and teaches your brain that loading the position is safe too.</p>`)}</div>`},
+    {t:"Pain-Free Motion", paths:["approach.pfm"], body:p=>subPart(1,"Pain-Free Motion",["approach.pfm"],`${cruxRef(p)}<p class="small">Move in and out of the crux position with <b>zero pain or discomfort</b>, during and after. Get help to make that happen: a band, a wall, a door frame, your other hand, or a different body position.</p>
+      ${exBox(p,"pfm")}
+      ${field("My Pain-Free Motion","approach.pfm","",{area:true})}
+      <div class="rule"><b>Every day</b><span class="small">2-3 sets of 20-30 reps. Effort and strain don’t help here; easy is the point. Pair it with your Contraction Couplet, on its own or in your warm-up.</span></div>`),
+      sum:p=>[["Pain-Free Motion",p.approach.pfm]]},
+    {t:"Contraction Couplet", paths:["approach.cc","approach.cc2"], body:p=>subPart(2,"Contraction Couplet",["approach.cc","approach.cc2"],`${cruxRef(p)}<p class="small">Two holds in the crux position. No movement; just push and hold.</p>
+      <ol class="tight small"><li><b>Into it:</b> push in the direction that hurts</li><li><b>Away from it:</b> push the opposite way</li></ol>
+      <p class="small">Effort is fine, and some pain is okay, as long as both holds stay within the pain guidelines. Adjust the angle, the support, or how hard you push until both holds fit.</p>
+      ${PAIN_GUIDE}${PAIN_EX}
+      ${exBox(p,"into","Into it, example")}
+      ${field("Hold 1: into it","approach.cc","",{area:true})}
+      ${exBox(p,"away","Away from it, example")}
+      ${field("Hold 2: away from it","approach.cc2","",{area:true})}
+      <div class="rule"><b>Every day</b><span class="small">Find a level you could hold for 25-45 seconds, but not longer. Then do 2-3 sets of 20-30 seconds of each hold, paired with your Pain-Free Motion.</span></div>
+      ${more("Can’t make one of the holds work yet?",`<p>Start with the one that fits and keep adjusting the other: change the angle, push into something softer, or push less hard.</p>`)}`),
+      sum:p=>[["Into it",p.approach.cc],["Away from it",p.approach.cc2]]}
+  ],
+  step4:[
+    {t:"Overview", body:p=>`<div class="card"><p>${hasWorkout(p)==="no"?`Your <b>Overload Exercise</b> is a real strength exercise, working in and out of the problem. Unlike the daily exercises, you push it harder over time, 2-3 times a week.`:`Your <b>Overload Exercise</b> is a real strength exercise: a modified version of one you’d normally train, working in and out of the problem. Unlike the daily exercises, you push it harder over time, like the rest of your regular workout.`}</p>
+      ${more("Why it matters",`<p>It drives healing and teaches your brain that this range and intensity are safe. Because it stands in for an exercise you already do, the strength carries straight back into your regular training and the skills it supports. It also feels very normal because it’s modified normal exercise, and feeling normal throughout this is awesome.</p>`)}</div>`},
+    {t:"Your regular workout", paths:p=>hasWorkout(p)==="no"?["program.workout"]:["program.replaces"], body:p=>{ const w=hasWorkout(p); return subPart(1,"Your regular workout",w==="no"?["program.workout"]:["program.replaces"],`<b id="wk-q">Do you have a regular workout program?</b>
+      <div class="row" role="group" aria-labelledby="wk-q">
+      <button class="btn small ${w==="yes"?"":"plain"}" data-act="workout" data-v="yes" aria-pressed="${w==="yes"}">Yes</button>
+      <button class="btn small ${w==="no"?"":"plain"}" data-act="workout" data-v="no" aria-pressed="${w==="no"}">No</button></div>
+      ${w==="yes"?`<p class="small">Which exercise in your regular workout is limited by this problem? That’s the one you’ll replace for now. For example, if shoulder pain is getting in the way of your front handsprings, it’s probably getting in the way of the handstand push-ups you do to build them, too. The handstand push-up is the one to replace.</p>
+      ${field("The exercise it replaces","program.replaces","ex., handstand push-ups, back squats, pull-ups.")}`:w==="no"?`<p class="small">Then your Overload Exercise doesn’t replace anything. It’s a strength exercise you add, done 2-3 times a week and built up over time by the guidelines in the next steps.</p>`:""}`); },
+      sum:p=>hasWorkout(p)==="no"?[["Regular workout","No, so it’s added, not swapped in"]]:[["Replaces",p.program.replaces]]},
+    {t:p=>hasWorkout(p)==="no"?"Pick it":"Modify it", paths:["program.ov"], body:p=>subPart(2,hasWorkout(p)==="no"?"Pick it and make it fit":"Modify it until it fits",["program.ov"],`<p class="small">${hasWorkout(p)==="no"?"Pick a strength exercise that works the same area in the same direction as the problem, then adjust it":`Change ${p.program.replaces.trim()?`your ${esc(p.program.replaces.trim().toLowerCase())}`:"that exercise"}`} until it fits the pain guidelines: pain rises no more than 2 points during, and settles back down shortly after.</p>
+      <ul class="tight small"><li><b>Keep it working in and out of the problem:</b> if pushing overhead hurts, it stays a push overhead</li><li><b>Ways to modify:</b> change the angle, shorten the range, add support, or use less weight</li>${hasWorkout(p)==="no"?`<li><b>It should feel like real strength work,</b> harder than your couplet</li>`:`<li><b>It should feel like part of your regular workout,</b> harder than your couplet and close to the exercise it replaces</li>`}</ul>
+      ${exBox(p,"ov")}
+      ${hasWorkout(p)==="no"?"":`<img class="fig" src="../img/ex-replace.jpg" alt="Example: a bridge walkover in the usual workout, replaced with a wall chest reach." width="1600" height="900">`}
+      ${field("My Overload Exercise","program.ov","",{area:true})}
+      <label class="row small"><input type="checkbox" data-act="skip" ${p.program.skip?"checked":""}> Nothing fits yet; skip it for now and keep exploring</label>`),
+      sum:p=>[["Overload Exercise",p.program.skip&&!p.program.ov.trim()?"Skipped for now":p.program.ov]]},
+    {t:"How to program it", paths:[], body:p=>`<div class="card sub"><h2 class="sub-h"><span class="n"><span>3</span></span>How to program it</h2>
+      <ul class="tight small"><li><b>Dose:</b> 6-9 reps per set, 6-9 sets per week, spread over 2-3 sessions. Build from 6, 6, 6 toward 9, 9, 9</li>
+      <li><b>Range:</b> start where it doesn’t aggravate your pain, then go a little deeper over time until you reach your full range</li>
+      <li><b>Load:</b> start lighter, then add weight; for bodyweight exercises, go from two limbs to one, steeper angles, or longer levers</li></ul>
+      <img class="fig" src="../img/ex-load.jpg" alt="Lower load to higher load in a similar range." width="1600" height="754">
+      ${more("The DRL method (Dose, Range, Load)",`<p>These are the same variables you use for all your conditioning exercises. Also, though, make sure to keep following the “Respect But Don’t Fear Your Pain” guidelines:</p>${PAIN_GUIDE}${PAIN_EX}`)}</div>`}
+  ]
+};
+const partTitle = (p,pt) => typeof pt.t==="function" ? pt.t(p) : pt.t;
+const ptPaths = (p,pt) => typeof pt.paths==="function" ? (p?pt.paths(p):[]) : (pt.paths||[]);
+function partDone(p,pt){ const ps=ptPaths(p,pt); return !!(ps.length && ps.every(x=>String(getPath(p,x)??"").trim())); }
+function stepHasData(p,k){ const parts=PARTS[k]; if(!parts||!p) return false;
+  if(k==="step2" && p.determine.none) return true; if(k==="step4" && p.program.skip) return true;
+  return parts.some(pt=>ptPaths(p,pt).some(x=>String(getPath(p,x)??"").trim())) || (k==="step1" && !!p.side) || (k==="step4" && !!p.program.workout); }
+// Which part holds a given field (used by the "Still blank" links and the tests)
+function partOf(k,path){ const parts=PARTS[k]||[]; let i=parts.findIndex(pt=>ptPaths(P(),pt).includes(path));
+  if(i<0){ const p=P(); if(p) i=parts.findIndex(pt=>pt.body(p).includes(`data-bind="${path}"`)||pt.body(p).includes(`data-path="${path}"`)); }
+  return i<0?0:i; }
+
+function pagedStep(k){
+  const p=P(); const m=STEP_META[k]; const parts=PARTS[k]; const has=stepHasData(p,k);
+  let cur=part; if(cur!=="sum" && !(cur>=0 && cur<parts.length)) cur=0; if(cur==="sum" && !has) cur=0;
+  const chips=`<div class="parts" role="navigation" aria-label="Parts of this step">${parts.map((pt,i)=>`<button type="button" class="chip" data-act="part" data-v="${i}" aria-current="${cur===i?"step":"false"}" data-done="${partDone(p,pt)?"1":""}">${i?`<span class="cn">${partDone(p,pt)?"&#10003;":i}</span>`:""}${esc(i?partTitle(p,pt):"Overview")}</button>`).join("")}${has?`<button type="button" class="chip" data-act="part" data-v="sum" aria-current="${cur==="sum"?"step":"false"}">Summary</button>`:""}</div>`;
+  const head=`<div class="card flat"><span class="eyebrow">Step ${m.n}${cur==="sum"?" · Summary":cur>0?` · Part ${cur} of ${parts.length-1}`:""}</span><h1>${esc(m.t(p))}</h1>${chips}</div>`;
+  if(cur==="sum"){
+    return `<div class="stack">${head}
+    <div class="card"><h2>Your ${esc(m.short)} so far</h2>
+    ${parts.map((pt,i)=>i&&pt.sum?`<div class="sumrow"><div class="sumtop"><b>${i}. ${esc(partTitle(p,pt))}</b><button class="btn small plain" data-act="part" data-v="${i}">Edit</button></div>
+      <dl>${pt.sum(p).map(([l,v])=>`<dt>${esc(l)}</dt><dd>${shown(v)}</dd>`).join("")}</dl></div>`:"").join("")}
+    ${k==="step4"?`<p class="small"><button class="linkbtn" data-act="part" data-v="3">How to program it (Dose, Range, Load)</button></p>`:""}
+    <p class="small"><button class="linkbtn" data-act="part" data-v="0">Read the overview again</button></p></div>
+    ${stepNav(m.prev,m.next,m.nextLabel)}</div>`;
+  }
+  const last=parts.length-1;
+  const back = cur>0 ? `<button class="btn plain" data-act="part" data-v="${cur-1}">Back</button>` : `<button class="btn plain" data-act="go" data-v="${m.prev}">Back</button>`;
+  const next = cur<last ? `<button class="btn" data-act="part" data-v="${cur+1}">${cur===0?"Start":"Next"}: ${esc(partTitle(p,parts[cur+1]))}</button>` : `<button class="btn" data-act="go" data-v="${m.next}">${esc(m.nextLabel)}</button>`;
+  return `<div class="stack">${head}
+  ${cur===0?`<img class="fig" src="../img/${m.img}.jpg" alt="${esc(m.alt)}" width="1600" height="1189">`:""}
+  ${parts[cur].body(p)}
+  <div class="row spread">${back}${next}</div></div>`;
+}
+V.step1 = () => pagedStep("step1");
+V.step2 = () => pagedStep("step2");
+V.step3 = () => pagedStep("step3");
+V.step4 = () => pagedStep("step4");
+
+V.step5 = () => { const p=P(); return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Step 5</span><h1>Track Progress</h1></div>
+  <img class="fig" src="../img/step5.jpg" alt="Track progress." width="1600" height="1189">
+  <div class="card"><p>How can you guarantee you’ll see progress, make necessary course corrections, and reach your destination? By checking your map to see if you’re moving in the right direction. That means tracking results in your workout and with your weekly retest.</p>
+  <ul class="tight small"><li><b>Overload Exercise:</b> track as part of your conditioning routine, with Dose, Range, Load, and NRSoP</li>
+  <li><b>Pain-Free Motion and Contraction Couplet:</b> track daily as done ✅ or not done ❌. You don’t need to apply progressive overload; increase intuitively if it feels good. ${esc(MSG_DAILY_TARGET)}</li>
+  <li><b>Weekly Testing Movement:</b> test 1x/week, with the same detail as in the Discover step</li>
+  <li><b>${esc(skillLabel(p))}:</b> test when you feel ready (you’ll know when)</li></ul>
+  <p class="small">It is easy to get frustrated when we do not see results. Tracking like this avoids that. If you are not actually improving, you will notice AND know why, so you can fix it. If you are improving, this style of tracking guarantees you will see it.</p></div>
+  ${(()=>{ const miss=missingSteps(p); return miss.length&&!p.tracking?`<div class="msg warn"><b>Still blank</b><ul class="tight small">${miss.map(([s,l,pt])=>`<li><button class="linkbtn" data-act="go" data-v="${s}"${pt!==undefined?` data-p="${pt}"`:""}>${l}</button></li>`).join("")}</ul><p class="small">You can start tracking anyway and fill these in later.</p></div>`:""; })()}
+  ${p.origin==="coach" ? sendPlanCard(p) : `<button class="btn" data-act="start-tracking">${p.tracking?"Go to my plan":missingSteps(p).length?"Start tracking anyway":"Start tracking"}</button>`}
+  <div class="row"><button class="btn plain" data-act="go" data-v="step4">Back</button></div></div>`; };
+
+function missingSteps(p){ const m=[];
+  if(!p.screen.done) m.push(["screen","Pre-ADAPT Screening"]);
+  if(!p.assess.skill.trim()) m.push(["step1",skillLabel(p),partOf("step1","assess.skill")]);
+  if(!p.determine.move.trim()&&!p.determine.none) m.push(["step2","Testing Movement",partOf("step2","determine.move")]);
+  if(!p.approach.pfm.trim()) m.push(["step3","Pain-Free Motion",partOf("step3","approach.pfm")]);
+  if(!ccText(p)) m.push(["step3","Contraction Couplet",partOf("step3","approach.cc")]);
+  if(!p.program.ov.trim()&&!p.program.skip) m.push(["step4","Overload Exercise (or tick “skip it for now”)",partOf("step4","program.ov")]);
+  return m; }
+
+
+/* ---------- Calendar reminders (Sam, November 11, 2026) ----------
+   One tap adds repeating events to the person's own calendar: the daily routine (with the Overload Exercise as a note),
+   the weekly Testing Movement, and the 2-week check-in. Generic notes (never name the movements, so they can't go stale
+   and nothing personal sits on a shared calendar). The repeats stop after 12 weeks; the app offers to add them again.
+   Apple and Outlook get a calendar file; Google gets one link per event. Nothing is sent anywhere. */
+const CAL_WEEKS=12;
+let calForm=false, calGoogle=false;
+const calOn = p => !!(p&&p.tracking&&p.origin!=="coach"&&!p.handoff);
+function calDefaults(p){ const c=p.cal||{}; const st=p.trackStart||today();
+  return {daily:c.daily||"08:00", testDay:c.testDay??new Date(st+"T12:00:00").getDay(), testTime:c.testTime||"08:00"}; }
+function calNotes(p){ const url="https://"+NEW_HOST+"/"; const sam=p.support==="sam"&&!p.supportEnded;
+  const ov=(!p.program.skip&&(p.program.ov||"").trim()) ? (hasWorkout(p)==="no"
+      ? "Your Overload Exercise: 2-3 times a week, by the guidelines in the app."
+      : "On your workout days (2-3 a week), your Overload Exercise goes in your workout.") : "";
+  return {
+    daily:{title:"ADAPT daily routine", notes:["Your Pain-Free Motion and Contraction Couplet. Open the ADAPT app for today's movements.","2-3 sets of 20-30 reps or seconds, ideally as a superset.","Pain-Free Motion: no pain. Contraction Couplet: pain rises no more than 2 points during, and settles back down shortly after.",ov,"Open the app: "+url].filter(Boolean).join("\n\n")},
+    test:{title:"ADAPT weekly Testing Movement", notes:["Do it cold, before you warm up, at about the same time each week.","Log it in the ADAPT app: "+url].join("\n\n")},
+    check:{title:sam?"ADAPT 2-week check-in":"ADAPT 2-week review", notes:[sam?"Open the ADAPT app and send Sam your check-in.":"Open the ADAPT app and look back at your last 2 weeks: how often you did your movements, and what your tests say.","Open the app: "+url].join("\n\n")} }; }
+function calPlan(p,o){ const t=today(); const until=addDays(t,CAL_WEEKS*7-1);
+  let td=t; while(new Date(td+"T12:00:00").getDay()!==Number(o.testDay)) td=addDays(td,1);
+  let ck=addDays(p.checkinLogged||p.trackStart||t,14); while(ck<t) ck=addDays(ck,14);
+  const n=calNotes(p);
+  return {until, ev:[{k:"daily",...n.daily,date:t,time:o.daily,mins:10,rule:"FREQ=DAILY"},{k:"test",...n.test,date:td,time:o.testTime,mins:15,rule:"FREQ=WEEKLY"},{k:"check",...n.check,date:ck,time:o.daily,mins:10,rule:"FREQ=WEEKLY;INTERVAL=2"}].filter(e=>e.date<=until)}; }
+const calStamp=(d,tm)=>d.replace(/-/g,"")+"T"+tm.replace(":","")+"00";
+function calEnd(d,tm,mins){ const [h,m]=tm.split(":").map(Number); const x=new Date(d+"T00:00:00"); x.setHours(h,m+mins,0,0);
+  const pad=n=>String(n).padStart(2,"0"); return `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`; }
+const icsEsc=t=>String(t).replace(/\\/g,"\\\\").replace(/;/g,"\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+function icsFold(line){ const out=[]; let cur="", len=0; for(const ch of line){ const b=new TextEncoder().encode(ch).length; if(len+b>74){ out.push(cur); cur=" "; len=1; } cur+=ch; len+=b; } out.push(cur); return out.join("\r\n"); }
+function calIcs(p,plan){ const now=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+Z$/,"Z"); const u=plan.until.replace(/-/g,"")+"T235959";
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//ADAPT Beyond Pain//ADAPT app//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  plan.ev.forEach(e=>{ L.push("BEGIN:VEVENT",`UID:${p.id}-${e.k}-${today()}@${NEW_HOST}`,"DTSTAMP:"+now,"DTSTART:"+calStamp(e.date,e.time),"DTEND:"+calEnd(e.date,e.time,e.mins),
+    `RRULE:${e.rule};UNTIL=${u}`,"SUMMARY:"+icsEsc(e.title),"DESCRIPTION:"+icsEsc(e.notes),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(e.title),"TRIGGER:PT0M","END:VALARM","END:VEVENT"); });
+  L.push("END:VCALENDAR"); return L.map(icsFold).join("\r\n")+"\r\n"; }
+function calGoogleUrl(e,until){ let tz=""; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(x){}
+  // Repeat rule first and notes last: Google can cut a long link short (ex., while signing in), and the repeat must survive.
+  const q=new URLSearchParams(); q.set("action","TEMPLATE"); q.set("recur",`RRULE:${e.rule};UNTIL=${until.replace(/-/g,"")}T235959Z`);
+  q.set("dates",calStamp(e.date,e.time)+"/"+calEnd(e.date,e.time,e.mins)); if(tz) q.set("ctz",tz); q.set("text",e.title); q.set("details",e.notes);
+  return "https://calendar.google.com/calendar/render?"+q.toString(); }
+function calRead(p){ const g=id=>{const el=document.getElementById(id); return el?el.value:"";}; const d=calDefaults(p);
+  return {daily:g("cal-daily")||d.daily, testDay:Number(g("cal-testday")||d.testDay), testTime:g("cal-testtime")||d.testTime}; }
+function calSaved(p,o,plan){ p.cal={added:today(),until:plan.until,daily:o.daily,testDay:o.testDay,testTime:o.testTime}; save(true); }
+function calPanel(p){ const d=calDefaults(p); const days=[...Array(7)].map((_,i)=>new Date(2026,10,1+i)); // Nov 1 2026 is a Sunday
+  const plan=calPlan(p,d);
+  return `<div class="stack">
+    <label class="f" for="cal-daily">Daily routine reminder<input type="time" id="cal-daily" value="${esc(d.daily)}"></label>
+    <div class="row" style="align-items:flex-end"><label class="f" for="cal-testday" style="flex:1 1 9em;min-width:0">Weekly test day<select id="cal-testday">${days.map((x,i)=>`<option value="${i}" ${Number(d.testDay)===i?"selected":""}>${esc(x.toLocaleDateString(undefined,{weekday:"long"}))}</option>`).join("")}</select></label>
+    <label class="f" for="cal-testtime" style="flex:1 1 9em;min-width:0">Test time<input type="time" id="cal-testtime" value="${esc(d.testTime)}"></label></div>
+    <p class="fine">Test at about the same time each week, before you warm up. The 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} reminder uses your daily time.</p>
+    <div class="row"><button class="btn" data-act="cal-google">Google Calendar</button><button class="btn" data-act="cal-ics">Apple or Outlook calendar</button></div>
+    ${calGoogle?`<div class="msg info"><p class="small">Tap each one, check that it says it repeats, and save it in Google Calendar:</p><div class="stack">${plan.ev.map(e=>`<a class="btn small plain" href="${esc(calGoogleUrl(e,plan.until))}" target="_blank" rel="noopener">${esc(e.title)}</a>`).join("")}</div></div>`:""}
+    <p class="fine">The reminders repeat for ${CAL_WEEKS} weeks, until ${esc(fmtDate(plan.until))}. They say “open the app for today’s movements” instead of naming them, so they stay right when your plan changes. Nothing is sent anywhere; they go straight into your own calendar.</p>
+  </div>`; }
+function calCard(p){ if(!calOn(p)) return ""; const t=today(), c=p.cal;
+  if(calForm) return `<div class="card"><h2>Calendar reminders</h2>${calPanel(p)}<button class="btn small ghost" data-act="cal-close">Close</button></div>`;
+  if(!c){ if(p.calNo) return "";
+    return `<div class="msg info"><b>Get reminders in your calendar</b><p class="small">Add your daily routine, your weekly Testing Movement, and your 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} to your phone’s calendar, so it reminds you.</p><div class="row"><button class="btn small" data-act="cal-open">Set up reminders</button><button class="btn small plain" data-act="cal-no">Not now</button></div></div>`; }
+  if(t>=addDays(c.until,-7)) return `<div class="msg info"><b>Your calendar reminders ${t>c.until?"have ended":"end "+esc(fmtDate(c.until))}</b><p class="small">Still going? Add them for another ${CAL_WEEKS} weeks.</p><button class="btn small" data-act="cal-open">Add ${CAL_WEEKS} more weeks</button></div>`;
+  return ""; }
+/* ---------- Dashboard ---------- */
+// The crux, repeated where it's used (Sam, call feedback November 8, 2026), so nobody has to page back to it
+const cruxRef = p => `<div class="crux-ref"><b>Your crux</b><p class="small">${p.determine.crux.trim()?esc(p.determine.crux):`<span class="muted">Not filled in yet.</span> <button type="button" class="linkbtn" data-act="go" data-v="step2">Find it in Discover</button>`}</p></div>`;
+function checkinDue(p){ if(!p||!p.tracking||p.origin==="coach"||p.handoff) return 0;
+  const from=p.checkinLogged||p.trackStart||p.created; const d=daysBetween(from,today()); return d>=14?d:0; }
+function checkinCard(p){ const d=checkinDue(p); if(!d) return ""; const sam=p.support==="sam"&&!p.supportEnded;
+  return sam
+   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since you started tracking"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
+   : `<div class="msg info"><b>Time for your 2-week review</b><p class="small">Look back at the last 2 weeks: how often you did your movements, and what your tests say.</p><button class="btn small" data-act="go" data-v="checkin">Review my progress</button></div>`; }
+function dashboard(p){
+  const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
+  // In the first 14 days the grid starts on day 1 and fills forward, instead of showing days before the plan
+  // existed as missed (tester feedback, November 10, 2026); after that, the last 14 days.
+  const st=(p.trackStart||p.created||t)>t?t:(p.trackStart||p.created||t), soFar=Math.min(14,daysBetween(st,t)+1), ofDays=soFar<14?`${soFar} day${soFar===1?"":"s"} so far`:"the last 14 days";
+  const days=soFar<14?[...Array(14)].map((_,i)=>addDays(st,i)):[...Array(14)].map((_,i)=>addDays(t,i-13));
+  const tmNone=!!p.determine.none, tmSet=!!p.determine.move.trim();
+  const lastOv=p.logs.overload[p.logs.overload.length-1];
+  const lastTest = p.logs.tests[p.logs.tests.length-1];
+  const since = daysBetween(lastTest ? lastTest.date : (p.trackStart||p.created), t);
+  const due = since>=7;
+  const c14 = consistency(p,14);
+  const mm=missingMoves(p);
+  return `<div class="stack">
+  ${supportEndedCard(p)}
+  ${reentryCard(p)}
+  ${checkinCard(p)}
+  ${calCard(p)}
+  ${mm.length?`<div class="msg warn"><b>Still to find</b><p class="small">Your ${esc(missingPhrase(mm))}. Finding ${mm.length>1?"these":"it"} is the first adjustment to make.</p><div class="row">${[...new Set(mm.map(x=>x[0]))].map(s=>`<button class="btn small plain" data-act="go" data-v="${s}">Go to Step ${s.slice(-1)}</button>`).join("")}</div></div>`:""}
+  <div class="card"><div class="row spread"><span class="eyebrow">${sd===t?`Today, ${esc(fmtDate(t))}`:`${esc(new Date(sd+"T12:00:00").toLocaleDateString(undefined,{weekday:"long"}))}, ${esc(fmtDate(sd))}`}</span>${sd===t?"":`<button class="btn small plain" data-act="pickday" data-v="${t}">Back to today</button>`}</div>
+    <div class="today">
+      <button class="done-btn" data-act="daily" data-k="pfm" aria-pressed="${!!day.pfm}" ${p.approach.pfm.trim()?"":"disabled"}><b>Pain-Free Motion</b><span>${esc(p.approach.pfm||"Not set yet")}</span><span class="state">${!p.approach.pfm.trim()?"Add it in Step 3 first":day.pfm?"✅ Done":"Tap when done"}</span><span class="fine">${c14.pfm} of ${ofDays}</span></button>
+      <button class="done-btn" data-act="daily" data-k="cc" aria-pressed="${!!day.cc}" ${ccText(p)?"":"disabled"}><b>Contraction Couplet</b><span>${esc(ccText(p)||"Not set yet")}</span><span class="state">${!ccText(p)?"Add it in Step 3 first":day.cc?"✅ Done":"Tap when done"}</span><span class="fine">${c14.cc} of ${ofDays}</span></button>
+    </div>
+    <p class="fine">2-3 sets of 20-30 reps or seconds, ideally as a superset.</p>
+    <div class="days14" role="group" aria-label="Last 14 days. Tap a day to fill it in.">${days.map(d=>{const x=p.logs.daily[d]||{};const dt=new Date(d+"T12:00:00");if(d>t) return `<span class="pre" aria-hidden="true"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span></span>`;return `<button type="button" data-act="pickday" data-v="${d}" aria-pressed="${d===sd}" aria-label="${esc(dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}))}: Pain-Free Motion ${x.pfm?"done":"not done"}, Contraction Couplet ${x.cc?"done":"not done"}"><span>${dt.toLocaleDateString(undefined,{weekday:"narrow"})} ${dt.getDate()}</span><span class="dd"><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></span></button>`;}).join("")}</div>
+    <p class="fine">${soFar<14?"Your first 14 days":"Last 14 days"}. Missed a day? Tap it to fill it in. Left dot: Pain-Free Motion. Right dot: Contraction Couplet.</p>
+    <p class="fine">${esc(MSG_DAILY_TARGET)}</p>
+  </div>
+  <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
+    <p class="small">${p.program.skip?"Skipped for now. Keep exploring and modifying.":esc(p.program.ov||"Not set yet")}${p.program.replaces?` <span class="muted">(replaces ${esc(p.program.replaces)})</span>`:""}</p>
+    ${recentTrends(p.logs.overload)}
+    ${lastOv&&logForm!=="ov"?painNote(p,lastOv.nrsop):""}
+    ${ovTable(p)}
+    ${logForm==="ov"?ovForm(p):`<button class="btn plain" data-act="logform" data-v="ov">Log a session</button>`}
+  </div>
+  <div class="card"><div class="row spread"><h2>Weekly Testing Movement</h2>${!tmSet?(tmNone?`<span class="chip alert">None found yet</span>`:`<span class="chip">Not set</span>`):due?`<span class="chip due">Due</span>`:`<span class="chip good">Next in ${7-since} days</span>`}</div>
+    ${!tmSet?(tmNone?`<p class="small">No movement reliably reproduces it yet. ${p.support==="sam"?"Sam has been flagged.":"See the follow-up advice in Step 2."} If you find one, add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`:`<p class="small">Not set yet. Add it in Step 2.</p><button class="btn plain small" data-act="go" data-v="step2">Go to Step 2</button>`):`<p class="small">${esc(p.determine.move)}</p>
+    ${recentTrends(p.logs.tests)}
+    ${p.tmBase&&!p.logs.tests.some(r=>r.date>p.tmBase.after)?`<p class="fine"><b>New starting point set.</b> Your next test is the new baseline.</p>`:""}
+    ${progressMsgs(p)}
+    ${postTestRead(p)}
+    ${testTrend(p)}
+    ${logForm==="test"?testForm(p):`<button class="btn ${due?"":"plain"}" data-act="logform" data-v="test">Log this week's test</button>`}`}
+  </div>
+  <div class="card"><h2>${esc(skillLabel(p))} retest <span style="font-family:var(--body);font-size:.9rem;font-weight:700;color:var(--warn)">only when you feel ready (you’ll know when)</span></h2>
+    <p class="small">${esc(p.assess.skill||"")}${p.assess.psfs!=null?` <span class="muted">· started at PSFS ${p.assess.psfs}/10</span>`:""}</p>
+    ${recentTrends(p.logs.skill)}
+    ${psfs10Msg(p)}
+    ${skillTable(p)}
+    ${logForm==="skill"?skillForm(p):`<button class="btn plain" data-act="logform" data-v="skill">I tried my skill</button>`}
+  </div>
+  ${nextReadCard()}
+  <div class="card"><h2>Something changed?</h2><p class="small">If your symptoms got worse or something new showed up, run the screening again.</p><button class="btn plain" data-act="go" data-v="screen">Re-check the screening</button></div>
+  <button class="btn" data-act="go" data-v="checkin">${p.support==="sam"?"Send a check-in to Sam":"Share my progress"}</button>
+  </div>`;
+}
+// Re-entry (approved by Sam, October 27, 2026): screening re-check, quick retest, then the same plan or a new one
+function reentryCard(p){ const r=(p.reentries||[]).slice(-1)[0]; if(!r) return "";
+  const s1=(p.screen.date||"")>=r.date, s2=p.logs.tests.some(x=>x.date>=r.date), s3=p.logs.skill.some(x=>x.date>=r.date);
+  if(s1&&s2&&s3) return "";
+  const row=(done,label,btn)=>`<div class="row spread"><span class="small">${done?"&#10003; ":""}${label}</span>${done?"":btn}</div>`;
+  return `<div class="card"><span class="eyebrow">Welcome back</span><h2>Let’s see where you are</h2>
+    <p class="small">It happens. You’ve done this once, so you know the way back.</p>
+    ${row(s1,"1. Re-check the screening",`<button class="btn small" data-act="go" data-v="screen">Start</button>`)}
+    ${row(s2,"2. Log your Testing Movement",`<button class="btn small plain" data-act="logform" data-v="test">Log it</button>`)}
+    ${row(s3,`3. Check your ${esc(p.assess.skill||skillLabel(p))}`,`<button class="btn small plain" data-act="logform" data-v="skill">Log it</button>`)}
+    <p class="small">Your plan is back on with a fresh starting point. If it’s a different area or skill this time, start a new plan instead.</p>
+    <button class="btn plain small" data-act="new" data-v="self">Start a new plan</button>
+    ${notifies(p)?`<p class="small">${esc(MSG_NOTIFIED)}</p>`:""}</div>`; }
+function consistency(p,n){ const t=today(); let a=0,b=0,both=0; for(let i=0;i<n;i++){ const x=p.logs.daily[addDays(t,-i)]||{}; if(x.pfm)a++; if(x.cc)b++; } return {pfm:a,cc:b,both:Math.round(100*(a+b)/(2*n))}; }
+
+function testAskBox(p){ const a=testAsk, e=a.entry, pr=p.logs.tests[a.prev]; const box=inner=>`<div class="card none-apply confirm" role="alert">${inner}</div>`;
+  if(a.stage==="done") return box(`<p>${a.msg}</p><div class="row"><button class="btn" data-act="testask" data-v="ok">OK</button></div>`);
+  if(a.stage==="which") return box(`<p><b>Which one should count?</b></p><div class="row"><button class="btn" data-act="testask" data-v="new">The new one (${esc(fmtDate(e.date))})</button><button class="btn plain" data-act="testask" data-v="old">The earlier one (${esc(fmtDate(pr.date))})</button></div>`);
+  const n=daysBetween(pr.date,e.date), ago=n===0?"earlier today":n===1?"1 day ago":`${n} days ago`;
+  return box(`<p>Your last test was ${ago} (${esc(fmtDate(pr.date))}). The Testing Movement is a weekly check, done cold, so your numbers show real change, not how warmed up you were that day. <b>Was this test on purpose?</b></p>
+    <div class="row"><button class="btn plain" data-act="testask" data-v="mistake">No, it was a mistake</button><button class="btn plain" data-act="testask" data-v="yes">Yes, I re-tested</button><button class="btn plain" data-act="testask" data-v="cancel">Cancel</button></div>`); }
+function testForm(p){ if(testAsk&&testAsk.stage!=="form") return testAskBox(p); const f=(testAsk&&testAsk.entry)||{}; return `<div class="card" style="background:var(--soft)">
+  <label class="f" for="t-date">Date<input type="date" id="t-date" value="${esc(f.date||today())}"></label>
+  <label class="f" for="t-dose">Dose<input type="text" id="t-dose" value="${esc(f.dose||"")}" placeholder="${esc(p.determine.dose||"reps or time")}"></label>
+  <label class="f" for="t-range">Range of motion<input type="text" id="t-range" value="${esc(f.range||"")}" placeholder="${esc(p.determine.range||"")}"></label>
+  <label class="f" for="t-load">Load<input type="text" id="t-load" value="${esc(f.load||"")}" placeholder="${esc(p.determine.load||"")}"></label>
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:`<div style="display:grid;gap:6px"><b>Did it still feel limited?</b><div class="trend-pick two" role="group" aria-label="Did it still feel limited?"><button type="button" data-act="setfree" data-v="no" aria-pressed="${tmp.free===false}">Still limited</button><button type="button" data-act="setfree" data-v="yes" aria-pressed="${tmp.free===true}">Didn’t feel limited</button></div></div>`}
+  ${trendPick()}
+  <label class="f" for="t-notes">Notes<input type="text" id="t-notes" value="${esc(f.notes||"")}"></label>
+  <div class="row"><button class="btn" data-act="save-test">Save test</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
+function ovForm(p){ return `<div class="card" style="background:var(--soft)">
+  <label class="f" for="o-date">Date<input type="date" id="o-date" value="${today()}"></label>
+  <label class="f" for="o-sets">Reps per set<span class="hint">ex., 6,6,6. Progress toward 9,9,9.</span><input type="text" id="o-sets" placeholder="ex., 6,6,6"></label>
+  <label class="f" for="o-range">Range<input type="text" id="o-range"></label>
+  <label class="f" for="o-load">Load<input type="text" id="o-load"></label>
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
+  ${painNote(p,tmp.nrsop)}
+  ${trendPick()}
+  <label class="f" for="o-notes">Notes<input type="text" id="o-notes"></label>
+  <div class="row"><button class="btn" data-act="save-ov">Save session</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
+function skillForm(p){ return `<div class="card" style="background:var(--soft)">
+  <label class="f" for="s-date">Date<input type="date" id="s-date" value="${today()}"></label>
+  <div style="display:grid;gap:6px"><b>PSFS</b><span class="hint muted small">${esc(psfsExplain(p))}</span>${scale("_tmp.psfs",tmp.psfs,"psfs")}</div>
+  ${trendPick()}
+  <label class="f" for="s-notes">Notes<input type="text" id="s-notes"></label>
+  <div class="row"><button class="btn" data-act="save-skill">Save</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
+let tmp = {};
+let testAsk = null; // the double-test prompt: {stage:'ask'|'which'|'done', entry, prev (index), msg}
+const TRENDS=[["progressed","Progressed"],["same","Same"],["regressed","Regressed"],["unclear","Unclear"]];
+function trendPick(){ return `<div style="display:grid;gap:6px"><b>Compared with last time</b><div class="trend-pick" role="group" aria-label="Compared with last time">${TRENDS.map(([k,l])=>`<button type="button" data-act="settrend" data-v="${k}" aria-pressed="${tmp.trend===k}">${l}</button>`).join("")}</div></div>`; }
+function trChip(k){ const t=TRENDS.find(x=>x[0]===k); return t?`<span class="tr ${k}">${t[1]}</span>`:""; }
+function recentTrends(list){ const L=list.filter(r=>r.trend).slice(-6); return L.length?`<div class="trend-row"><span class="fine">Recent:</span>${L.map(r=>trChip(r.trend)).join("")}</div>`:""; }
+function trendCount(list,days){ const t=today(); const L=list.filter(r=>r.trend&&daysBetween(r.date,t)<days); if(!L.length) return ""; return TRENDS.map(([k,l])=>[l,L.filter(r=>r.trend===k).length]).filter(x=>x[1]).map(x=>x[0]+" "+x[1]).join(", "); }
+function painNote(p,n){ const b=p.assess.nrsop; if(!isPainful(p)||n==null||b==null||n<=b+2) return "";
+  return `<div class="msg warn"><p class="small"><b>Pain rule reminder.</b> During the exercise, pain can rise up to 2 points above your baseline, as long as it settles back to baseline shortly after. This entry (${n}/10) is more than 2 points above the NRSoP you started with (${b}/10). If it doesn’t settle back shortly after, that’s your signal to scale back next time.</p></div>`; }
+
+function rmBtn(list,i){ const k=list+":"+i; return `<button class="btn small ghost" data-act="rm" data-list="${list}" data-i="${i}">${armed===k?"Tap again to remove":"Remove"}</button>`; }
+function testTrend(p, ro){
+  const L=p.logs.tests; const base={date:p.created,dose:p.determine.dose,range:p.determine.range,load:p.determine.load,nrsop:p.determine.nrsop,notes:"Starting point"};
+  const rows=[base,...L];
+  const pts=rows.map(r=>r.nrsop).map((v,i)=>[i,v]).filter(x=>x[1]!=null);
+  let spark="";
+  if(pts.length>=2){ const W=300,H=112,pad=13,left=34; const n=rows.length-1||1;
+    const X=i=>left+(W-left-pad)*i/n, Y=v=>pad+(H-2*pad)*v/10;
+    const d=pts.map((p,k)=>(k?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
+    const last=pts[pts.length-1];
+    spark=`<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Testing Movement NRSoP over time, lower is better"><line x1="${left}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line)"/><line x1="${left}" x2="${W-pad}" y1="${Y(5)}" y2="${Y(5)}" stroke="var(--line)" stroke-dasharray="3 3"/><line x1="${left}" x2="${W-pad}" y1="${Y(10)}" y2="${Y(10)}" stroke="var(--line)"/><text x="${left-6}" y="${Y(0)+6}" font-size="17" fill="var(--muted)" text-anchor="end">0</text><text x="${left-6}" y="${Y(5)+6}" font-size="17" fill="var(--muted)" text-anchor="end">5</text><text x="${left-6}" y="${Y(10)+6}" font-size="17" fill="var(--muted)" text-anchor="end">10</text><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="2"/>${pts.map(q=>`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="3" fill="var(--blue)"/>`).join("")}<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="5" fill="var(--blue)"/></svg><p class="fine">NRSoP during the test (0 at the top: higher on the chart means less pain). Improvement in dose, range, or load counts as progress too.</p>`; }
+  const cols=[["Dose","dose"],["Range","range"],["Load","load"]].filter(([,k])=>rows.some(r=>r[k]));
+  const nb = p.tmBase ? L.find(r=>r.date>p.tmBase.after) : null;
+  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${esc(i?fmtDate(r.date):"Start")}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${i?trChip(r.trend):""}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}<td class="wrap">${i&&nb&&r===nb?`<b>New starting point.</b> `:""}${!isPainful(p)&&i&&r.free!=null?(r.free?"Didn’t feel limited. ":"Still limited. "):""}${esc(i?r.notes:"")}</td>${ro?"":`<td>${i?rmBtn("tests",i-1):""}</td>`}</tr>`).join("")}</tbody></table></div>`;
+  return spark+tbl;
+}
+function ovTable(p,ro){ const L=p.logs.overload; if(!L.length) return `<p class="fine">No sessions logged yet.</p>`;
+  const cols=[["Reps","sets"],["Range","range"],["Load","load"]].filter(([,k])=>L.some(r=>r[k])); const notes=L.some(r=>r.notes);
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}${notes?"<th>Notes</th>":""}${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>({r,i})).slice(ro?-20:-4).reverse().map(({r,i})=>`<tr><td>${esc(fmtDate(r.date))}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${trChip(r.trend)}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}${notes?`<td class="wrap">${esc(r.notes)}</td>`:""}${ro?"":`<td>${rmBtn("overload",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
+function skillTable(p,ro){ const L=p.logs.skill; if(!L.length) return "";
+  const tc=L.some(r=>r.trend); return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>PSFS</th>${tc?"<th>Trend</th>":""}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${r.psfs==null?"":r.psfs+"/10"}</td>${tc?`<td>${trChip(r.trend)}</td>`:""}<td class="wrap">${esc(r.notes)}</td>${ro?"":`<td>${rmBtn("skill",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
+
+/* ---------- Check-in ---------- */
+function summaryText(p){
+  const t=today(); const c=consistency(p,14); const L=p.logs.tests; const first=L[0], last=L[L.length-1];
+  const lines=[`ADAPT check-in: ${planCode(p)||"(no name)"}, ${fmtDate(t)}`,
+  `${skillLabel(p)}${skillType(p)}: ${p.assess.skill||"-"}${p.assess.psfs!=null?` (PSFS at start ${p.assess.psfs}/10)`:""}`,
+  `Pain-Free Motion: ${p.approach.pfm||"-"} | done ${c.pfm} of last 14 days`,
+  `Contraction Couplet: ${ccText(p)||"-"} | done ${c.cc} of last 14 days`,
+  `Testing Movement: ${p.determine.move||(p.determine.none?"none found yet (flagged)":"-")}`,
+  `  Start: ${[p.determine.dose,p.determine.range,p.determine.load].filter(Boolean).join(", ")||"-"}${p.determine.nrsop!=null?` | NRSoP ${p.determine.nrsop}/10`:""}`,
+  last?`  Latest (${fmtDate(last.date)}): ${[last.dose,last.range,last.load].filter(Boolean).join(", ")||"-"}${last.nrsop!=null?` | NRSoP ${last.nrsop}/10`:""}${last.notes?` | ${last.notes}`:""}`:"  No weekly tests logged yet",
+  `  Tests logged: ${L.length}${trendCount(L,14)?` | last 14 days: ${trendCount(L,14)}`:""}`,
+  `Overload: ${p.program.skip?"skipped for now":(p.program.ov||"-")} | sessions in last 7 days: ${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length}${trendCount(p.logs.overload,14)?` | last 14 days: ${trendCount(p.logs.overload,14)}`:""}`];
+  const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
+  const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
+  const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
+  { const c=progressCheck(p); const ch=c.stalled?changedSince(p,c.epStart).map(x=>MOVES.find(m=>m[0]===x.k)[1]):[];
+    if(c.refer) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row, after 3 exercise changes (follow-up shown)`);
+    else if(c.stalled) lines.push(`Two-week check: no progress for ${c.checks*2} weekly tests in a row; suggested now: ${({missing:"find the missing movement",target:"consistency target",change:"exercise change #"+c.rung}[c.step.type])}`);
+    if(ch.length) lines.push(`Changed so far: ${ch.join(", ")}`);
+    if(c.regressed) lines.push("Two-week check: last 2 tests regressed"); }
+  { const sl=supportLine(p); if(sl) lines.push(sl); }
+  if(p.note) lines.push(`Note: ${p.note}`);
+  return lines.join("\n");
+}
+// Supported plans open with the same line every time so Sam can spot check-ins in his messages (Sam, October 27, 2026)
+function checkinText(p){ return (p.support==="sam"?"Hi Sam, here's my ADAPT check-in.\n\n":"")+summaryText(p); }
+const checkinSubject = p => "ADAPT check-in: "+(planCode(p)||"(no name)");
+let linkCache = {};
+V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="sam";
+  if(!sam){ // Solo: a self-review page with optional sharing, and the route to direct support (Sam, October 27, 2026)
+    return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Your progress</h1><p class="muted">A quick review of where you are. This summary stays on this device unless you share it.</p></div>
+  <div class="card">${field("Notes","note","How it's going, what's improved, what's been hard, anything to change.",{area:true})}
+  <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div></div>
+  <div class="card"><h2>Share it (optional)</h2><p class="small">Send it to a coach, physio, or training partner. The message is a short summary; the link opens your full plan and tracking in a read-only view.</p>
+  <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div></div>
+  <div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p>${UPGRADE_LINK?"":`<button class="btn plain small" data-act="email-sam">Email Sam with this summary</button>`}</div>
+  </div>`; }
+  return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. This update stays on this device until you send it.</p></div>
+  <div class="card">${field("Anything to tell Sam?","note","How it's going, questions, anything that changed.",{area:true})}
+  <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
+  <div class="row"><button class="btn" data-act="email-update">Email it to Sam</button><button class="btn plain" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
+  <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view. Email it, or use Share or Copy to send it however you usually reach Sam.</p></div>
+  </div>`; };
+
+// Learn check-offs (Sam, October 27, 2026): a lesson counts as read once it's opened
+function lessons(){ const h=learnRaw(); return [...h.matchAll(/<details><summary>([^<]+)<\/summary>([\s\S]*?)<\/details>/g)].map(m=>({t:m[1], min:Math.max(1,Math.round(m[2].replace(/<[^>]+>/g," ").split(/\s+/).filter(Boolean).length/200))})); }
+const isRead = t => !!(store.learn||{})[t];
+function nextRead(){ return lessons().find(l=>!isRead(l.t)); }
+V.learn = () => { const L=lessons(), n=L.filter(l=>isRead(l.t)).length;
+  return learnRaw().replace("<h1>The ideas behind ADAPT</h1></div>", `<h1>The ideas behind ADAPT</h1><p class="muted">${n} of ${L.length} read. Tap a lesson to open it; it gets a check once you’ve read it.</p></div>`)
+    .replace(/<details><summary>([^<]+)<\/summary>/g, (m,ti)=>`<details data-lesson="${esc(ti)}"><summary><span class="lchk" data-done="${isRead(ti)}">${isRead(ti)?"&#10003;":""}</span>${ti}</summary>`); };
+document.addEventListener("toggle", e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||!d.open||!d.dataset.lesson) return;
+  store.learn=store.learn||{}; if(!store.learn[d.dataset.lesson]){ store.learn[d.dataset.lesson]=today(); save(true); const c=d.querySelector(".lchk"); if(c){ c.dataset.done="true"; c.innerHTML="&#10003;"; }
+    const m=document.querySelector(".card.flat .muted"); if(m){ const L=lessons(); m.textContent=`${L.filter(l=>isRead(l.t)).length} of ${L.length} read. Tap a lesson to open it; it gets a check once you’ve read it.`; } } }, true);
+function nextReadCard(){ const l=nextRead(); if(!l) return ""; return `<div class="card"><h2>Next read</h2><p class="small">${esc(l.t)} <span class="muted">· ${l.min} min</span></p><button class="btn plain small" data-act="read-next">Read it</button></div>`; }
+function postTestRead(p){ const l=nextRead(), last=p.logs.tests[p.logs.tests.length-1]; if(!l||!last||last.date!==today()) return "";
+  return `<p class="small">Nice. Want a ${l.min}-minute read while you’re here? <button class="linkbtn" data-act="read-next">${esc(l.t)}</button></p>`; }
+
+/* ---------- Send plan (coach) ---------- */
+function sendPlanCard(p){ return `<div class="card"><span class="eyebrow">Coach</span><h2>Send this plan to ${esc(p.person||"your client")}</h2>
+  <p class="small">The link carries the plan itself. When they open it, it saves on their phone and works offline from then on.</p>
+  <div class="row"><button class="btn" data-act="share-plan">Share plan link</button><button class="btn plain" data-act="copy-plan">Copy plan link</button></div></div>`; }
+function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; return c; }
+
+/* ---------- Learn ---------- */
+const learnRaw = () => `<div class="stack">
+  <div class="card flat"><span class="eyebrow">Learn</span><h1>The ideas behind ADAPT</h1></div>
+  <img class="fig" src="../img/five-movements.jpg" alt="The 5 Resilience Movements: Painful Skill, Testing Movement, Pain-Free Motion, Contraction Couplet, Overload Exercise." width="1600" height="622">
+  <details><summary>Prerequisite knowledge</summary><div class="body">
+  <p><b>Injury:</b> the tissue damage resulting from tissue overload. Lives in the tissue.</p>
+  <p><b>Pain:</b> the negative physical experience frequently associated with injury. Lives in the brain.</p>
+  <p><b>Numeric Rating Scale of Pain (NRSoP):</b> 0-10 scale to measure pain intensity. 0 is no pain, 10 is the worst pain.</p>
+  <p><b>Patient Specific Functional Scale (PSFS):</b> 0-10 scale to measure your ability to do a specific self-selected task. 0 is completely limited by pain/injury, 10 is completely unlimited by pain/injury. Yes, the PSFS scale is inverted from the NRSoP.</p>
+  <p class="small">${esc(PSFS_PAIN)}</p><p class="small">For a Restricted Skill: ${esc(PSFS_RESTR)}</p></div></details>
+  <details><summary>Respect but don’t fear your pain</summary><div class="body">
+  <ul class="tight"><li><b>Avoiding all pain</b> entirely is fear, and fear feeds danger signals into the brain, which further amplifies the pain response</li>
+  <li><b>Ignoring pain</b> and just powering through is disrespecting your pain, and means alarm bells are constantly blaring during your activity, which feeds danger signals into the brain, which further amplifies the pain response</li>
+  <li><b>The balance</b> of “respect but don’t fear your pain” means some pain is okay, maybe even good, depending on the context.</li></ul>
+  <div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>
+  <p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your practice it returns to a 3/10 or below.</p></div></details>
+  <details><summary>Skills-first approach</summary><div class="body"><p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skills-first approach, meaning the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p><p>We often fall into a binary mindset when it comes to recovery: “I’m injured so I cannot/should not challenge myself. First recover, then I’ll challenge myself again.” This steals the joy of training and even potentially slows down the healing process. Instead, use what you love to make it love you back. Make your recovery approach as similar and as specific as possible to the training you feel passionate about.</p></div></details>
+  <details><summary>Find the victories obscured by the obvious losses</summary><div class="body"><p>It’s easy for us to focus on the negative; what we can’t do, don’t have, used to, should be able to, etc. We have “The One Big Goal” at the end for what success looks like. That’s great, but it means along the way we hate the process, our life, ourselves, because we aren’t THERE yet.</p>
+  <p>Instead of just collecting all the negatives and being miserable, use each negative as an opportunity to find countless positives. “I can’t tie my shoes” gets redefined to “I can’t tie my shoes in XYZ-way like I normally do.” Then, explore multiple different ways to solve the problem. All of a sudden, that single, monumental, all-encompassing “I CAN’T,” which defines Movement Restriction, turns into: “Wow, I actually can tie my shoes if I do it in ABC- and DEF- and GHI-way, and I actually like GHI-way better than my usual XYZ-way.” Exploration, optionality, and adaptation are the hallmarks of Movement Freedom.</p></div></details>
+  <details><summary>ADAPT beyond your previous limitations</summary><div class="body"><p>Your final destination is not merely to get back to where you were before the pain/injury; aim to get beyond that point. After every valley, we climb ever higher mountains. This is the essence of Movement Freedom. It is an adaptive mindset, through which we become more resilient with every injury. Our abilities expand as we age and collect more experience.</p>
+  <p>In your own movement practice, you’ve likely (read: definitely) experienced pain and injuries multiple times. The purpose of the ADAPT method for resilience is to give you, when the inevitable happens, a different path to take that will finally aid you in achieving your version of Movement Freedom, instead of perpetuating the usual cycles we all fall into.</p></div></details>
+  <details><summary>The 3 vicious cycles of injury management</summary><div class="body">
+  <p>There are three common approaches to dealing with training-related injuries and pain: pushing through, avoiding, and fixing. You likely have found yourself on one, if not all, of these paths before.</p>
+  <p><b>The first path</b> leads down the vicious cycle of pushing through. This approach has a number of issues. It negatively impacts the tissues because it progresses the injury. It negatively impacts the brain because it reinforces that certain movements are painful and therefore “dangerous.” It also doesn’t take care of the underlying patterns that caused the injury in the first place, so even if the pain goes down, the cycle will continue. It is the most immature approach in that it works better the younger we are, with progressively less effectiveness the older we become. At some point the injuries become too severe or accumulate to the point where ignoring them no longer does the trick. That’s when people usually turn to the second path.</p>
+  <img class="fig" src="../img/vc-push.jpg" alt="The vicious cycle of pushing through: exceed capacity, ignore what caused the injury, push through increasing pain." width="1000" height="1000" loading="lazy">
+  <p><b>The second path</b>, avoiding pain, seems like a more measured and mature approach on the surface, and logically makes a lot of sense. Unfortunately, it too has a number of issues. It negatively impacts the tissues because our bodies work by the principle of “use it or lose it;” by avoiding the movement our body becomes less capable of performing the movement. It negatively impacts the brain because it still teaches our brain to associate certain movements with pain and therefore those movements must be “dangerous.” This in turn can lead to chronic pain and possibly depression. It, too, doesn’t take care of the underlying pattern that led to the injury in the first place. This finally leads to the third path.</p>
+  <img class="fig" src="../img/vc-avoid.jpg" alt="The vicious cycle of avoidance: exceed capacity, become more aware of pain, label pain as negative, try to avoid pain at all costs." width="1000" height="1000" loading="lazy">
+  <p><b>The third path</b>, finding the fix, is a categorical improvement over the first two. We acknowledge something is wrong AND we try to address it. Yet again, though, it comes along with its own significant issues. It can negatively impact the tissues through unnecessary, unhelpful, and even harmful treatments. It negatively impacts the brain because doggedly pursuing the perfect fix reinforces there must therefore be a problem that requires fixing. Problems are bad, bad is dangerous, therefore we hyperfocus on every sensation related to our painful area, which can make us feel worse and make poor decisions about what we should do to address the sensations. It also frequently puts the fix into the hands of someone/thing external to the person. Until that someone/thing is found, there isn’t anything to do about the problem, which gives the problem the opportunity to gain permanence. On top of all that, like the previous paths, it often doesn’t take care of the underlying pattern that led to the injury in the first place.</p>
+  <img class="fig" src="../img/vc-fix.jpg" alt="The vicious cycle of the fix: exceed capacity, try to remove pain with a quick fix, experience temporary relief, return to old patterns." width="1000" height="1000" loading="lazy"></div></details>
+  <details><summary>The virtuous cycle: introducing ADAPT</summary><div class="body">
+  <p>When all the usual paths don’t work or have significant downsides, it’s time to forge a new path that avoids those problems and actually gets you where you want to go. It’s finally time to say hello to the ADAPT Method.</p>
+  <p>The ADAPT Method consists of 5 separate steps in which you will discover your <b>5 Resilience Movements</b>. This individualized approach makes the method hyper-specific to your body and your goals, and it is how you will break new ground, instead of getting stuck in recurring injury loops. The first two steps deal with your current discomfort: we don’t ignore, or avoid or try to ‘fix’ the pain; we use it as a guiding light. From step three onwards you will discover what you can already do and use that to move you in the right direction (pun intended).</p>
+  <p>You can determine all 5 resilience movements within an hour. In principle, you can even complete all 5 steps by yourself, but many people will feel relief and support through working with a professional. The purpose of the professional is to monitor your progress and suggest alternative routes in an instant, where you otherwise might have driven in circles before finding a better resilience movement to get you past the finish line.</p>
+  <img class="fig" src="../img/journey.jpg" alt="The resilience journey in a nutshell, steps 1 through 5." width="1000" height="794"></div></details>
+  <details><summary>The 5 Resilience Movements and the pain-intensity continuum</summary><div class="body">
+  <p>The 5 resilience movements each have a universal and a personal dimension. <b>The universal dimension:</b> Painful Skill, Testing Movement, Pain-Free Motion, Contraction Couplet, and Overload Exercise. <b>The personal dimension:</b> the specific movements that go into each category are 100% customized to fit you and your unique situation. There aren’t “shoulder” exercises, “back” exercises, etc.; there are only “your” exercises.</p>
+  <p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>
+  <p>In order for our method to reliably work for people with elbow tendonitis, chronic back pain, and a strained knee ligament, we need to cover the entire range of pain-intensity. No matter where you are or how functionally limited you are currently, we can gradually progress you through the low-intensity to high-intensity continuum, along the way utilizing pain as the useful warning light it is supposed to be.</p>
+  <img class="fig" src="../img/continuum.jpg" alt="The pain-intensity continuum of the five Resilience Movements, from Pain-Free Motion to the Painful Skill." width="1600" height="1098">
+  <p>On the left, we have a low intensity, Pain-Free Motion, often assisted by a prop like a band, a wall, or your hand to allow pain-free exploration. On the right is your painful skill. The goal: color the entire band green, which means you have reached high intensity, pain-free movement!</p>
+  <img class="fig" src="../img/before-after.jpg" alt="Before ADAPT the band runs from no pain to high pain; after ADAPT it is green all the way." width="1600" height="678"></div></details>
+  <details><summary>Resilience is a journey</summary><div class="body">
+  <p>Everyone can find their <b>ideal</b> Testing Movement, Pain-Free Motion, Contraction Couplet, and Overload Exercise. But finding them can take time. Your first guess for your Pain-Free Motion might fail. You may think “There is nothing I can do right now. My back just hurts when I extend it, period,” and feel defeated.</p>
+  <p>Or you could stay curious, explore lying on your back, hands folded behind your lumbar spine, take a deep breath, and finally feel a big wave of release wash over you as the pain subsides for the first time in days. Resilience is a skill. So is getting to know your body and your injuries. Skills take practice, work, and time to develop, but these skills are likely the most important for your overall movement career.</p>
+  <p>As you explore, you may need to modify your Pain-Free Motion. Your Contraction Couplet might need repeated positional adjustments. Your Overload exercise may need to be changed. You don’t need to know the exact architecture and anatomy of your body, but you need to stay curious and keep track of your progress. Slow or non-existent? Then try turning your foot 15 degrees outwards. Or pull your arm more in towards your midline. Or bend the arm a little less during the chin-up hold.</p>
+  <p>Don’t expect every step will be in the right direction, but expect that you will arrive as long as you continue to Assess, Discover, Approach, Program, Track.</p></div></details>
+  ${legal()}
+  </div>`;
+
+/* ---------- More ---------- */
+V.more = () => { const p=P(); const plans=Object.values(store.plans); const clients=Object.values(store.clients);
+  return `<div class="stack">
+  <div class="card flat"><span class="eyebrow">More</span><h1>Settings and plans</h1></div>
+  <div class="card"><h2>This plan</h2>
+  ${field(p.origin==="coach"?"Client's first name":"Your first name","person")}
+  ${field(p.origin==="coach"?"Client's last name":"Your last name","last")}
+  ${planCode(p)?`<p class="fine">Plan code: <b>${esc(planCode(p))}</b></p>`:""}
+  <p class="small"><b>Support:</b> ${p.support==="sam"?"Working with Sam. Set by the plan Sam sent you; new plans you start keep it.":"Self-guided."}</p>
+  ${p.origin==="coach"?sendPlanCard(p):""}</div>
+  ${calOn(p)?`<div class="card"><h2>Calendar reminders</h2>${p.cal?`<p class="small">Added ${esc(fmtDate(p.cal.added))}; they repeat until ${esc(fmtDate(p.cal.until))}. Adding them again creates a new set, so delete the old ones in your calendar first.</p>`:`<p class="small">Add your daily routine, weekly Testing Movement, and 2-week reminders to your calendar.</p>`}${calPanel(p)}</div>`:""}
+  <div class="card"><h2>New here?</h2><p class="small">A two-minute walkthrough of how ADAPT works and how to get around the app.</p><button class="btn plain" data-act="tour">Take the tour again</button></div>
+  <div class="card"><h2>Plans on this device</h2>
+  ${plans.map(x=>`<div class="row spread"><span class="small"><b>${esc(x.assess.skill||"New plan")}</b> <span class="muted">${esc(x.origin==="coach"?"for "+(x.person||"client"):x.person||"")} · ${esc(fmtDate(x.created))}</span></span>${x.id===store.activeId?`<span class="chip good">Open</span>`:`<button class="btn small plain" data-act="switch" data-v="${x.id}">Open</button>`}</div>`).join("")}
+  <div class="row"><button class="btn small plain" data-act="new" data-v="self">New plan (new area or injury)</button><button class="btn small plain" data-act="new" data-v="coach">New client plan</button></div></div>
+  ${clients.length?`<div class="card"><h2>Client check-ins received</h2>${clients.map(c=>`<div class="row spread"><span class="small"><b>${esc(planCode(c.data)||"Client")}</b> <span class="muted">${esc(c.data.assess.skill||"")} · received ${esc(fmtDate(c.received))}</span></span><button class="btn small plain" data-act="view-client" data-v="${c.data.id}">View</button></div>`).join("")}</div>`:""}
+  <div class="card"><h2>Open a link or code</h2><p class="small">Paste a plan link from your coach, or a client's check-in link.</p>
+  <textarea id="open-code" placeholder="Paste here"></textarea><button class="btn plain" data-act="open-code">Open</button></div>
+  <div class="card"><h2>Backup</h2><p class="small">Everything is saved on this device only. Copy a backup now and then, and before switching phones.</p>
+  <div class="row"><button class="btn small plain" data-act="export">Copy backup</button><button class="btn small plain" data-act="go" data-v="restore">Restore a backup</button></div>
+  ${saveOk?"":`<p class="fine" style="color:var(--alert)">This browser isn’t letting the app save. Your entries will be lost when you close it.</p>`}</div>
+  <div class="card"><h2>Remove this plan</h2><button class="btn small ghost" data-act="del-plan">${armed==="del"?"Tap again to remove this plan and its tracking":"Remove this plan"}</button></div>
+  ${legal()}
+  </div>`; };
+
+V.open = () => `<div class="stack"><div class="card flat"><span class="eyebrow">From your coach</span><h1>Open a plan link</h1></div>
+  <div class="card"><textarea id="open-code" placeholder="Paste the link or code your coach sent you"></textarea><button class="btn" data-act="open-code">Open</button>
+  <button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
+V.restore = () => `<div class="stack"><div class="card flat"><span class="eyebrow">Backup</span><h1>Restore a backup</h1></div>
+  <div class="card"><p class="small">Paste a backup you copied earlier. Plans in the backup are added to this device; plans with the same ID are replaced.</p><textarea id="restore-code"></textarea><button class="btn" data-act="restore">Restore</button><button class="btn plain" data-act="go" data-v="${store.activeId?"more":"welcome"}">Back</button></div></div>`;
+
+V.import = () => { const d=importData; return `<div class="stack"><div class="card flat"><span class="eyebrow">Plan from your coach</span><h1>Your ADAPT plan${d.person?`, ${esc(d.person)}`:""}</h1></div>
+  <div class="card"><p><b>${esc(skillLabel(d)+skillType(d))}:</b> ${esc(d.assess.skill||"-")}</p><p><b>Testing Movement:</b> ${esc(d.determine.move||"-")}</p><p><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p><b>Overload Exercise:</b> ${esc(d.program.skip?"Skipped for now":d.program.ov||"-")}</p>
+  <button class="btn" data-act="import-save">Save to this device and start</button>
+  <p class="fine">It saves on this phone and works offline. Add this page to your home screen to open it like an app.</p></div>${legal()}</div>`; };
+
+V.coach = () => { const d=coachData; const c=consistency(d,14); const r=screenResult(d);
+  return `<div class="stack"><div class="card flat"><span class="eyebrow">Coach view, read only</span><h1>${esc(planCode(d)||"Client")}: ${esc(d.assess.skill||"")}</h1><p class="muted">Sent ${esc(fmtDate(d._sent||today()))}</p>${(()=>{ const i=d.support==="sam"&&(d.supportStart||d.trackStart)?{s:d.supportStart||d.trackStart}:null; if(!i) return ""; const days=daysBetween(i.s,d._sent||today()), wk=Math.min(12,Math.floor(days/7)+1); return `<p class="small"><b>Direct support:</b> week ${wk} of 12, through ${esc(fmtDate(addDays(i.s,SUPPORT_DAYS-1)))}${days>=70?" · renewal coming up":""}</p>`; })()}</div>
+  ${r.any?`<div class="msg ${r.emergency.length?"alert":"warn"}"><b>Screening flags</b><p class="small">${[...r.yesRF.map(n=>"Red flag "+n+": "+RED_FLAGS[n-1]),...r.yesHH.map(n=>"Health "+n+": "+HEALTH[n-1])].map(esc).join("<br>")}</p></div>`:""}
+  ${d.note?`<div class="card"><h2>Their note</h2><p>${esc(d.note)}</p></div>`:""}
+  <div class="card"><h2>Consistency</h2><p>Pain-Free Motion: <b>${c.pfm}/14</b> days &middot; Contraction Couplet: <b>${c.cc}/14</b> days</p>
+   <div class="week">${[...Array(14)].map((_,i)=>addDays(today(),i-13)).map(dd=>{const x=d.logs.daily[dd]||{};return `<div class="d"><span>${new Date(dd+"T12:00:00").getDate()}</span><span class="dot ${x.pfm?"on":""}"></span><span class="dot ${x.cc?"on":""}"></span></div>`;}).join("")}</div></div>
+  <div class="card"><h2>Plan</h2><p class="small"><b>Crux:</b> ${esc(d.determine.crux||"-")}</p><p class="small"><b>Pain-Free Motion:</b> ${esc(d.approach.pfm||"-")}</p><p class="small"><b>Contraction Couplet:</b> ${esc(ccText(d)||"-")}</p><p class="small"><b>Overload:</b> ${esc(d.program.skip?"skipped for now":d.program.ov||"-")}${d.program.workout==="no"?" (added; no regular workout)":d.program.replaces?` (replaces ${esc(d.program.replaces)})`:""}</p><p class="small"><b>11/10 goal:</b> ${esc(d.assess.goal||"-")}</p></div>
+  <div class="card"><h2>Testing Movement: ${esc(d.determine.move||(d.determine.none?"none found yet (flagged)":""))}</h2>${recentTrends(d.logs.tests)}${testTrend(d,true)}</div>
+  <div class="card"><h2>Overload sessions</h2>${recentTrends(d.logs.overload)}${ovTable(d,true)}</div>
+  <div class="card"><h2>Skill retests</h2>${recentTrends(d.logs.skill)}${skillTable(d,true)||`<p class="fine">None yet.</p>`}</div>
+  <div class="card"><h2>Renew direct support</h2><p class="small">Sends ${esc(d.person||"them")} a short link that gives 12 more weeks of support. It changes nothing else in their plan or tracking.</p><button class="btn plain" data-act="renew-link">Send a renewal link</button></div>
+  <div class="row"><button class="btn" data-act="coach-save">Keep on this device</button><button class="btn plain" data-act="coach-close">Close</button></div></div>`; };
+
+/* ---------- Render ---------- */
+function render(){
+  const app=document.getElementById("app"); const tabs=document.getElementById("tabs");
+  let v=view;
+  if(v==="coach"&&!coachData) v="home";
+  if(v==="import"&&!importData) v="home";
+  if(!store.activeId && !["welcome","open","coach","import","restore","moved"].includes(v)) v="welcome";
+  tabs.hidden = !store.activeId || ["welcome","coach","import","moved"].includes(v);
+  if(v==="restore" && !store.activeId) tabs.hidden=true;
+  if(v!=="moved"){ supportCheck(P()); funnelCheck(P()); weeklyCheck(P()); }
+  app.innerHTML = (v==="welcome"?"":header()) + (v==="home"&&store.moveNote?moveCard():"") + V[v]();
+  const tabMap={home:"home",steps:"steps",screen:"steps",step1:"steps",step2:"steps",step3:"steps",step4:"steps",step5:"steps",learn:"learn",track:"home",checkin:"checkin",more:"more",restore:"more",open:"more"};
+  tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current", tabMap[v]===b.dataset.v?"page":"false"));
+}
+function go(v, fromHistory, pt){ if(view==="screen" && v!=="screen") checkScreenFlag(P()); const changed=v!==view||(pt!==undefined&&pt!==part); view=v;
+  part = pt!==undefined ? pt : (PARTS[v] && stepHasData(P(),v) ? "sum" : 0);
+  logForm=null; armed=null; tmp={}; selDay=null; render(); window.scrollTo(0,0);
+  if(!fromHistory && changed){ try{ history.pushState({view:v,part},"",baseURL()); }catch(e){} } }
+function setPart(pt){ if(pt===part) return; part=pt; render(); window.scrollTo(0,0); try{ history.pushState({view,part},"",baseURL()); }catch(e){} }
+// Back button / back swipe moves between screens instead of leaving the app
+window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) return; if((v==="coach"&&!coachData)||(v==="import"&&!importData)||(v==="welcome"&&store.activeId)) { go(store.activeId?"home":"welcome",true); return; } go(v,true,e.state.part??0); });
+
+/* ---------- Events ---------- */
+document.addEventListener("input", e=>{
+  const el=e.target; if(!el.dataset.bind) return; const p=P(); if(!p) return;
+  setPath(p, el.dataset.bind, el.value); save();
+  if(["region","person","last"].includes(el.dataset.bind)){ const w=document.querySelector(".top .who"); if(w) w.textContent = p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : planCode(p); }
+  if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=checkinText(p); }
+  const sub=el.closest(".sub"); if(sub&&sub.dataset.req){ sub.dataset.done = sub.dataset.req.split(",").every(x=>String(getPath(p,x)??"").trim()) ? "1" : ""; }
+});
+document.addEventListener("click", async e=>{
+  const a=e.target.closest("[data-act]"); if(!a) return; const act=a.dataset.act, v=a.dataset.v; const p=P();
+  switch(act){
+    case "tab": go(v); break;
+    case "go": go(v, false, a.dataset.p===undefined ? undefined : (a.dataset.p==="sum" ? "sum" : +a.dataset.p)); break;
+    case "part": setPart(v==="sum" ? "sum" : +v); break;
+    case "move-go": location.href = await moveLink(); break;
+    case "move-ok": store.moveNote=false; save(true); render(); break;
+    case "start": {
+      const coach = v==="coach"; const name=(document.getElementById(coach?"f-client":"f-name")||{}).value||""; const last=(document.getElementById(coach?"f-client-last":"f-last")||{}).value||"";
+      const np=newPlan({person:name.trim(), last:last.trim(), origin:coach?"coach":"self", support:coach?"sam":"self"});
+      store.plans[np.id]=np; store.activeId=np.id; store.tour=store.tour||{}; if(!coach) beginFunnel(np);
+      if(!coach && !store.tour.self){ store.tour.self=true; save(true); tourStep=0; go("tour"); } else { save(true); go("screen"); } break; }
+    case "new": { const np=newPlan({origin:v==="coach"?"coach":"self", support:v==="coach"?"sam":(p&&p.support==="sam"&&p.origin!=="coach"?"sam":"self"), person:v==="coach"?"":(p?p.person:""), last:v==="coach"?"":(p?p.last||"":"")}); store.plans[np.id]=np; store.activeId=np.id; if(v!=="coach") beginFunnel(np); save(true); go(v==="coach"?"more":"screen"); if(v==="coach") toast("New client plan. Add their name, then fill in the steps."); break; }
+    case "switch": store.activeId=v; save(true); go("home"); break;
+    case "yn": { const g=a.dataset.g, i=a.dataset.i; p.screen[g][i]=v; noneConfirm=null; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "none-apply": { const g=a.dataset.g;
+      if(v==="confirm"){ const n=g==="rf"?RED_FLAGS.length:HEALTH.length; for(let i=1;i<=n;i++){ if(!p.screen[g][i]) p.screen[g][i]="no"; } noneConfirm=null; save(); }
+      else noneConfirm = v==="cancel" ? null : g;
+      const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
+    case "setnum": { const n=Number(v); if(a.dataset.path.startsWith("_tmp.")) tmp[a.dataset.path.slice(5)]=n; else setPath(p,a.dataset.path,n); save(); const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "ctx": p.assess.ctx=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "workout": p.program.workout=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-open": calForm=true; calGoogle=false; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-close": calForm=false; calGoogle=false; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-no": p.calNo=true; save(); toast("You can add them anytime from More"); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "cal-ics": { const o=calRead(p); const plan=calPlan(p,o); const ics=calIcs(p,plan);
+      const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+      if(ios){ location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics); }
+      else { const url=URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"})); const l=document.createElement("a"); l.href=url; l.download="ADAPT reminders.ics"; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); }
+      calSaved(p,o,plan); calForm=false; calGoogle=false; render(); toast("Opening your calendar"); break; }
+    case "cal-google": { const o=calRead(p); const plan=calPlan(p,o); calSaved(p,o,plan); calGoogle=true; { const y=window.scrollY; render(); window.scrollTo(0,y); } break; }
+    case "skip": p.program.skip=a.checked; save(); break;
+    case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
+    case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "logform": { logForm=v||null; tmp={}; testAsk=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "save-test": { const g=id=>document.getElementById(id).value.trim();
+      const e={date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})};
+      let prev=-1; p.logs.tests.forEach((t,i)=>{ const d=daysBetween(t.date,e.date); if(d>=0&&d<TEST_GAP&&(prev<0||t.date>=p.logs.tests[prev].date)) prev=i; });
+      if(prev>=0){ testAsk={stage:"ask",entry:e,prev}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+      saveTest(p,e); logForm=null; tmp={}; testAsk=null; render(); toast("Test saved"); break; }
+    case "testask": { const ta=testAsk; if(!ta) break; const pr=p.logs.tests[ta.prev], nextDue=d=>`Your next test is due ${esc(fmtDate(addDays(d,7)))}.`;
+      const EDU="Testing more often than once a week can keep the area stirred up and makes the trend harder to read.";
+      if(v==="ok"){ testAsk=null; logForm=null; tmp={}; render(); break; }
+      if(v==="cancel") ta.stage="form";
+      else if(v==="mistake"){ ta.stage="done"; ta.msg=`Not saved. ${nextDue(pr.date)}`; }
+      else if(v==="yes") ta.stage="which";
+      else if(v==="new"){ p.logs.tests.splice(ta.prev,1); saveTest(p,ta.entry); ta.stage="done"; ta.msg=`Saved, and it replaces your ${esc(fmtDate(pr.date))} test. ${EDU} Next test: ${esc(fmtDate(addDays(ta.entry.date,7)))}.`; }
+      else if(v==="old"){ ta.stage="done"; ta.msg=`Not saved; your ${esc(fmtDate(pr.date))} test still counts. ${EDU} Next test: ${esc(fmtDate(addDays(pr.date,7)))}.`; }
+      const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
+    case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
+      { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
+    case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "changed": { p.changed=p.changed||[]; p.changed.push({k:v,date:today()}); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); toast("Noted"); break; }
+    case "tour-step": { tourStep=+v; render(); window.scrollTo(0,0); break; }
+    case "tour-done": { tourStep=0; go(v); break; }
+    case "tour": { tourStep=0; go("tour"); break; }
+    case "setfree": { const nv = v==="yes"; tmp.free = tmp.free===nv?null:nv; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "ceil-no": { const c=ceilingCheck(p); if(c){ p.ceilAns=c.key; save(true); } const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "ceil-yes": { logForm="skill"; tmp={}; render(); const f=document.getElementById("s-date"); if(f) f.scrollIntoView({block:"center"}); break; }
+    case "new-base": { const L=p.logs.tests; if(L.length){ p.tmBase={after:L[L.length-1].date, set:today()}; save(true); } toast("New starting point set. Update the details in Step 2 if they changed."); go("step2"); break; }
+    case "settrend": { tmp.trend = tmp.trend===v?null:v; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
+    case "pickday": { selDay = v===today()?null:v; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "no-tm": { p.determine.none=!p.determine.none; p.notified=p.notified||{}; if(p.determine.none && !p.notified.determine){ p.notified.determine=true; queueFlag(p,"Discover"); } save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "handoff-yes": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoff={date:today(), at10:ls?ls.date:today()}; save(true); logEvent(p,"10/10 hand-off",p.handoff.at10); go("home"); window.scrollTo(0,0); break; }
+    case "handoff-no": { const ls=p.logs.skill.filter(r=>r.psfs!=null).pop(); p.handoffNo=ls?ls.date:today(); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "read-next": { const l=nextRead(); go("learn"); if(l){ const d=[...document.querySelectorAll("details[data-lesson]")].find(x=>x.dataset.lesson===l.t); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } } break; }
+    case "reentry-cancel": { armed=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "reentry": { if(armed!=="reentry"){ armed="reentry"; const y=window.scrollY; render(); window.scrollTo(0,y); break; } armed=null; if(p.handoff){ p.reentries=(p.reentries||[]).concat([{date:today(), from:p.handoff}]); p.handoffNo=p.handoff.at10; delete p.handoff;
+        p.tmBase={after:addDays(today(),-1), set:today()}; save(true); queueFlag(p,"Re-entry"); logEvent(p,"Re-entry"); } go("home"); break; }
+    case "handoff-undo": { if(p.handoff){ p.handoffNo=p.handoff.at10; delete p.handoff; save(true); logEvent(p,"10/10 hand-off undone"); } go("home"); break; }
+    case "handoff-prog": { p.handoff.program=v; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "rerun": { const np=newPlan({origin:"self", support:p.support==="sam"&&p.origin!=="coach"?"sam":"self", person:p.person||"", last:p.last||"", side:p.side||"", region:p.region||""}); np.assess.skill=(p.assess.goal||"").trim(); store.plans[np.id]=np; store.activeId=np.id; beginFunnel(np); save(true); go("screen"); toast("New plan started; your 11/10 goal is the new skill"); break; }
+    case "win": { p.win={date:today()}; save(true); logEvent(p,"11/10 win",p.win.date); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "win-share": { const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today(); const link=baseURL()+"#c="+await pack(data,true);
+      const body=winEmail(p)+"\n\nFull data (opens in the ADAPT app): "+link; queueWin(p); p.win.shared=today(); save(true); render();
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT 11/10: "+(planCode(p)||"(no name)"))}&body=${encodeURIComponent(body)}`; break; }
+    case "email-sam": { // builds the email at click time so the notes just typed are included
+      const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const link=baseURL()+"#c="+await pack(data,true);
+      const body="Hi Sam, I'd like details and pricing for ADAPT's direct-support coaching option. Here's where I am:\n\n"+summaryText(p)+"\n\nFull data (opens in the ADAPT app): "+link;
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT direct-support coaching")}&body=${encodeURIComponent(body)}`;
+      break; }
+    case "email-update": { logCheckin(p);
+      const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const link=baseURL()+"#c="+await pack(data,true);
+      location.href=`mailto:${SAM_EMAIL}?subject=${encodeURIComponent(checkinSubject(p))}&body=${encodeURIComponent(checkinText(p)+"\n\nFull data (opens in the ADAPT app): "+link)}`;
+      break; }
+    case "share": case "copy-sum": case "copy-link": {
+      logCheckin(p);
+      const text=checkinText(p); const data=JSON.parse(JSON.stringify(p)); delete data._draft; data._sent=today();
+      const link=baseURL()+"#c="+await pack(data,true);
+      if(act==="copy-sum"){ if(!await copy(text)) showFallback(text); }
+      else if(act==="copy-link"){ if(!await copy(link)) showFallback(link); }
+      else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data (opens in the ADAPT app): "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data (opens in the ADAPT app): "+link)) showFallback(text+"\n\nFull data (opens in the ADAPT app): "+link); } }
+      break; }
+    case "support-ended-ok": { p.supportEndedSeen=true; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "renew-link": { const d=coachData; if(!d) break; const link=baseURL()+"#r="+await pack({renew:d.id, at:today()});
+      const msg=`Your ADAPT direct support with Sam is renewed for 12 more weeks. Tap this on your phone to update your app: ${link}`;
+      if(navigator.share){ try{ await navigator.share({title:"ADAPT support renewed", text:msg}); }catch(err){} } else if(!await copy(msg)) showFallback(msg); else toast("Renewal message copied");
+      break; }
+    case "share-plan": case "copy-plan": {
+      const link=baseURL()+"#p="+await pack(planOnly(p));
+      const msg=`Here's your ADAPT plan${p.person?", "+p.person:""}. Open it on your phone and add it to your home screen: ${link}`;
+      if(act==="share-plan" && navigator.share){ try{ await navigator.share({title:"Your ADAPT plan", text:msg}); }catch(err){} }
+      else if(!await copy(msg)) showFallback(msg);
+      break; }
+    case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:today()}); delete np.supportEnded; delete np.supportEndedSeen; if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
+    case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
+    case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
+    case "view-client": coachData=store.clients[v].data; go("coach"); break;
+    case "export": { const txt="ADAPTBACKUP:"+await pack(store); if(!await copy(txt)) showFallback(txt); break; }
+    case "restore": { try{ const raw=document.getElementById("restore-code").value.trim().replace(/^ADAPTBACKUP:/,""); const s=await unpack(raw); Object.assign(store.plans, s.plans||{}); Object.assign(store.clients, s.clients||{}); if(!store.activeId) store.activeId=s.activeId||Object.keys(store.plans)[0]||null; save(true); toast("Backup restored"); go("more"); }catch(err){ toast("That backup couldn't be read"); } break; }
+    case "del-plan": { if(armed==="del"){ delete store.plans[store.activeId]; store.activeId=Object.keys(store.plans)[0]||null; armed=null; save(true); go(store.activeId?"more":"welcome"); } else { armed="del"; render(); } break; }
+  }
+});
+function rerenderKeepInputs(){ // keep typed values in log forms when tapping a scale
+  const ids=["t-date","t-dose","t-range","t-load","t-notes","o-date","o-sets","o-range","o-load","o-notes","s-date","s-notes"];
+  const vals={}; ids.forEach(i=>{const el=document.getElementById(i); if(el) vals[i]=el.value;});
+  render(); ids.forEach(i=>{const el=document.getElementById(i); if(el&&vals[i]!=null) el.value=vals[i];});
+}
+function showFallback(text){ const el=document.createElement("div"); el.className="card"; el.innerHTML=`<p class="small">Copy this:</p><textarea readonly style="min-height:120px">${esc(text)}</textarea>`; document.getElementById("app").appendChild(el); const ta=el.querySelector("textarea"); ta.focus(); ta.select(); el.scrollIntoView({block:"center"}); }
+function clearHash(){ try{ history.replaceState(null,"",baseURL()); }catch(e){} }
+// 12 weeks of direct support (Sam, October 27, 2026): after that the plan switches to solo and keeps everything.
+// Sam renews with a short link from his coach view; it changes nothing but the support dates.
+const SUPPORT_DAYS = 84;
+// Week counter and a renewal heads-up at week 10 (Sam, October 27, 2026)
+function supportInfo(p){ if(!p||p.support!=="sam"||p.origin==="coach") return null; const s=p.supportStart||p.trackStart||p.created; const d=daysBetween(s,today());
+  return { week:Math.min(12,Math.floor(d/7)+1), end:addDays(s,SUPPORT_DAYS), days:d, start:s }; }
+function supportLine(p){ const i=supportInfo(p); return i?`Direct support: week ${i.week} of 12 (through ${fmtDate(addDays(i.end,-1))})`:""; }
+function supportCheck(p){ if(!p||p.support!=="sam"||p.origin==="coach") return; const s=p.supportStart||p.trackStart||p.created;
+  if(daysBetween(s,today())>=70 && daysBetween(s,today())<SUPPORT_DAYS){ p.notified=p.notified||{}; if(p.notified.renewal!==s){ p.notified.renewal=s; save(true); queueFlag(p,"Renewal in 2 weeks"); } }
+  if(daysBetween(s,today())>=SUPPORT_DAYS){ p.support="self"; p.supportEnded=today(); delete p.supportEndedSeen; save(true); } }
+function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support==="sam") return "";
+  return `<div class="msg info"><p class="small">Your 12 weeks of direct support with Sam have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. To keep working with him, email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`; }
+function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
+  if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
+  p.support="sam"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
+  store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast("Direct support with Sam renewed for 12 weeks"); }
+async function openCode(raw){
+  try{ const kindMatch=raw.match(/#([cpr])=/); const d=await unpack(raw);
+    if(d && d.renew){ renewSupport(d); return; }
+    if(!d || !d.assess) throw new Error("bad");
+    const isCheckin = kindMatch ? kindMatch[1]==="c" : !!d._sent;
+    if(isCheckin){ coachData=d; go("coach"); } else { importData=d; go("import"); }
+  }catch(e){ toast("That link or code couldn't be read"); render(); }
+}
+
+window.addEventListener("hashchange", ()=>{ if(/^#[cpr]=/.test(location.hash)) openCode(location.hash); });
+
+/* Domain move: receiving side (new address) */
+async function receiveMove(code){
+  try{ history.replaceState(null,"",baseURL()); }catch(e){}
+  try{
+    const s=await unpack(code); if(!s||!s.plans) throw new Error("bad");
+    const n=Object.keys(s.plans).length;
+    if(!Object.keys(store.plans).length){ store=Object.assign({activeId:null,plans:{},clients:{}}, s); }
+    else {
+      Object.entries(s.plans).forEach(([id,pl])=>{ if(!store.plans[id]) store.plans[id]=pl; });
+      Object.entries(s.clients||{}).forEach(([id,c])=>{ if(!store.clients[id]) store.clients[id]=c; });
+      store.anon=Object.assign({}, s.anon||{}, store.anon||{});
+      store.tour=Object.assign({}, s.tour||{}, store.tour||{});
+      ["outbox","dataOut"].forEach(k=>{ if(s[k]&&s[k].length) store[k]=(store[k]||[]).concat(s[k]); });
+      if(!store.activeId) store.activeId=s.activeId;
+    }
+    if(store.activeId && !store.plans[store.activeId]) store.activeId=Object.keys(store.plans)[0]||null;
+    store.moveNote = !installed();
+    save(true); flushFlags(); flushData();
+    toast(n===1?"Your plan moved to the new address":"Your plans moved to the new address");
+  }catch(e){ toast("Your plan couldn’t be moved automatically. Use More > Restore a backup."); }
+}
+function moveCard(){ return `<div class="card"><h2>ADAPT has a new address</h2>
+  <p class="small">Your plan is here now, at ${esc(NEW_HOST)}. If you open ADAPT from your home screen, add this page to your home screen and delete the old ADAPT icon.</p>
+  <p class="small">On iPhone, a newly added home-screen app can start empty. Before you add it, tap <b>Copy backup</b>. If the new icon opens empty, choose <b>Restore a backup</b> and paste.</p>
+  <div class="row"><button class="btn small plain" data-act="export">Copy backup</button><button class="btn small" data-act="move-ok">Got it</button></div></div>`; }
+/* Domain move: sending side (the copy left on the old address) */
+async function moveLink(){ return MOVE_TO + (Object.keys(store.plans).length ? "#move="+await pack(store) : ""); }
+V.moved = () => { const has=Object.keys(store.plans).length;
+  return `<div class="stack"><div class="hero"><h1 class="hero-title">ADAPT has a new address</h1></div>
+  <div class="card"><p>The ADAPT app now lives at <b>${esc(NEW_HOST)}</b>.${has?" Your plan is saved on this phone; tap the button to take it with you.":""}</p>
+  <button class="btn" data-act="move-go">${has?"Move my plan to the new address":"Go to the new address"}</button></div>
+  ${has?`<div class="card"><h2>Using the app from your home screen?</h2><p class="small">After the new address opens, add it to your home screen and delete this old icon. On iPhone, the new icon can start empty: tap <b>Copy my plan</b> below first, then in the new app choose <b>Restore a backup</b> and paste.</p>
+  <button class="btn plain" data-act="export">Copy my plan</button></div>`:""}</div>`; };
+/* ---------- Boot ---------- */
+load();
+if(MOVE_SENDER){ view="moved"; render(); }
+else{
+flushFlags(); flushData();
+(async()=>{
+  const h0=location.hash;
+  if(/^#move=/.test(h0)) await receiveMove(h0.slice(6));
+  const h=location.hash; const startView = store.activeId ? "home" : "welcome";
+  try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
+  if(/^#[cpr]=/.test(h)){ view=startView; await openCode(h); }
+  else { view = startView; render(); }
+})();
+}
+if(PREVIEW){ const b=document.createElement("div"); b.textContent="Preview: a test copy, not the live app. Nothing here touches your real plan."; b.setAttribute("role","note"); b.style.cssText="position:sticky;top:0;z-index:50;background:#E8692A;color:#1a1a1a;font:600 15px/1.3 Figtree,system-ui,sans-serif;padding:8px 16px;text-align:center"; document.body.prepend(b); }
+if(!PREVIEW && "serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+
+</body>
+</html>
