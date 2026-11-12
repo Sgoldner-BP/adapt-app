@@ -277,8 +277,12 @@ const HEALTH = [
 "Are you currently taking any over-the-counter medications regularly for pain or any medical conditions?",
 "Has your doctor ever said that you should only do medically supervised physical activity?"];
 
+/* ---------- Preview mode (Sam, November 11, 2026) ----------
+   The same page served from /preview/ on the live site is a test copy Sam opens on his iPhone before a release goes live.
+   It keeps its own saved data (never touches real plans), sends no flags or counts, and installs no offline worker. */
+const PREVIEW = /^\/preview\//.test(location.pathname);
 /* ---------- Storage ---------- */
-const KEY = "adapt-app-v1";
+const KEY = PREVIEW ? "adapt-app-preview" : "adapt-app-v1";
 let store = { activeId:null, plans:{}, clients:{} };
 let saveOk = true;
 function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)||"null"); if(s && s.plans) store = Object.assign({activeId:null,plans:{},clients:{}}, s); Object.values(store.plans).forEach(x=>{ if(x.region in OLD_REGION) x.region=OLD_REGION[x.region]; }); }catch(e){ saveOk=false; } }
@@ -555,7 +559,7 @@ const MSG_NOTIFIED = "Sam has been notified to reach out to you. Send him your a
 const notifies = p => p.support==="sam" && p.origin!=="coach";
 function queueFlag(p, step){ if(!notifies(p)) return; (store.outbox=store.outbox||[]).push({client:planCode(p)||"(no name)", step, at:new Date().toISOString()}); save(true); flushFlags(); }
 let flushing=false;
-async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushing=true;
+async function flushFlags(){ if(flushing||!store.outbox||!store.outbox.length||location.hostname!==FLAG_LIVE_HOST||PREVIEW||!navigator.onLine) return; flushing=true;
   try{ while(store.outbox.length){ const f=store.outbox[0]; const body=new URLSearchParams(); body.append(FLAG_ENTRY.client,f.client); body.append(FLAG_ENTRY.step,f.step==="Determine"?"Discover":f.step);
       await fetch(FLAG_FORM,{method:"POST",mode:"no-cors",body}); store.outbox.shift(); save(true); } }catch(e){} finally{ flushing=false; } }
 window.addEventListener("online", flushFlags);
@@ -576,7 +580,7 @@ function weeklyCheck(p){ if(!p||!p.tracking||p.handoff||p.origin==="coach") retu
   if(daysBetween(p.weekSent,today())>=7){ p.weekSent=today(); save(true); logEvent(p,"Weekly summary"); } }
 function logCheckin(p){ if(!p||p.checkinLogged===today()) return; p.checkinLogged=today(); logEvent(p,"Check-in sent"); }
 let flushingData=false;
-async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||!navigator.onLine) return; flushingData=true;
+async function flushData(){ if(flushingData||!store.dataOut||!store.dataOut.length||location.hostname!==FLAG_LIVE_HOST||PREVIEW||!navigator.onLine) return; flushingData=true;
   try{ while(store.dataOut.length){ const d=store.dataOut[0]; const body=new URLSearchParams(); body.append(DATA_ENTRY.event,d.event); body.append(DATA_ENTRY.data,d.data);
       await fetch(DATA_FORM,{method:"POST",mode:"no-cors",body}); store.dataOut.shift(); save(true); } }catch(e){} finally{ flushingData=false; } }
 window.addEventListener("online", flushData);
@@ -1635,7 +1639,8 @@ flushFlags(); flushData();
   else { view = startView; render(); }
 })();
 }
-if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+if(PREVIEW){ const b=document.createElement("div"); b.textContent="Preview: a test copy, not the live app. Nothing here touches your real plan."; b.setAttribute("role","note"); b.style.cssText="position:sticky;top:0;z-index:50;background:#E8692A;color:#1a1a1a;font:600 15px/1.3 Figtree,system-ui,sans-serif;padding:8px 16px;text-align:center"; document.body.prepend(b); }
+if(!PREVIEW && "serviceWorker" in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 </script>
 
 </body>
