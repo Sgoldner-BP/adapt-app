@@ -894,8 +894,8 @@ const PARTS = {
       ${field("How did it start?","assess.how","",{area:true})}
       ${field("What have you noticed recently?","assess.recent","",{area:true})}
       ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My pain at rest (NRSoP)</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain. How it feels when you aren’t doing anything with it.</span>${scale("assess.rest",p.assess.rest,"nrsop")}</div>
-      <div class="f" style="display:grid;gap:6px"><b>My pain during it (NRSoP)</b><span class="hint muted small">When you do it, or try to.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
-      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["Pain at rest",p.assess.rest!=null?p.assess.rest+"/10":""],["Pain during it",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
+      <div class="f" style="display:grid;gap:6px"><b>My pain during activity (NRSoP)</b><span class="hint muted small">When you do it, or try to.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
+      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["Pain at rest",p.assess.rest!=null?p.assess.rest+"/10":""],["Pain during activity",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
     {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], isDaily(p) ? `
       <p class="fine">In ADAPT, this everyday task is your ${esc(skillLabel(p))}.</p>
       ${field("What everyday task is limited?","assess.skill","Something from daily life or work, described as the task, not just a body motion. ex., standing for 15 minutes, sitting through a movie, carrying groceries up the stairs, picking up your kid (not “bending my back”).",{ph:"ex., standing for 15 minutes"})}
