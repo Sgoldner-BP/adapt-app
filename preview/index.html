@@ -300,7 +300,7 @@ function newPlan(o={}){
   return Object.assign({
     id:uid(), v:1, created:today(), person:"", last:"", side:"", region:"", support:"self", origin:"self",
     screen:{ rf:{}, hh:{}, done:false, date:null },
-    assess:{ kind:"painful", ctx:"", start:"", how:"", recent:"", nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
+    assess:{ kind:"painful", ctx:"", start:"", how:"", recent:"", rest:null, nrsop:null, skill:"", inhibited:"", pct:"", psfs:null, goal:"" },
     determine:{ crux:"", move:"", dose:"", range:"", load:"", nrsop:null },
     approach:{ pfm:"", cc:"", cc2:"" },
     program:{ ov:"", replaces:"", workout:"", skip:false },
@@ -861,8 +861,8 @@ function exBox(p,k,label){ const e=exFor(p);
 function subPart(n,title,paths,body){ const p=P(); const done = paths.length && paths.every(x=>String(getPath(p,x)??"").trim());
   return `<div class="card sub" data-req="${paths.join(",")}" data-done="${done?"1":""}"><h2 class="sub-h"><span class="n"><span>${n}</span></span>${esc(title)}</h2>${body}</div>`; }
 const more = (title, html) => `<details class="more"><summary>${esc(title)}</summary><div class="small">${html}</div></details>`;
-const PAIN_EX = `<p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`;
-const PAIN_GUIDE = `<div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>`;
+const PAIN_EX = `<p class="small">Ex., if your pain at rest is a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your workout it returns to a 3/10 or below.</p>`;
+const PAIN_GUIDE = `<div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE your pain at rest</span><span>Afterward: pain settles back to your at-rest level shortly after</span></div>`;
 const shown = v => { const t=String(v??"").trim(); return t ? esc(t) : `<span class="muted">Not filled in yet</span>`; };
 const regionName = p => [ (SIDES.find(s=>s[0]===p.side)||[])[1], (REGIONS.find(r=>r[0]===p.region)||[])[1] ].filter(Boolean).join(" ").toLowerCase();
 
@@ -893,8 +893,9 @@ const PARTS = {
       ${field("When did this start?","assess.start")}
       ${field("How did it start?","assess.how","",{area:true})}
       ${field("What have you noticed recently?","assess.recent","",{area:true})}
-      ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My NRSoP score</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
-      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["NRSoP",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
+      ${isPainful(p)?`<div class="f" style="display:grid;gap:6px"><b>My pain at rest (NRSoP)</b><span class="hint muted small">Numeric Rating Scale of Pain. Higher score = more pain. How it feels when you aren’t doing anything with it.</span>${scale("assess.rest",p.assess.rest,"nrsop")}</div>
+      <div class="f" style="display:grid;gap:6px"><b>My pain during it (NRSoP)</b><span class="hint muted small">When you do it, or try to.</span>${scale("assess.nrsop",p.assess.nrsop,"nrsop")}</div>`:""}`),
+      sum:p=>[["Where",regionName(p)],["Started",p.assess.start],["How it started",p.assess.how],["Recently",p.assess.recent],...(isPainful(p)?[["Pain at rest",p.assess.rest!=null?p.assess.rest+"/10":""],["Pain during it",p.assess.nrsop!=null?p.assess.nrsop+"/10":""]]:[])]},
     {t:p=>skillLabel(p), paths:["assess.skill"], body:p=>subPart(2, skillLabel(p), ["assess.skill"], isDaily(p) ? `
       <p class="fine">In ADAPT, this everyday task is your ${esc(skillLabel(p))}.</p>
       ${field("What everyday task is limited?","assess.skill","Something from daily life or work, described as the task, not just a body motion. ex., standing for 15 minutes, sitting through a movie, carrying groceries up the stairs, picking up your kid (not “bending my back”).",{ph:"ex., standing for 15 minutes"})}
@@ -1130,7 +1131,7 @@ function dashboard(p){
   <div class="card"><div class="row spread"><h2>Overload Exercise</h2><span class="chip">${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length} this week</span></div>
     <p class="small">${p.program.skip?"Skipped for now. Keep exploring and modifying.":esc(p.program.ov||"Not set yet")}${p.program.replaces?` <span class="muted">(replaces ${esc(p.program.replaces)})</span>`:""}</p>
     ${recentTrends(p.logs.overload)}
-    ${lastOv&&logForm!=="ov"?painNote(p,lastOv.nrsop):""}
+    ${lastOv&&logForm!=="ov"?painNote(p,lastOv.nrsop,lastOv.rest):""}
     ${ovTable(p)}
     ${logForm==="ov"?ovForm(p):`<button class="btn plain" data-act="logform" data-v="ov">Log a session</button>`}
   </div>
@@ -1190,8 +1191,9 @@ function ovForm(p){ return `<div class="card" style="background:var(--soft)">
   <label class="f" for="o-sets">Reps per set<span class="hint">ex., 6,6,6. Progress toward 9,9,9.</span><input type="text" id="o-sets" placeholder="ex., 6,6,6"></label>
   <label class="f" for="o-range">Range<input type="text" id="o-range"></label>
   <label class="f" for="o-load">Load<input type="text" id="o-load"></label>
-  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>NRSoP</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
-  ${painNote(p,tmp.nrsop)}
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain at rest (NRSoP)</b><span class="hint muted small">How it feels before you start. Filled in from last time; change it if today is different.</span>${scale("_tmp.rest",tmp.rest,"nrsop")}</div>
+  <div style="display:grid;gap:6px"><b>Pain during (NRSoP)</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
+  ${painNote(p,tmp.nrsop,tmp.rest)}
   ${trendPick()}
   <label class="f" for="o-notes">Notes<input type="text" id="o-notes"></label>
   <div class="row"><button class="btn" data-act="save-ov">Save session</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div></div>`; }
@@ -1208,8 +1210,8 @@ function trendPick(){ return `<div style="display:grid;gap:6px"><b>Compared with
 function trChip(k){ const t=TRENDS.find(x=>x[0]===k); return t?`<span class="tr ${k}">${t[1]}</span>`:""; }
 function recentTrends(list){ const L=list.filter(r=>r.trend).slice(-6); return L.length?`<div class="trend-row"><span class="fine">Recent:</span>${L.map(r=>trChip(r.trend)).join("")}</div>`:""; }
 function trendCount(list,days){ const t=today(); const L=list.filter(r=>r.trend&&daysBetween(r.date,t)<days); if(!L.length) return ""; return TRENDS.map(([k,l])=>[l,L.filter(r=>r.trend===k).length]).filter(x=>x[1]).map(x=>x[0]+" "+x[1]).join(", "); }
-function painNote(p,n){ const b=p.assess.nrsop; if(!isPainful(p)||n==null||b==null||n<=b+2) return "";
-  return `<div class="msg warn"><p class="small"><b>Pain rule reminder.</b> During the exercise, pain can rise up to 2 points above your baseline, as long as it settles back to baseline shortly after. This entry (${n}/10) is more than 2 points above the NRSoP you started with (${b}/10). If it doesn’t settle back shortly after, that’s your signal to scale back next time.</p></div>`; }
+function painNote(p,n,b){ if(!isPainful(p)||n==null||b==null||n<=b+2) return "";
+  return `<div class="msg warn"><p class="small"><b>Pain rule reminder.</b> During the exercise, pain can rise up to 2 points above your pain at rest, as long as it settles back to that shortly after. This entry (${n}/10) is more than 2 points above your pain at rest (${b}/10). If it doesn’t settle back shortly after, that’s your signal to scale back next time.</p></div>`; }
 
 function rmBtn(list,i){ const k=list+":"+i; return `<button class="btn small ghost" data-act="rm" data-list="${list}" data-i="${i}">${armed===k?"Tap again to remove":"Remove"}</button>`; }
 function testTrend(p, ro){
@@ -1229,7 +1231,7 @@ function testTrend(p, ro){
 }
 function ovTable(p,ro){ const L=p.logs.overload; if(!L.length) return `<p class="fine">No sessions logged yet.</p>`;
   const cols=[["Reps","sets"],["Range","range"],["Load","load"]].filter(([,k])=>L.some(r=>r[k])); const notes=L.some(r=>r.notes);
-  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?"<th>NRSoP</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}${notes?"<th>Notes</th>":""}${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>({r,i})).slice(ro?-20:-4).reverse().map(({r,i})=>`<tr><td>${esc(fmtDate(r.date))}</td>${isPainful(p)?`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${trChip(r.trend)}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}${notes?`<td class="wrap">${esc(r.notes)}</td>`:""}${ro?"":`<td>${rmBtn("overload",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th>${isPainful(p)?(L.some(r=>r.rest!=null)?"<th>At rest</th>":"")+"<th>During</th>":""}${L.some(r=>r.trend)?"<th>Trend</th>":""}${cols.map(c=>`<th>${c[0]}</th>`).join("")}${notes?"<th>Notes</th>":""}${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>({r,i})).slice(ro?-20:-4).reverse().map(({r,i})=>`<tr><td>${esc(fmtDate(r.date))}</td>${isPainful(p)?(L.some(r=>r.rest!=null)?`<td>${r.rest==null?"":r.rest+"/10"}</td>`:"")+`<td>${r.nrsop==null?"":r.nrsop+"/10"}</td>`:""}${L.some(r=>r.trend)?`<td>${trChip(r.trend)}</td>`:""}${cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join("")}${notes?`<td class="wrap">${esc(r.notes)}</td>`:""}${ro?"":`<td>${rmBtn("overload",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
 function skillTable(p,ro){ const L=p.logs.skill; if(!L.length) return "";
   const tc=L.some(r=>r.trend); return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>PSFS</th>${tc?"<th>Trend</th>":""}<th>Notes</th>${ro?"":"<th></th>"}</tr></thead><tbody>${L.map((r,i)=>`<tr><td>${esc(fmtDate(r.date))}</td><td>${r.psfs==null?"":r.psfs+"/10"}</td>${tc?`<td>${trChip(r.trend)}</td>`:""}<td class="wrap">${esc(r.notes)}</td>${ro?"":`<td>${rmBtn("skill",i)}</td>`}</tr>`).join("")}</tbody></table></div>`; }
 
@@ -1245,7 +1247,7 @@ function summaryText(p){
   last?`  Latest (${fmtDate(last.date)}): ${[last.dose,last.range,last.load].filter(Boolean).join(", ")||"-"}${last.nrsop!=null?` | NRSoP ${last.nrsop}/10`:""}${last.notes?` | ${last.notes}`:""}`:"  No weekly tests logged yet",
   `  Tests logged: ${L.length}${trendCount(L,14)?` | last 14 days: ${trendCount(L,14)}`:""}`,
   `Overload: ${p.program.skip?"skipped for now":(p.program.ov||"-")} | sessions in last 7 days: ${p.logs.overload.filter(o=>daysBetween(o.date,t)<7).length}${trendCount(p.logs.overload,14)?` | last 14 days: ${trendCount(p.logs.overload,14)}`:""}`];
-  const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.nrsop!=null?` | NRSoP ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
+  const lo=p.logs.overload[p.logs.overload.length-1]; if(lo) lines.push(`  Last session (${fmtDate(lo.date)}): ${[lo.sets,lo.range,lo.load].filter(Boolean).join(", ")||"-"}${lo.rest!=null?` | at rest ${lo.rest}/10`:""}${lo.nrsop!=null?` | pain during ${lo.nrsop}/10`:""}${lo.notes?` | ${lo.notes}`:""}`);
   const ls=p.logs.skill[p.logs.skill.length-1]; if(ls) lines.push(`Skill retest (${fmtDate(ls.date)}): PSFS ${ls.psfs??"-"}/10${ls.trend?` | ${TRENDS.find(x=>x[0]===ls.trend)[1]}`:""}${ls.notes?` | ${ls.notes}`:""}`);
   const r=screenResult(p); if(r.any) lines.push(`Screening flags (${fmtDate(p.screen.date)}): ${[...r.yesRF.map(n=>"red flag "+n+" ("+RED_FLAGS[n-1]+")"),...r.yesHH.map(n=>"health "+n+" ("+HEALTH_SHORT[n-1]+")")].join("; ")}`);
   { const c=progressCheck(p); const ch=c.stalled?changedSince(p,c.epStart).map(x=>MOVES.find(m=>m[0]===x.k)[1]):[];
@@ -1313,8 +1315,8 @@ const learnRaw = () => `<div class="stack">
   <ul class="tight"><li><b>Avoiding all pain</b> entirely is fear, and fear feeds danger signals into the brain, which further amplifies the pain response</li>
   <li><b>Ignoring pain</b> and just powering through is disrespecting your pain, and means alarm bells are constantly blaring during your activity, which feeds danger signals into the brain, which further amplifies the pain response</li>
   <li><b>The balance</b> of “respect but don’t fear your pain” means some pain is okay, maybe even good, depending on the context.</li></ul>
-  <div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE baseline</span><span>At rest: pain returns to baseline level shortly after</span></div>
-  <p class="small">Ex., if your pain is normally at a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your practice it returns to a 3/10 or below.</p></div></details>
+  <div class="rule"><b>The pain guidelines: BOTH must be met</b><span>During movement: pain can increase 0-2 points out of 10 ABOVE your pain at rest</span><span>Afterward: pain settles back to your at-rest level shortly after</span></div>
+  <p class="small">Ex., if your pain at rest is a 3/10, then temporarily aggravating your pain to a 5/10 can be tolerable IF between sets/after your practice it returns to a 3/10 or below.</p></div></details>
   <details><summary>Skills-first approach</summary><div class="body"><p><b>The goal</b> of ADAPT is to help you adapt beyond your previous limitations. It is a uniquely skills-first approach, meaning the entire process is oriented towards and utilizes the dynamic skills and conditioning routine you cherish and are already using to achieve movement freedom.</p><p>We often fall into a binary mindset when it comes to recovery: “I’m injured so I cannot/should not challenge myself. First recover, then I’ll challenge myself again.” This steals the joy of training and even potentially slows down the healing process. Instead, use what you love to make it love you back. Make your recovery approach as similar and as specific as possible to the training you feel passionate about.</p></div></details>
   <details><summary>Find the victories obscured by the obvious losses</summary><div class="body"><p>It’s easy for us to focus on the negative; what we can’t do, don’t have, used to, should be able to, etc. We have “The One Big Goal” at the end for what success looks like. That’s great, but it means along the way we hate the process, our life, ourselves, because we aren’t THERE yet.</p>
   <p>Instead of just collecting all the negatives and being miserable, use each negative as an opportunity to find countless positives. “I can’t tie my shoes” gets redefined to “I can’t tie my shoes in XYZ-way like I normally do.” Then, explore multiple different ways to solve the problem. All of a sudden, that single, monumental, all-encompassing “I CAN’T,” which defines Movement Restriction, turns into: “Wow, I actually can tie my shoes if I do it in ABC- and DEF- and GHI-way, and I actually like GHI-way better than my usual XYZ-way.” Exploration, optionality, and adaptation are the hallmarks of Movement Freedom.</p></div></details>
@@ -1473,7 +1475,7 @@ document.addEventListener("click", async e=>{
     case "skip": p.program.skip=a.checked; save(); break;
     case "start-tracking": if(!p.tracking){ p.tracking=true; p.trackStart=today(); logEvent(p,"Plan started"); } save(true); go("home"); break;
     case "daily": { const t=selDay||today(); const d=p.logs.daily[t]||(p.logs.daily[t]={}); d[a.dataset.k]=!d[a.dataset.k]; save(); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "logform": { logForm=v||null; tmp={}; testAsk=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "logform": { logForm=v||null; tmp={}; if(v==="ov"&&isPainful(p)){ const prev=[...p.logs.overload].reverse().find(r=>r.rest!=null); tmp.rest=prev?prev.rest:(p.assess.rest??null); } testAsk=null; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "save-test": { const g=id=>document.getElementById(id).value.trim();
       const e={date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})};
       let prev=-1; p.logs.tests.forEach((t,i)=>{ const d=daysBetween(t.date,e.date); if(d>=0&&d<TEST_GAP&&(prev<0||t.date>=p.logs.tests[prev].date)) prev=i; });
@@ -1488,7 +1490,7 @@ document.addEventListener("click", async e=>{
       else if(v==="new"){ p.logs.tests.splice(ta.prev,1); saveTest(p,ta.entry); ta.stage="done"; ta.msg=`Saved, and it replaces your ${esc(fmtDate(pr.date))} test. ${EDU} Next test: ${esc(fmtDate(addDays(ta.entry.date,7)))}.`; }
       else if(v==="old"){ ta.stage="done"; ta.msg=`Not saved; your ${esc(fmtDate(pr.date))} test still counts. ${EDU} Next test: ${esc(fmtDate(addDays(pr.date,7)))}.`; }
       const y=window.scrollY; render(); window.scrollTo(0,y); break; }
-    case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
+    case "save-ov": { const g=id=>document.getElementById(id).value.trim(); p.logs.overload.push({date:g("o-date")||today(),sets:g("o-sets"),range:g("o-range"),load:g("o-load"),rest:tmp.rest??null,nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("o-notes")}); p.logs.overload.sort((x,y)=>x.date<y.date?-1:1); save(true); logForm=null; tmp={}; render(); toast("Session saved"); break; }
     case "save-skill": { const g=id=>document.getElementById(id).value.trim(); p.logs.skill.push({date:g("s-date")||today(),psfs:tmp.psfs??null,trend:tmp.trend||null,notes:g("s-notes")}); p.logs.skill.sort((x,y)=>x.date<y.date?-1:1); save(true);
       { const ls=p.logs.skill[p.logs.skill.length-1]; p.notified=p.notified||{}; if(ls&&ls.psfs===10&&p.notified.psfs10!==ls.date){ p.notified.psfs10=ls.date; save(true); queueFlag(p,"Track"); } } logForm=null; tmp={}; render(); toast("Saved"); break; }
     case "rm": { const k=a.dataset.list+":"+a.dataset.i; if(armed===k){ p.logs[a.dataset.list].splice(Number(a.dataset.i),1); armed=null; save(true); } else armed=k; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
