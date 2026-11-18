@@ -1080,7 +1080,7 @@ function calPanel(p){ const d=calDefaults(p); const days=[...Array(7)].map((_,i)
     <label class="f" for="cal-testtime" style="flex:1 1 9em;min-width:0">Test time<input type="time" id="cal-testtime" value="${esc(d.testTime)}"></label></div>
     <p class="fine">Test at about the same time each week, before you warm up. The 2-week ${p.support==="sam"&&!p.supportEnded?"check-in":"review"} reminder uses your daily time.</p>
     <label class="f" for="cal-email">Your email<input type="email" id="cal-email" autocomplete="email" inputmode="email" spellcheck="false"></label>
-    <p class="fine">We’ll email you your three reminders. Each email has a Yes (or Add to calendar) button; tap it and that reminder goes into your calendar, repeating. These aren’t meetings or invitations to anything. It’s just how calendars accept repeating reminders by email. Your email is only used to send these and isn’t saved.</p>
+    <p class="fine">We’ll email you your three reminders. Each email has a Yes (or Add to calendar) button; tap it and that reminder goes into your calendar, repeating. These aren’t meetings or invitations to anything. It’s just how calendars accept repeating reminders by email. Your email is only used for these reminders, and it’s removed when they end.</p>
     <button class="btn" data-act="cal-send" ${calSending?"disabled":""}>${calSending?"Sending…":"Send my reminders"}</button>
     <p class="fine">The reminders repeat for ${CAL_WEEKS} weeks, until ${esc(fmtDate(plan.until))}. They say “open the app for today’s movements” instead of naming them, so they stay right when your plan changes.</p>
   </div>`; }
