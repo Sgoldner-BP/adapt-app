@@ -242,7 +242,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 const DISCLAIMER = "All information gathered and recommendations given do not constitute medical advice. While we think it is spectacular and supremely helpful, anyone utilizing the pearls of wisdom contained within is doing so volitionally and is personally assuming all risk.";
 const CONFIDENTIAL = "We will treat all your information as confidential and not reveal it unnecessarily.";
 const SCREEN_DISCLAIMER = "This table cannot be used to definitively determine what you do/do not have or the severity of it. That can only be done under the direct care of a medical provider. Seek care if you feel you should. You are assuming your own risk with whatever actions you take.";
-const UPGRADE_LINK = "https://adaptbeyondpain.com/#coaching"; // the offers on the website (live November 18, 2026)
+const UPGRADE_LINK = "https://adaptbeyondpain.com/#coaching"; const UPGRADE_TEXT = "adaptbeyondpain.com"; // the offers on the website (live November 18, 2026)
 const MSG_INPERSON_A = "Based on your selection, we officially advise that you follow up with a medical professional for additional support and screening. That could be in-person, or you can get personalized guidance from our ADAPT team: ";
 const MSG_INPERSON_B = ". There is plenty you can learn from reading through the remainder of the ADAPT protocol, though, and you can use your judgement as to what questions you can still answer.";
 const MSG_TAG_SAM = "Your answers are flagged for Sam. Send them to him so he can follow up with you."; // Sam approved Oct 22, 2026
@@ -415,7 +415,7 @@ const SAM_EMAIL = "sam@adaptbeyondpain.com";
 const emailLink = () => `<a href="mailto:${SAM_EMAIL}?subject=${encodeURIComponent("ADAPT coaching")}">${SAM_EMAIL}</a>`;
 function upgradeMsg(basis){ // basis "tracking": the ladder's referral, where "your selection" doesn't fit
   const a = basis==="tracking"?MSG_INPERSON_A.replace("Based on your selection","Based on your tracking"):MSG_INPERSON_A;
-  if(UPGRADE_LINK) return esc(a)+`<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`+esc(MSG_INPERSON_B);
+  if(UPGRADE_LINK) return esc(a)+`<a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_TEXT)}</a>`+esc(MSG_INPERSON_B);
   return esc(a.replace("you can get personalized guidance from our ADAPT team: ","you can get personalized guidance through ADAPT\u2019s coaching; email Sam at "))+emailLink()+esc(" to ask about details and pricing")+esc(MSG_INPERSON_B);
 }
 function screenMessages(p){
@@ -585,8 +585,8 @@ function logCheckin(p){ if(!p||p.checkinLogged===today()) return; p.checkinLogge
 // Supported clients' check-ins: a copy goes to the "ADAPT - Check-ins" sheet for Sam's client dashboard, once a day at most,
 // queued offline like flags, live site only. Email and messages stay the way they reach Sam.
 const CLIENT_SCRIPT = "https://script.google.com/macros/s/AKfycbwW4eqgjC-xO8oE_cFK9gTZre96kB6aFVO2ZYZUAq0l4uuW3PGfEaGkNCP70vSxvgTSKw/exec";
-function saveCheckin(p, link){ if(!notifies(p)||p.checkinSaved===today()) return; p.checkinSaved=today(); const i=supportInfo(p);
-  (store.checkinOut=store.checkinOut||[]).push({kind:"checkin", code:planCode(p)||"(no name)", tier:TIERS[tierOf(p)].name, week:i?i.week+" of "+i.weeks:"", note:p.note||"", summary:checkinText(p), link});
+function saveCheckin(p, link){ if(!notifies(p)) return; const text=checkinText(p); if(p.checkinSaved===text) return; p.checkinSaved=text; const i=supportInfo(p);
+  (store.checkinOut=store.checkinOut||[]).push({kind:"checkin", id:uid(), code:planCode(p)||"(no name)", tier:TIERS[tierOf(p)].name, week:i?i.week+" of "+i.weeks:"", note:p.note||"", summary:checkinText(p), link});
   save(true); flushCheckins(); }
 let flushingCheckins=false;
 async function flushCheckins(){ if(flushingCheckins||!store.checkinOut||!store.checkinOut.length||location.hostname!==FLAG_LIVE_HOST||PREVIEW||!navigator.onLine) return; flushingCheckins=true;
@@ -675,7 +675,7 @@ V.tour = () => { const p=P(); const cards=tourCards(p); const n=cards.length; co
   ${last?"":`<button class="btn plain small" data-act="tour-done" data-v="${dest}">Skip the tour</button>`}</div>`; };
 V.welcome = () => `
   <div class="hero">
-    <img class="hero-logo" src="../img/adapt-mark.svg" alt="ADAPT" width="72" height="72">
+    <img class="hero-logo" src="../img/adapt-mark.svg" alt="" width="72" height="72">
     <h1 class="hero-title">The A.D.A.P.T. Method for Movement Resilience</h1>
     <p class="hero-tag">Adapt beyond pain.</p>
     <p class="muted" style="text-align:center">By Aaron Martin and Dr. Sam Goldner, DPT, CSCS, Pn1</p>
@@ -1285,14 +1285,14 @@ V.checkin = () => { const p=P(); const s=checkinText(p); const sam=p.support==="
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div></div>
   <div class="card"><h2>Share it (optional)</h2><p class="small">Send it to a coach, physio, or training partner. The message is a short summary; the link opens your full plan and tracking in a read-only view.</p>
   <div class="row"><button class="btn" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div></div>
-  <div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_LINK)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p>${UPGRADE_LINK?"":`<button class="btn plain small" data-act="email-sam">Email Sam with this summary</button>`}</div>
+  <div class="msg info"><p class="small">${UPGRADE_LINK?`Want personalized guidance? You can get it from our ADAPT team: <a href="${esc(UPGRADE_LINK)}" target="_blank" rel="noopener">${esc(UPGRADE_TEXT)}</a>`:`Want personalized guidance? ADAPT has a direct-support coaching option. Email Sam at ${emailLink()} to ask about details and pricing.`}</p>${UPGRADE_LINK?"":`<button class="btn plain small" data-act="email-sam">Email Sam with this summary</button>`}</div>
   </div>`; }
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Check-in</span><h1>Send Sam an update</h1><p class="muted">Sam sees what you send him. This update stays on this device until you send it.</p></div>
   <div class="card">${field("Anything to tell Sam?","note","How it's going, questions, anything that changed.",{area:true})}
   <div class="code" id="sum" style="white-space:pre-wrap;max-height:none">${esc(s)}</div>
   <div class="row"><button class="btn" data-act="email-update">Email it to Sam</button><button class="btn plain" data-act="share">Share</button><button class="btn plain" data-act="copy-sum">Copy message</button><button class="btn plain" data-act="copy-link">Copy link with full data</button></div>
-  <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view. Email it, or use Share or Copy to send it however you usually reach Sam. When you send it, a copy also goes to Sam's private client records, so he has all your check-ins in one place.</p></div>
+  <p class="fine">The message is a short summary. The link opens your full plan and tracking for Sam in his coach view. Email it, or use Share or Copy to send it however you usually reach Sam. When you tap Email, Share, or Copy, a copy also goes to Sam's private client records, so he has all your check-ins in one place.</p></div>
   </div>`; };
 
 // Learn check-offs (Sam, October 27, 2026): a lesson counts as read once it's opened
@@ -1565,13 +1565,14 @@ document.addEventListener("click", async e=>{
       break; }
     case "set-tier": { p.tier=v==="starter"?"starter":"guided"; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share-plan": case "copy-plan": { if(!p.tier){ toast("Pick their offer first"); break; }
+      p.linkSent=today(); save(true);
       const link=baseURL()+"#p="+await pack(planOnly(p));
       const msg=`Here's your ADAPT plan${p.person?", "+p.person:""}. Open it on your phone and add it to your home screen: ${link}`;
       if(act==="share-plan" && navigator.share){ try{ await navigator.share({title:"Your ADAPT plan", text:msg}); }catch(err){} }
       else if(!await copy(msg)) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
-    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:today(), tier:d.tier==="starter"?"starter":"guided"}); delete np.supportEnded; delete np.supportEndedSeen; if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:today(), tier:d.tier==="starter"?"starter":"guided", callDate:d.linkSent||today()}); delete np.supportEnded; delete np.supportEndedSeen; if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
     case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
     case "view-client": coachData=store.clients[v].data; go("coach"); break;
@@ -1605,7 +1606,7 @@ function supportCheck(p){ if(!p||p.support!=="sam"||p.origin==="coach") return; 
   if(daysBetween(s,today())>=supportDays(p)){ p.support="self"; p.supportEnded=today(); delete p.supportEndedSeen; save(true); } }
 // Offer cards (Sam, November 18 and 19, 2026). Day 0 is the day the plan link was opened.
 function offerCards(p){ if(!p||p.origin==="coach"||!p.supportStart) return ""; const d=daysBetween(p.supportStart,today()), t=tierOf(p), sam=p.support==="sam";
-  const closeBy = fmtDate(addDays(p.supportStart,13));
+  const closeBy = fmtDate(addDays(p.callDate||p.supportStart,13));   // the credit window runs 2 weeks from the setup call (the day Sam sent the link)
   if(sam && t==="guided"){ const wk = d>=28&&d<42 ? 6 : d>=56&&d<70 ? 10 : 0; if(!wk || (p.callBooked||{})[wk]===p.supportStart) return "";
     return `<div class="msg info"><b>Book your week-${wk} call</b><p class="small">A 20-minute call with Sam ${wk===6?"to look at what's working, what's stuck, and what to adjust":"to look at how far you've come, what's still limited, and what comes next"}.</p><div class="row"><a class="btn small" href="${CHECKIN_BOOKING}" target="_blank" rel="noopener">Book your call</a><button class="btn small plain" data-act="call-booked" data-v="${wk}">I've booked it</button></div></div>`; }
   if(sam && t==="starter" && d>=7 && d<14 && p.upgradeHide!==today())
@@ -1615,7 +1616,7 @@ function offerCards(p){ if(!p||p.origin==="coach"||!p.supportStart) return ""; c
   return ""; }
 function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support==="sam") return "";
   return tierOf(p)==="starter"
-   ? `<div class="msg info"><p class="small">Your 2 weeks of support with Sam (ADAPT Starter) have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. Want his help for the next stretch? <a href="${SITE}start/?o=upgrade" target="_blank" rel="noopener">Move up to ADAPT Guided</a>, or email Sam at ${emailLink()}.</p>`
+   ? `<div class="msg info"><p class="small">Your 2 weeks of support with Sam (ADAPT Starter) have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. Want his help for the next stretch? <a href="${SITE}start/?o=upgrade" target="_blank" rel="noopener">Move up to ADAPT Guided</a>, or email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`
    : `<div class="msg info"><p class="small">Your 12 weeks of ADAPT Guided with Sam have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. To keep working with him, <a href="${SITE}start/?o=renewal" target="_blank" rel="noopener">renew ADAPT Guided</a>, or email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`; }
 function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
   if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
