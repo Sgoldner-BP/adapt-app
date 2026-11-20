@@ -359,7 +359,7 @@ async function pack(obj, slim){
 }
 async function unpack(code){
   code = code.trim();
-  const m = code.match(/#([cpr])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
+  const m = code.match(/#([cprn])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
   const kind = code[0], body = code.slice(1);
   let bytes = unb64url(body);
   if(kind==="z"){ bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
@@ -773,6 +773,7 @@ V.screen = () => {
   const r=screenResult(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
+  ${siteScreenNote(p)}
   ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
   <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already, or you can get personalized guidance from our ADAPT team. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
   ${part!==1?`<div class="card"><h2>Red flags</h2>${noneNote(RED_FLAGS,rf)}<div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>${noneApply("rf",RED_FLAGS,rf)}
@@ -1315,7 +1316,7 @@ function sendPlanCard(p){ const t=p.tier; return `<div class="card"><span class=
   <div class="stack" style="gap:8px"><b>Their offer</b><div class="row">${["starter","guided"].map(k=>`<button class="btn small ${t===k?"":"plain"}" data-act="set-tier" data-v="${k}" aria-pressed="${t===k}">${TIERS[k].name} (${TIERS[k].days/7} weeks)</button>`).join("")}</div>
   ${t?`<p class="fine">${TIERS[t].days/7} weeks of support from the day they open the link.</p>`:`<p class="fine">Pick their offer first; it sets how long their support runs.</p>`}</div>
   <div class="row"><button class="btn" data-act="share-plan" ${t?"":"disabled"}>Share plan link</button><button class="btn plain" data-act="copy-plan" ${t?"":"disabled"}>Copy plan link</button></div></div>`; }
-function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; return c; }
+function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; delete c.fromSite; return c; }
 
 /* ---------- Learn ---------- */
 const learnRaw = () => `<div class="stack">
@@ -1622,16 +1623,40 @@ function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
   if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
   const was=tierOf(p); p.support="sam"; p.tier="guided"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
   store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast(was==="starter"?"ADAPT Guided with Sam: 12 weeks of support from today":"ADAPT Guided with Sam renewed for 12 weeks"); }
+/* Plan carry-over (Sam, November 20, 2026; 06, November 17, "Screening carry-over"): Sam's "Start their plan" link, from his
+   "payment received" email or the client dashboard (never sent to the client), opens a new client plan in his coach view with
+   what the client gave on the website: name, offer, side, body region, hurts or limited, sport or everyday, and the screening.
+   The link carries the client sheet's own values; this maps them to the app's. Sam confirms the screening on the call. */
+function startFromSite(d){ clearHash();
+  const str=v=>String(v==null?"":v).trim().slice(0,120);
+  const id=str(d.id); const have=id&&Object.values(store.plans).find(x=>x.fromSite&&x.fromSite.id===id);
+  if(have){ store.activeId=have.id; save(true); go(have.screen.done?"home":"screen",false,0); toast("This client's plan is already here; it's open now"); return; }
+  const name=str(d.n).split(/\s+/).filter(Boolean), sign=str(d.sg).split(/\s+/).filter(Boolean);
+  const last=sign.length>1?sign[sign.length-1]:"";
+  if(last&&name.length>1&&name[name.length-1].toLowerCase()===last.toLowerCase()) name.pop();
+  const code=(list,label)=>{ const hit=list.find(x=>x[1].toLowerCase()===str(label).toLowerCase()); return hit?hit[0]:""; };
+  const yn=(t,n)=>{ const o={}; const s=/^[yn]+$/.test(str(t))?str(t):""; if(s.length===n) [...s].forEach((c,i)=>{ o[i+1]=c==="y"?"yes":"no"; }); return o; };
+  const sd=/^\d{4}-\d\d-\d\d$/.test(str(d.sd))?str(d.sd):"";
+  const np=newPlan({origin:"coach", support:"sam", person:name.join(" "), last, side:code(SIDES,d.s), region:code(REGIONS,d.r),
+    tier:/starter/i.test(str(d.o))&&!/upgrade/i.test(str(d.o))?"starter":"guided", fromSite:{id, date:sd}});
+  np.assess.kind=/^limited/i.test(str(d.k))?"restricted":"painful";
+  np.assess.ctx=/^every/i.test(str(d.x))?"daily":/^sport/i.test(str(d.x))?"sport":"";
+  np.screen.rf=yn(d.rf,RED_FLAGS.length); np.screen.hh=yn(d.hh,HEALTH.length); np.screen.date=sd||null;
+  store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen",false,0);
+  toast(`Client plan started for ${np.person||"your client"}`); }
+function siteScreenNote(p){ if(!p||!p.fromSite||p.screen.done) return "";
+  return `<div class="msg info"><p class="small"><b>Screening from the website${p.fromSite.date?", "+esc(fmtDate(p.fromSite.date)):""}.</b> ${esc(p.person||"Your client")}'s answers are filled in. Go through them together and change any that are different today, then confirm.</p></div>`; }
 async function openCode(raw){
   try{ const kindMatch=raw.match(/#([cpr])=/); const d=await unpack(raw);
     if(d && d.renew){ renewSupport(d); return; }
+    if(d && d.site===1){ startFromSite(d); return; }
     if(!d || !d.assess) throw new Error("bad");
     const isCheckin = kindMatch ? kindMatch[1]==="c" : !!d._sent;
     if(isCheckin){ coachData=d; go("coach"); } else { importData=d; go("import"); }
   }catch(e){ toast("That link or code couldn't be read"); render(); }
 }
 
-window.addEventListener("hashchange", ()=>{ if(/^#[cpr]=/.test(location.hash)) openCode(location.hash); });
+window.addEventListener("hashchange", ()=>{ if(/^#[cprn]=/.test(location.hash)) openCode(location.hash); });
 
 /* Domain move: receiving side (new address) */
 async function receiveMove(code){
@@ -1676,7 +1701,7 @@ flushFlags(); flushData(); flushCheckins();
   if(/^#move=/.test(h0)) await receiveMove(h0.slice(6));
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
-  if(/^#[cpr]=/.test(h)){ view=startView; await openCode(h); }
+  if(/^#[cprn]=/.test(h)){ view=startView; await openCode(h); }
   else { view = startView; render(); }
 })();
 }
