@@ -1,8 +1,8 @@
 // ADAPT offline cache. Bump VERSION on every release so phones pick up the new files.
-const VERSION = "adapt-v78";
+const VERSION = "adapt-v80";
 const CORE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png",
   "img/journey.jpg","img/mountain-start.jpg","img/mountain-10.jpg","img/mountain-11.jpg","img/five-movements.jpg","img/continuum.jpg","img/before-after.jpg",
-  "img/step1.jpg","img/step2.jpg","img/step3.jpg","img/step4.jpg","img/step5.jpg",
+  "img/adapt-mark.svg","img/step1.jpg","img/step2.jpg","img/step3.jpg","img/step4.jpg","img/step5.jpg",
   "img/psfs-scale.jpg","img/ex-wall-1.jpg","img/ex-load.jpg","img/ex-replace.jpg","img/vc-push.jpg","img/vc-avoid.jpg","img/vc-fix.jpg",
   "fonts/jost-latin-600-normal.woff2","fonts/jost-latin-800-normal.woff2","fonts/figtree-latin-400-normal.woff2","fonts/figtree-latin-600-normal.woff2","fonts/figtree-latin-700-normal.woff2"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
