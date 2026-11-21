@@ -358,7 +358,7 @@ async function pack(obj, slim){
 }
 async function unpack(code){
   code = code.trim();
-  const m = code.match(/#([cpr])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
+  const m = code.match(/#([cprn])=([A-Za-z0-9_-]+)/); if(m) code = m[2];
   const kind = code[0], body = code.slice(1);
   let bytes = unb64url(body);
   if(kind==="z"){ bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); }
@@ -772,6 +772,7 @@ V.screen = () => {
   const r=screenResult(p);
   return `<div class="stack">
   <div class="card flat"><span class="eyebrow">Before you start · Part ${part===1?2:1} of 2</span><h1>Pre-ADAPT Screening</h1></div>
+  ${siteScreenNote(p)}
   ${part===1?"":`<div class="card"><p>Before starting the ADAPT journey, we need to rule out more serious underlying conditions. If you select ‘yes’ for any of the red flags below, the pain and movement related symptoms you are experiencing may be secondary to something more nefarious. Or, they may be due to a more significant structural issue that requires invasive intervention.</p>
   <p>In these cases, we advise you to seek out a professional healthcare provider in-person, if you haven’t already, or you can get personalized guidance from our ADAPT team. Regardless, the ADAPT method, or at least the lessons and perspectives it is built upon, can still be powerful tools to help you on your journey, no matter what you are dealing with.</p></div>`}
   ${part!==1?`<div class="card"><h2>Red flags</h2>${noneNote(RED_FLAGS,rf)}<div>${RED_FLAGS.map((q,i)=>yn("rf",i+1,q,rf[i+1])).join("")}</div>${noneApply("rf",RED_FLAGS,rf)}
@@ -888,18 +889,18 @@ const STEP_META = {
 const PARTS = {
   step1:[
     {t:"Overview", body:p=>{ const a=p.assess; return `<div class="card"><p>What are you dealing with? What is that getting in the way of? More information is better than less. You are setting your starting point and desired end-point. The more details you have, the easier the next steps will be.</p>
-      <b id="kind-q">Does your skill hurt, or is it limited without pain?</b>
+      <b id="kind-q">Does your skill hurt, or is it limited without pain?</b>${siteTag(p,"kind")}
       <div class="row" role="group" aria-labelledby="kind-q">
       <button class="btn small ${a.kind!=="restricted"?"":"plain"}" data-act="kind" data-v="painful" aria-pressed="${a.kind!=="restricted"}">It hurts</button>
       <button class="btn small ${a.kind==="restricted"?"":"plain"}" data-act="kind" data-v="restricted" aria-pressed="${a.kind==="restricted"}">It's limited, but doesn't hurt</button></div>
       ${a.kind==="restricted"?`<p class="fine">If the label of “pain” isn’t connecting with you, we’ve all got a weak link that’s holding us back from a skill we want; just swap that language in your mind whenever it comes up.</p>`:""}
-      <b id="ctx-q">Is it part of a sport or training, or an everyday task?</b>
+      <b id="ctx-q">Is it part of a sport or training, or an everyday task?</b>${siteTag(p,"ctx")}
       <div class="row" role="group" aria-labelledby="ctx-q">
       <button class="btn small ${a.ctx==="sport"?"":"plain"}" data-act="ctx" data-v="sport" aria-pressed="${a.ctx==="sport"}">Sport or training</button>
       <button class="btn small ${a.ctx==="daily"?"":"plain"}" data-act="ctx" data-v="daily" aria-pressed="${a.ctx==="daily"}">Everyday task</button></div>
       <p class="fine">Everyday tasks count. Standing for 15 minutes, sitting through a movie, or carrying groceries up the stairs can be your skill just like a handstand or a takedown can.</p></div>`; }},
     {t:"Where and when", paths:["region"], body:p=>subPart(1, isPainful(p)?"Pain/Injury Details":"Details", ["region"], `
-      <div class="f" style="display:grid;gap:6px"><b>Where is it?</b><span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
+      <div class="f" style="display:grid;gap:6px"><b>Where is it?</b>${siteTag(p,"where")}<span class="hint muted small">If more than one area is involved, pick the one most important to focus on in this plan.</span>
       <div class="row" role="group" aria-label="Side">${SIDES.map(([k,l])=>`<button type="button" class="btn small ${p.side===k?"":"plain"}" data-act="side" data-v="${k}" aria-pressed="${p.side===k}">${l}</button>`).join("")}</div>
       <label class="f" for="f-region"><span class="sr">Body region</span><select id="f-region" data-bind="region"><option value="">Choose a body region</option>${REGIONS.map(([k,l])=>`<option value="${k}" ${p.region===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label></div>
       ${field("When did this start?","assess.start")}
@@ -1314,7 +1315,7 @@ function sendPlanCard(p){ const t=p.tier; return `<div class="card"><span class=
   <div class="stack" style="gap:8px"><b>Their offer</b><div class="row">${["starter","guided"].map(k=>`<button class="btn small ${t===k?"":"plain"}" data-act="set-tier" data-v="${k}" aria-pressed="${t===k}">${TIERS[k].name} (${TIERS[k].days/7} weeks)</button>`).join("")}</div>
   ${t?`<p class="fine">${TIERS[t].days/7} weeks of support from the day they open the link.</p>`:`<p class="fine">Pick their offer first; it sets how long their support runs.</p>`}</div>
   <div class="row"><button class="btn" data-act="share-plan" ${t?"":"disabled"}>Share plan link</button><button class="btn plain" data-act="copy-plan" ${t?"":"disabled"}>Copy plan link</button></div></div>`; }
-function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; return c; }
+function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; delete c.fromSite; return c; }
 
 /* ---------- Learn ---------- */
 const learnRaw = () => `<div class="stack">
@@ -1441,7 +1442,7 @@ window.addEventListener("popstate", e=>{ const v=e.state&&e.state.view; if(!v) r
 /* ---------- Events ---------- */
 document.addEventListener("input", e=>{
   const el=e.target; if(!el.dataset.bind) return; const p=P(); if(!p) return;
-  setPath(p, el.dataset.bind, el.value); save();
+  setPath(p, el.dataset.bind, el.value); if(el.dataset.bind==="region"&&p.fromSite&&p.fromSite.open&&p.fromSite.open.where){ siteSeen(p,"where"); save(); const y=window.scrollY; render(); window.scrollTo(0,y); return; } save();
   if(["region","person","last"].includes(el.dataset.bind)){ const w=document.querySelector(".top .who"); if(w) w.textContent = p.origin==="coach" ? `Plan for ${planCode(p)||"client"}` : planCode(p); }
   if(view==="checkin"){ const s=document.getElementById("sum"); if(s) s.textContent=checkinText(p); }
   const sub=el.closest(".sub"); if(sub&&sub.dataset.req){ sub.dataset.done = sub.dataset.req.split(",").every(x=>String(getPath(p,x)??"").trim()) ? "1" : ""; }
@@ -1468,9 +1469,10 @@ document.addEventListener("click", async e=>{
       const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "screen-done": { p.screen.done=true; p.screen.date=today(); save(true); go(p.tracking?"home":"step1"); break; }
     case "setnum": { const n=Number(v); if(a.dataset.path.startsWith("_tmp.")) tmp[a.dataset.path.slice(5)]=n; else setPath(p,a.dataset.path,n); save(); const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
-    case "side": p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
-    case "kind": p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
-    case "ctx": p.assess.ctx=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "side": siteSeen(p,"where"); p.side=p.side===v?"":v; save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "site-ok": siteSeen(p,v); save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "kind": siteSeen(p,"kind"); p.assess.kind=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
+    case "ctx": siteSeen(p,"ctx"); p.assess.ctx=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "workout": p.program.workout=v; save(); { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "cal-open": calForm=true; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
     case "cal-close": calForm=false; { const y=window.scrollY; render(); window.scrollTo(0,y); } break;
@@ -1621,16 +1623,44 @@ function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
   if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
   const was=tierOf(p); p.support="sam"; p.tier="guided"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
   store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast(was==="starter"?"ADAPT Guided with Sam: 12 weeks of support from today":"ADAPT Guided with Sam renewed for 12 weeks"); }
+/* Plan carry-over (Sam, November 20, 2026; 06, November 17, "Screening carry-over"): Sam's "Start their plan" link, from his
+   "payment received" email or the client dashboard (never sent to the client), opens a new client plan in his coach view with
+   what the client gave on the website: name, offer, side, body region, hurts or limited, sport or everyday, and the screening.
+   The link carries the client sheet's own values; this maps them to the app's. Sam confirms the screening on the call. */
+function startFromSite(d){ clearHash();
+  const str=v=>String(v==null?"":v).trim().slice(0,120);
+  const id=str(d.id)||("n:"+str(d.n)+"|"+str(d.sg)); const have=id&&Object.values(store.plans).find(x=>x.fromSite&&x.fromSite.id===id);
+  if(have){ store.activeId=have.id; save(true); go(have.screen.done?"home":"screen",false,0); toast("This client's plan is already here; it's open now"); return; }
+  const name=str(d.n).split(/\s+/).filter(Boolean), sign=str(d.sg).split(/\s+/).filter(Boolean);
+  const last=sign.length>1?sign[sign.length-1]:"";
+  if(last&&name.length>1&&name[name.length-1].toLowerCase()===last.toLowerCase()) name.pop();
+  const code=(list,label)=>{ const hit=list.find(x=>x[1].toLowerCase()===str(label).toLowerCase()); return hit?hit[0]:""; };
+  const yn=(t,n)=>{ const o={}; const s=/^[yn]+$/.test(str(t))?str(t):""; if(s.length===n) [...s].forEach((c,i)=>{ o[i+1]=c==="y"?"yes":"no"; }); return o; };
+  const sd=/^\d{4}-\d\d-\d\d$/.test(str(d.sd))?str(d.sd):"";
+  const np=newPlan({origin:"coach", support:"sam", person:name.join(" "), last, side:code(SIDES,d.s), region:code(REGIONS,d.r),
+    tier:/starter/i.test(str(d.o))&&!/upgrade/i.test(str(d.o))?"starter":"guided", fromSite:{id, date:sd}});
+  np.assess.kind=/^limited/i.test(str(d.k))?"restricted":"painful";
+  np.assess.ctx=/^every/i.test(str(d.x))?"daily":/^sport/i.test(str(d.x))?"sport":"";
+  np.screen.rf=yn(d.rf,RED_FLAGS.length); np.screen.hh=yn(d.hh,HEALTH.length); np.screen.date=sd||null;
+  np.fromSite.open={ kind:/^(limited|hurts)/i.test(str(d.k)), ctx:!!np.assess.ctx, where:!!(np.side||np.region) };
+  store.plans[np.id]=np; store.activeId=np.id; save(true); go("screen",false,0);
+  toast(`Client plan started for ${np.person||"your client"}`); }
+function siteScreenNote(p){ if(!p||!p.fromSite||p.screen.done) return "";
+  return `<div class="msg info"><p class="small"><b>Screening from the website${p.fromSite.date?", "+esc(fmtDate(p.fromSite.date)):""}.</b> ${esc(p.person||"Your client")}'s answers are filled in. Go through them together and change any that are different today, then confirm.</p></div>`; }
+// "From the website" tag on Step 1's carried answers (Sam, November 20): it stays until Sam changes the answer or taps "Looks right".
+function siteTag(p,k){ return p&&p.fromSite&&p.fromSite.open&&p.fromSite.open[k] ? `<span class="row" style="gap:12px;align-items:center;justify-content:flex-start"><span class="chip mid">From the website</span><button type="button" class="linkbtn small" data-act="site-ok" data-v="${k}">Looks right</button></span>` : ""; }
+function siteSeen(p,k){ if(p&&p.fromSite&&p.fromSite.open) delete p.fromSite.open[k]; }
 async function openCode(raw){
   try{ const kindMatch=raw.match(/#([cpr])=/); const d=await unpack(raw);
     if(d && d.renew){ renewSupport(d); return; }
+    if(d && d.site===1){ startFromSite(d); return; }
     if(!d || !d.assess) throw new Error("bad");
     const isCheckin = kindMatch ? kindMatch[1]==="c" : !!d._sent;
     if(isCheckin){ coachData=d; go("coach"); } else { importData=d; go("import"); }
   }catch(e){ toast("That link or code couldn't be read"); render(); }
 }
 
-window.addEventListener("hashchange", ()=>{ if(/^#[cpr]=/.test(location.hash)) openCode(location.hash); });
+window.addEventListener("hashchange", ()=>{ if(/^#[cprn]=/.test(location.hash)) openCode(location.hash); });
 
 /* Domain move: receiving side (new address) */
 async function receiveMove(code){
@@ -1675,7 +1705,7 @@ flushFlags(); flushData(); flushCheckins();
   if(/^#move=/.test(h0)) await receiveMove(h0.slice(6));
   const h=location.hash; const startView = store.activeId ? "home" : "welcome";
   try{ history.replaceState({view:startView}, "", baseURL()); }catch(e){}
-  if(/^#[cpr]=/.test(h)){ view=startView; await openCode(h); }
+  if(/^#[cprn]=/.test(h)){ view=startView; await openCode(h); }
   else { view = startView; render(); }
 })();
 }

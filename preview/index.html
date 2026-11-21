@@ -1630,7 +1630,7 @@ function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
    The link carries the client sheet's own values; this maps them to the app's. Sam confirms the screening on the call. */
 function startFromSite(d){ clearHash();
   const str=v=>String(v==null?"":v).trim().slice(0,120);
-  const id=str(d.id); const have=id&&Object.values(store.plans).find(x=>x.fromSite&&x.fromSite.id===id);
+  const id=str(d.id)||("n:"+str(d.n)+"|"+str(d.sg)); const have=id&&Object.values(store.plans).find(x=>x.fromSite&&x.fromSite.id===id);
   if(have){ store.activeId=have.id; save(true); go(have.screen.done?"home":"screen",false,0); toast("This client's plan is already here; it's open now"); return; }
   const name=str(d.n).split(/\s+/).filter(Boolean), sign=str(d.sg).split(/\s+/).filter(Boolean);
   const last=sign.length>1?sign[sign.length-1]:"";
