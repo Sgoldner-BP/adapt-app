@@ -1313,8 +1313,14 @@ function postTestRead(p){ const l=nextRead(), last=p.logs.tests[p.logs.tests.len
 function sendPlanCard(p){ const t=p.tier; return `<div class="card"><span class="eyebrow">Coach</span><h2>Send this plan to ${esc(p.person||"your client")}</h2>
   <p class="small">The link carries the plan itself. When they open it, it saves on their phone and works offline from then on.</p>
   <div class="stack" style="gap:8px"><b>Their offer</b><div class="row">${["starter","guided"].map(k=>`<button class="btn small ${t===k?"":"plain"}" data-act="set-tier" data-v="${k}" aria-pressed="${t===k}">${TIERS[k].name} (${TIERS[k].days/7} weeks)</button>`).join("")}</div>
-  ${t?`<p class="fine">${TIERS[t].days/7} weeks of support from the day they open the link.</p>`:`<p class="fine">Pick their offer first; it sets how long their support runs.</p>`}</div>
-  <div class="row"><button class="btn" data-act="share-plan" ${t?"":"disabled"}>Share plan link</button><button class="btn plain" data-act="copy-plan" ${t?"":"disabled"}>Copy plan link</button></div></div>`; }
+  ${t?`<p class="fine">${TIERS[t].days/7} weeks of support from the day you first send it${p.startSent&&p.startTier===t?` (${esc(fmtDate(p.startSent))})`:""}.</p>`:`<p class="fine">Pick their offer first; it sets how long their support runs.</p>`}</div>
+  <div class="row"><button class="btn" data-act="share-plan" ${t?"":"disabled"}>Share plan link</button><button class="btn plain" data-act="copy-plan" ${t?"":"disabled"}>Copy plan link</button></div>${startSupportNote(p)}</div>`; }
+// After Sam sends a plan: a reminder to start support on the client sheet, dated the send day. Nothing starts until Sam confirms on his own page (Sam, November 23, 2026).
+const SAM_CLIENT_PAGE="https://script.google.com/a/macros/bulldogperformance.us/s/AKfycbxYxW38b_vlXSfIabXi_ZlJEvL8KYS40Myo1qSy-KoYAC9bz3zOJfgSigIjLSQepqWt6w/exec";
+function startSupportNote(p){ if(!p||!p.startSent||p.startDone===p.startSent) return "";
+  const id=p.fromSite&&/^A-[A-Za-z0-9]{4,16}$/.test(p.fromSite.id||"")?p.fromSite.id:"";
+  const btn=id?`<a class="btn small" href="${SAM_CLIENT_PAGE}?a=client&do=start&id=${encodeURIComponent(id)}&d=${encodeURIComponent(p.startSent)}" target="_blank" rel="noopener">Start support (${esc(fmtDate(p.startSent))})</a>`:"";
+  return `<div class="msg info"><b>Next: start their support</b><p class="small">${id?`This opens your confirm page with ${esc(fmtDate(p.startSent))} filled in, the day you sent it, so the dashboard counts from the same day. Nothing starts until you confirm there.`:`This plan didn't come from a website link, so start it from the dashboard's Needs you, dated ${esc(fmtDate(p.startSent))}, the day you sent it.`}</p><div class="row">${btn}<button class="btn small plain" data-act="start-done">${id?"Done":"Got it"}</button></div></div>`; }
 // The client's own progress on their device, kept when Sam sends an updated plan (Sam, November 23, 2026).
 const KEEP_ON_UPDATE=["tracking","trackStart","checkinLogged","checkinSaved","notified","callBooked","upgradeHide","weekSent","cal","calNo","handoff","handoffNo","reentries","win","ladder","tmBase","ceilAns","changed","testLogged","nudgeSeen"];
 function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; delete c.fromSite; return c; }
@@ -1559,6 +1565,7 @@ document.addEventListener("click", async e=>{
       else { if(navigator.share){ try{ await navigator.share({title:p.support==="sam"?checkinSubject(p):"ADAPT check-in", text:text+"\n\nFull data (opens in the ADAPT app): "+link}); }catch(err){} } else { if(!await copy(text+"\n\nFull data (opens in the ADAPT app): "+link)) showFallback(text+"\n\nFull data (opens in the ADAPT app): "+link); } }
       break; }
     case "call-booked": { p.callBooked=p.callBooked||{}; p.callBooked[v]=p.supportStart; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
+    case "start-done": { p.startDone=p.startSent; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "upgrade-hide": { p.upgradeHide=today(); save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "nudge-seen": { p.nudgeSeen=p.nudgeSeen||{}; p.nudgeSeen[v]=true; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "support-ended-ok": { p.supportEndedSeen=true; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
@@ -1568,15 +1575,20 @@ document.addEventListener("click", async e=>{
       break; }
     case "set-tier": { p.tier=v==="starter"?"starter":"guided"; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share-plan": case "copy-plan": { if(!p.tier){ toast("Pick their offer first"); break; }
-      p.linkSent=today(); if(!p.startSent||p.startTier!==p.tier){ p.startSent=today(); p.startTier=p.tier; } save(true);   // support, tracking, check-ins, and the call and offer cards all count from the first send (Sam, November 23, 2026)
+      const prev={linkSent:p.linkSent, startSent:p.startSent, startTier:p.startTier};
+      p.linkSent=today(); if(!p.startSent||p.startTier!==p.tier){ p.startSent=today(); p.startTier=p.tier; }   // support, tracking, check-ins, and the call and offer cards all count from the first send (Sam, November 23, 2026)
       const link=baseURL()+"#p="+await pack(planOnly(p));
       const msg=`Here's your ADAPT plan${p.person?", "+p.person:""}. Open it on your phone and add it to your home screen: ${link}`;
-      if(act==="share-plan" && navigator.share){ try{ await navigator.share({title:"Your ADAPT plan", text:msg}); }catch(err){} }
-      else if(!await copy(msg)) showFallback(msg);
+      let sent=true, fallback=false;
+      if(act==="share-plan" && navigator.share){ try{ await navigator.share({title:"Your ADAPT plan", text:msg}); }catch(err){ sent=false; } }   // a cancelled share isn't a send
+      else if(!await copy(msg)) fallback=true;
+      if(!sent){ ["linkSent","startSent","startTier"].forEach(k=>{ if(prev[k]===undefined) delete p[k]; else p[k]=prev[k]; }); }
+      save(true); { const y=window.scrollY; render(); window.scrollTo(0,y); }
+      if(fallback) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
     case "import-save": { const d=importData; const existing=store.plans[d.id]; const start=[d.startSent,d.linkSent,today()].find(x=>x&&x<=today());
-      const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:start, tier:d.tier==="starter"?"starter":"guided", callDate:start}); delete np.supportEnded; delete np.supportEndedSeen; delete np.startTier;
+      const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:start, tier:d.tier==="starter"?"starter":"guided", callDate:start}); delete np.supportEnded; delete np.supportEndedSeen; delete np.startTier; delete np.startDone;
       if(existing){ np.logs=existing.logs; np.note=existing.note; KEEP_ON_UPDATE.forEach(k=>{ if(existing[k]!==undefined) np[k]=existing[k]; else delete np[k]; }); if(!np.tracking){ np.tracking=true; np.trackStart=start; } np.trackStart=np.trackStart||start; }
       else { np.tracking=true; np.trackStart=start; } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
