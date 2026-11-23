@@ -1111,7 +1111,7 @@ function checkinDue(p){ if(!p||!p.tracking||p.origin==="coach"||p.handoff) retur
   const from=p.checkinLogged||p.trackStart||p.created; const d=daysBetween(from,today()); return d>=14?d:0; }
 function checkinCard(p){ const d=checkinDue(p); if(!d) return ""; const sam=p.support==="sam"&&!p.supportEnded;
   return sam
-   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since Sam sent your plan"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
+   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since you started"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
    : `<div class="msg info"><b>Time for your 2-week review</b><p class="small">Look back at the last 2 weeks: how often you did your movements, and what your tests say.</p><button class="btn small" data-act="go" data-v="checkin">Review my progress</button></div>`; }
 function dashboard(p){
   const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
