@@ -1110,7 +1110,7 @@ function checkinDue(p){ if(!p||!p.tracking||p.origin==="coach"||p.handoff) retur
   const from=p.checkinLogged||p.trackStart||p.created; const d=daysBetween(from,today()); return d>=14?d:0; }
 function checkinCard(p){ const d=checkinDue(p); if(!d) return ""; const sam=p.support==="sam"&&!p.supportEnded;
   return sam
-   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since you started tracking"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
+   ? `<div class="msg info"><b>Time for your check-in</b><p class="small">It’s been ${p.checkinLogged?"2 weeks since your last check-in":"2 weeks since you started"}. Send Sam your progress so he can look it over and adjust your plan if needed.</p><button class="btn small" data-act="go" data-v="checkin">Send a check-in to Sam</button></div>`
    : `<div class="msg info"><b>Time for your 2-week review</b><p class="small">Look back at the last 2 weeks: how often you did your movements, and what your tests say.</p><button class="btn small" data-act="go" data-v="checkin">Review my progress</button></div>`; }
 function dashboard(p){
   const t=today(); const sd=selDay||t; const day=p.logs.daily[sd]||{};
@@ -1315,6 +1315,8 @@ function sendPlanCard(p){ const t=p.tier; return `<div class="card"><span class=
   <div class="stack" style="gap:8px"><b>Their offer</b><div class="row">${["starter","guided"].map(k=>`<button class="btn small ${t===k?"":"plain"}" data-act="set-tier" data-v="${k}" aria-pressed="${t===k}">${TIERS[k].name} (${TIERS[k].days/7} weeks)</button>`).join("")}</div>
   ${t?`<p class="fine">${TIERS[t].days/7} weeks of support from the day they open the link.</p>`:`<p class="fine">Pick their offer first; it sets how long their support runs.</p>`}</div>
   <div class="row"><button class="btn" data-act="share-plan" ${t?"":"disabled"}>Share plan link</button><button class="btn plain" data-act="copy-plan" ${t?"":"disabled"}>Copy plan link</button></div></div>`; }
+// The client's own progress on their device, kept when Sam sends an updated plan (Sam, November 23, 2026).
+const KEEP_ON_UPDATE=["tracking","trackStart","checkinLogged","checkinSaved","notified","callBooked","upgradeHide","weekSent","cal","calNo","handoff","handoffNo","reentries","win","ladder","tmBase","ceilAns","changed","testLogged","nudgeSeen"];
 function planOnly(p){ const c=JSON.parse(JSON.stringify(p)); c.logs={daily:{},tests:[],overload:[],skill:[]}; c.note=""; delete c._draft; delete c.fromSite; return c; }
 
 /* ---------- Learn ---------- */
@@ -1566,14 +1568,17 @@ document.addEventListener("click", async e=>{
       break; }
     case "set-tier": { p.tier=v==="starter"?"starter":"guided"; save(true); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "share-plan": case "copy-plan": { if(!p.tier){ toast("Pick their offer first"); break; }
-      p.linkSent=today(); save(true);
+      p.linkSent=today(); if(!p.startSent||p.startTier!==p.tier){ p.startSent=today(); p.startTier=p.tier; } save(true);   // support, tracking, check-ins, and the call and offer cards all count from the first send (Sam, November 23, 2026)
       const link=baseURL()+"#p="+await pack(planOnly(p));
       const msg=`Here's your ADAPT plan${p.person?", "+p.person:""}. Open it on your phone and add it to your home screen: ${link}`;
       if(act==="share-plan" && navigator.share){ try{ await navigator.share({title:"Your ADAPT plan", text:msg}); }catch(err){} }
       else if(!await copy(msg)) showFallback(msg);
       break; }
     case "open-code": { const raw=(document.getElementById("open-code")||{}).value||""; await openCode(raw); break; }
-    case "import-save": { const d=importData; const existing=store.plans[d.id]; const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:today(), tier:d.tier==="starter"?"starter":"guided", callDate:d.linkSent||today()}); delete np.supportEnded; delete np.supportEndedSeen; if(existing){ np.logs=existing.logs; np.note=existing.note; np.tracking=existing.tracking; } else { np.tracking=true; np.trackStart=np.trackStart||today(); } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
+    case "import-save": { const d=importData; const existing=store.plans[d.id]; const start=[d.startSent,d.linkSent,today()].find(x=>x&&x<=today());
+      const np=Object.assign(newPlan(), d, {origin:"self", support:"sam", supportStart:start, tier:d.tier==="starter"?"starter":"guided", callDate:start}); delete np.supportEnded; delete np.supportEndedSeen; delete np.startTier;
+      if(existing){ np.logs=existing.logs; np.note=existing.note; KEEP_ON_UPDATE.forEach(k=>{ if(existing[k]!==undefined) np[k]=existing[k]; else delete np[k]; }); if(!np.tracking){ np.tracking=true; np.trackStart=start; } np.trackStart=np.trackStart||start; }
+      else { np.tracking=true; np.trackStart=start; } store.plans[np.id]=np; store.activeId=np.id; if(!existing) logEvent(np,"Plan started"); store.tour=store.tour||{}; const showTour=!store.tour.link; store.tour.link=true; save(true); importData=null; clearHash(); tourStep=0; go(showTour?"tour":"home"); toast("Plan saved on this device"); break; }
     case "coach-save": { store.clients[coachData.id]={received:today(), data:coachData}; save(true); toast("Kept on this device"); break; }
     case "coach-close": coachData=null; clearHash(); go(store.activeId?"more":"welcome"); break;
     case "view-client": coachData=store.clients[v].data; go("coach"); break;
@@ -1605,7 +1610,7 @@ function supportLine(p){ const i=supportInfo(p); return i?`${i.name}: week ${i.w
 function supportCheck(p){ if(!p||p.support!=="sam"||p.origin==="coach") return; const s=p.supportStart||p.trackStart||p.created;
   if(tierOf(p)==="guided" && daysBetween(s,today())>=70 && daysBetween(s,today())<supportDays(p)){ p.notified=p.notified||{}; if(p.notified.renewal!==s){ p.notified.renewal=s; save(true); queueFlag(p,"Renewal in 2 weeks"); } }
   if(daysBetween(s,today())>=supportDays(p)){ p.support="self"; p.supportEnded=today(); delete p.supportEndedSeen; save(true); } }
-// Offer cards (Sam, November 18 and 19, 2026). Day 0 is the day the plan link was opened.
+// Offer cards (Sam, November 18 and 19, 2026). Day 0 is the day Sam sent the plan link.
 function offerCards(p){ if(!p||p.origin==="coach"||!p.supportStart) return ""; const d=daysBetween(p.supportStart,today()), t=tierOf(p), sam=p.support==="sam";
   const closeBy = fmtDate(addDays(p.callDate||p.supportStart,13));   // the credit window runs 2 weeks from the setup call (the day Sam sent the link)
   if(sam && t==="guided"){ const wk = d>=28&&d<42 ? 6 : d>=56&&d<70 ? 10 : 0; if(!wk || (p.callBooked||{})[wk]===p.supportStart) return "";
@@ -1621,8 +1626,8 @@ function supportEndedCard(p){ if(!p.supportEnded||p.supportEndedSeen||p.support=
    : `<div class="msg info"><p class="small">Your 12 weeks of ADAPT Guided with Sam have ended. Your plan and tracking stay here and keep working, just without automatic notices to Sam. To keep working with him, <a href="${SITE}start/?o=renewal" target="_blank" rel="noopener">renew ADAPT Guided</a>, or email Sam at ${emailLink()}.</p><button class="btn small plain" data-act="support-ended-ok">Got it</button></div>`; }
 function renewSupport(d){ const p=store.plans[d.renew]; clearHash();
   if(!p){ toast("This renewal link is for a plan that isn't on this device"); render(); return; }
-  const was=tierOf(p); p.support="sam"; p.tier="guided"; if(p.origin==="coach") p.origin="self"; p.supportStart=today(); delete p.supportEnded; delete p.supportEndedSeen;
-  store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast(was==="starter"?"ADAPT Guided with Sam: 12 weeks of support from today":"ADAPT Guided with Sam renewed for 12 weeks"); }
+  const was=tierOf(p); p.support="sam"; p.tier="guided"; if(p.origin==="coach") p.origin="self"; const at=d.at&&d.at<=today()?d.at:today(); p.supportStart=at; delete p.supportEnded; delete p.supportEndedSeen;
+  store.activeId=p.id; save(true); logEvent(p,"Support renewed"); go("home"); toast(was==="starter"?"ADAPT Guided with Sam: 12 weeks of support from "+(at===today()?"today":fmtDate(at)):"ADAPT Guided with Sam renewed for 12 weeks"); }
 /* Plan carry-over (Sam, November 20, 2026; 06, November 17, "Screening carry-over"): Sam's "Start their plan" link, from his
    "payment received" email or the client dashboard (never sent to the client), opens a new client plan in his coach view with
    what the client gave on the website: name, offer, side, body region, hurts or limited, sport or everyday, and the screening.
