@@ -66,6 +66,9 @@ p{margin:0}
 .pop-back{position:fixed;inset:0;z-index:60;background:rgba(6,20,30,.6);display:grid;place-items:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));overflow-y:auto}
 .pop{width:100%;max-width:440px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
 .pop h2{margin:0}
+td>.linkbtn{display:inline-block;padding:10px 0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pop-back{background:rgba(0,0,0,.78)}}
+:root[data-theme="dark"] .pop-back{background:rgba(0,0,0,.78)}
 .eyebrow{font-size:.875rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-weight:700}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
@@ -480,6 +483,13 @@ function progressCheck(p){ const ceil=ceilingCheck(p);
     else { under = o==="I" ? under+1 : 0; rung++; if(rung>3){ refer=true; step={type:"refer"}; } else step={type:"change", rung, date:t.date}; }
   }
   return {stalled:true, refer, regressed, checks, rung, step, outcome, epStart, key: epStart+":"+checks}; }
+// An edited or deleted test can move the stall's start date. Carry the stall's flag and frozen outcomes over, so an
+// edit never sends Sam a second flag for the same stall (review, November 26, 2026).
+function testsEdited(p,before){ const after=progressCheck(p);
+  if(before.stalled&&after.stalled&&before.epStart!==after.epStart&&after.checks<=before.checks){
+    p.notified=p.notified||{}; if(p.notified.track===before.key) p.notified.track=after.key;
+    const lad=p.ladder||{}; for(let k=1;k<=before.checks;k++){ const o=lad[before.epStart+":"+k]; if(o&&!lad[after.epStart+":"+k]) lad[after.epStart+":"+k]=o; } p.ladder=lad; }
+  save(true); checkTrackFlag(p); }
 function freezeCheck(p){ const c=progressCheck(p); if(c.stalled&&c.key&&c.outcome){ p.ladder=p.ladder||{}; p.ladder[c.key]=c.outcome; } }
 function changedSince(p,since){ return (p.changed||[]).filter(x=>x.date>=since); }
 // Movements still to find: the first exercise adjustment (Sam)
@@ -1213,7 +1223,7 @@ function ovForm(p){ const f=logDraft||{}; return `<div class="card" style="backg
   <label class="f" for="o-sets">Reps per set<span class="hint">ex., 6,6,6. Progress toward 9,9,9.</span><input type="text" id="o-sets" placeholder="ex., 6,6,6" value="${esc(f.sets||"")}"></label>
   <label class="f" for="o-range">Range<input type="text" id="o-range" value="${esc(f.range||"")}"></label>
   <label class="f" for="o-load">Load<input type="text" id="o-load" value="${esc(f.load||"")}"></label>
-  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain at rest (NRSoP)</b><span class="hint muted small">How it feels before you start. Filled in from last time; change it if today is different.</span>${scale("_tmp.rest",tmp.rest,"nrsop")}</div>
+  ${isPainful(p)?`<div style="display:grid;gap:6px"><b>Pain at rest (NRSoP)</b><span class="hint muted small">${logEdit!=null?"How it felt before you started.":"How it feels before you start. Filled in from last time; change it if today is different."}</span>${scale("_tmp.rest",tmp.rest,"nrsop")}</div>
   <div style="display:grid;gap:6px"><b>Pain during (NRSoP)</b>${scale("_tmp.nrsop",tmp.nrsop,"nrsop")}</div>`:""}
   ${painNote(p,tmp.nrsop,tmp.rest)}
   ${trendPick()}
@@ -1245,16 +1255,17 @@ const EDIT_HINT=`<p class="fine">Tap a date to edit or delete that entry.</p>`;
 function editTail(what){ return delAsk
   ? `<div class="msg warn" role="alert"><p class="small"><b>Delete this ${what}?</b> This can’t be undone.</p><div class="row"><button class="btn" data-act="log-del" data-v="yes">Delete</button><button class="btn plain" data-act="log-del" data-v="no">Keep it</button></div></div>`
   : `<div class="row"><button class="btn" data-act="${what==="test"?"save-test":"save-ov"}">Save changes</button><button class="btn plain" data-act="log-del" data-v="ask">Delete</button><button class="btn plain" data-act="logform" data-v="">Cancel</button></div>`; }
-function carriedHint(what){ const c=logDraft&&logEdit==null?logDraft.carried:null; if(!c) return "";
-  return `<p class="fine">${c==="base"?"Filled in from Step 2, since you set a new starting point.":`Filled in from your last ${what}.`} Change anything that’s different today${what==="test"?", and rate it fresh.":"."}</p>`; }
+function carriedHint(what){ const c=logDraft&&logEdit==null&&!testAsk?logDraft.carried:null; if(!c) return "";
+  return `<p class="fine">${c==="base"?"Filled in from Step 2, your current starting point.":`Filled in from your last ${what}.`} Change anything that’s different today${what==="test"?", and rate it fresh.":"."}</p>`; }
 // Weekly test reminder card (Sam, November 24, 2026). Due days fall on the calendar reminder's test day (by default
 // the plan's start weekday, so every 7 days from the start). On the first open of a due day it pops up, and again on
 // the first open of each later day until that week's test is logged or the person taps "Not now". A test logged in the
 // 5 days before the due day, or after it, counts for that week (the app's 5-day rule), so a recent test means no card.
-function testDueDay(p){ const s=p.trackStart||p.created; if(!s) return null; const wd=Number(calDefaults(p).testDay); let d=today();
+function testStart(p){ const r=(p.reentries||[]).slice(-1)[0], s=p.trackStart||p.created; return r&&r.date&&(!s||r.date>s)?r.date:s; }
+function testDueDay(p){ const s=testStart(p); if(!s) return null; const wd=Number(calDefaults(p).testDay); let d=today();
   for(let i=0;i<7&&new Date(d+"T12:00:00").getDay()!==wd;i++) d=addDays(d,-1);
   return daysBetween(s,d)>=TEST_GAP ? d : null; }
-function testNextIn(p){ const s=p.trackStart||p.created||today(), wd=Number(calDefaults(p).testDay), t=today(); let d=addDays(t,1);
+function testNextIn(p){ const s=testStart(p)||today(), wd=Number(calDefaults(p).testDay), t=today(); let d=addDays(t,1);
   for(let i=0;i<14;i++){ if(new Date(d+"T12:00:00").getDay()===wd&&daysBetween(s,d)>=TEST_GAP) break; d=addDays(d,1); } return daysBetween(t,d); }
 function testCardDue(p){ if(!p||!p.tracking||p.handoff||p.origin==="coach"||!(p.determine.move||"").trim()) return null;
   const due=testDueDay(p); if(!due) return null;
@@ -1264,6 +1275,10 @@ function testPopBox(p){ return `<div class="pop-back"><div class="card pop" role
   <p class="small"><b>${esc(p.determine.move)}</b></p>
   <p class="small">Test it cold, before you warm up or train, so your numbers show real change.</p>
   <div class="row"><button class="btn" data-act="testpop" data-v="log">Log your test</button><button class="btn plain" data-act="testpop" data-v="later">Not now</button></div></div></div>`; }
+document.addEventListener("keydown", e=>{ if(!testPop) return; const pop=document.querySelector(".pop"); if(!pop) return;
+  if(e.key==="Escape"){ e.preventDefault(); const b=pop.querySelector('[data-v="later"]'); if(b) b.click(); return; }
+  if(e.key==="Tab"){ const f=[...pop.querySelectorAll("button")]; if(!f.length) return; const i=f.indexOf(document.activeElement);
+    e.preventDefault(); f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus(); } });
 let testAsk = null; // the double-test prompt: {stage:'ask'|'which'|'done', entry, prev (index), msg}
 const TRENDS=[["progressed","Progressed"],["same","Same"],["regressed","Regressed"],["unclear","Unclear"]];
 function trendPick(){ return `<div style="display:grid;gap:6px"><b>Compared with last time</b><div class="trend-pick" role="group" aria-label="Compared with last time">${TRENDS.map(([k,l])=>`<button type="button" data-act="settrend" data-v="${k}" aria-pressed="${tmp.trend===k}">${l}</button>`).join("")}</div></div>`; }
@@ -1555,14 +1570,14 @@ document.addEventListener("click", async e=>{
     case "logform": { openLog(p,v); const y=window.scrollY; render(); window.scrollTo(0,y); break; }
     case "log-edit": { openLog(p,v,Number(a.dataset.i)); render(); const f=document.getElementById(v==="test"?"t-date":"o-date"); if(f) f.closest(".card").scrollIntoView({block:"start"}); break; }
     case "log-del": { if(logEdit==null) break; const list=logForm==="test"?"tests":"overload";
-      if(v==="yes"){ p.logs[list].splice(logEdit,1); save(true); openLog(p,null); render(); toast(list==="tests"?"Test deleted":"Session deleted"); break; }
+      if(v==="yes"){ const t=list==="tests"; if(t) freezeCheck(p); const before=t?progressCheck(p):null; p.logs[list].splice(logEdit,1); save(true); if(t) testsEdited(p,before); openLog(p,null); render(); toast(list==="tests"?"Test deleted":"Session deleted"); break; }
       delAsk = v==="ask"; const y=window.scrollY; rerenderKeepInputs(); window.scrollTo(0,y); break; }
     case "testpop": { const tp=P(); testPop=false;
-      if(v==="log"){ openLog(tp,"test"); render(); const f=document.getElementById("t-date"); if(f) f.closest(".card").scrollIntoView({block:"start"}); break; }
+      if(v==="log"){ openLog(tp,"test"); render(); const f=document.getElementById("t-date"); if(f){ f.closest(".card").scrollIntoView({block:"start"}); f.focus({preventScroll:true}); } break; }
       tp.testCard={...(tp.testCard||{}),hide:testDueDay(tp)}; save(true); render(); break; }
     case "save-test": { const g=id=>document.getElementById(id).value.trim();
       const e={date:g("t-date")||today(),dose:g("t-dose"),range:g("t-range"),load:g("t-load"),nrsop:tmp.nrsop??null,trend:tmp.trend||null,notes:g("t-notes"),...(isPainful(p)||tmp.free==null?{}:{free:tmp.free})};
-      if(logEdit!=null){ p.logs.tests[logEdit]=e; p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); save(true); checkTrackFlag(p); openLog(p,null); render(); toast("Test updated"); break; }
+      if(logEdit!=null){ freezeCheck(p); const before=progressCheck(p); p.logs.tests[logEdit]=e; p.logs.tests.sort((x,y)=>x.date<y.date?-1:1); testsEdited(p,before); openLog(p,null); render(); toast("Test updated"); break; }
       let prev=-1; p.logs.tests.forEach((t,i)=>{ const d=daysBetween(t.date,e.date); if(d>=0&&d<TEST_GAP&&(prev<0||t.date>=p.logs.tests[prev].date)) prev=i; });
       if(prev>=0){ testAsk={stage:"ask",entry:e,prev}; const y=window.scrollY; render(); window.scrollTo(0,y); break; }
       saveTest(p,e); openLog(p,null); render(); toast("Test saved"); break; }
